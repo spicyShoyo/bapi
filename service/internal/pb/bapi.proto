@@ -1,0 +1,87 @@
+syntax = "proto3";
+option go_package = "bapi/internal/pb";
+
+package bapi;
+
+enum Status {
+  UNKNOWN = 0;
+  OK = 200;
+  ACCEPTED = 202;
+  NO_CONTENT = 204;
+  BAD_REQUEST = 400;
+  SERVER_ERROR = 500;
+}
+
+enum FilterOp {
+  EQ = 0;
+  NE = 1;
+  LT = 2;
+  GT = 3;
+  LE =4;
+  GE = 5;
+  NONNULL = 6;
+  NULL = 7;
+}
+
+message Filter {
+  string column_name = 1;
+  FilterOp filter_op = 2;
+  oneof value {
+    int64 int_val = 3;
+    string str_val = 4;
+  }
+}
+
+message RowsQuery {
+  int64 min_ts = 1;
+  int64 max_ts = 2;
+  repeated Filter int_filters = 3;
+  repeated Filter str_filters = 4;
+  repeated string int_column_names = 5;
+  repeated string str_column_names = 6;
+}
+
+message RowsQueryResult {
+  int32 count = 1;
+
+  repeated string int_column_names = 2;
+  repeated int64 int_result = 3;
+  repeated bool int_has_value = 4;
+
+  repeated string str_column_names = 5;
+  map<uint32, string> str_id_map = 6;
+  repeated uint32 str_result = 7;
+  repeated bool str_has_value = 8;
+}
+
+service Bapi {
+  rpc Ping(PingRequest) returns (PingReply) {}
+  rpc IngestRawRows(IngestRawRowsRequset) returns (IngestRawRowsReply) {}
+  rpc QueryRows(QueryRowsRequest) returns (QueryRowsReply) {}
+  rpc InitiateShutdown(InitiateShutdownRequest) returns (InitiateShutdownReply) {}
+}
+
+message IngestRawRowsRequset { string rows = 1; }
+message IngestRawRowsReply { 
+  Status status = 1;
+  optional string message = 2; 
+}
+
+message QueryRowsRequest { RowsQuery query = 1; }
+message QueryRowsReply { 
+  Status status = 1; 
+  optional string message = 2; 
+  optional RowsQueryResult result = 3; 
+}
+
+message PingRequest { string name = 1; }
+message PingReply { 
+  Status status = 1;
+  optional string message = 2; 
+ }
+
+message InitiateShutdownRequest { string reason = 1; }
+message InitiateShutdownReply {
+  Status status = 1;
+  optional string message = 2; 
+}

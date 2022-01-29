@@ -1,0 +1,3 @@
+#!/bin/bash
+# generates protobuf code in the local repo so that language server works
+cd internal/pb; ./compile.sh; cd -; bazel build //internal/pb/...

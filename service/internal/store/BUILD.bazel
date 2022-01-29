@@ -1,0 +1,42 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "store",
+    srcs = [
+        "block.go",
+        "column_storage.go",
+        "ingester.go",
+        "lib.go",
+        "math_util.go",
+        "numeric_storage.go",
+        "query.go",
+        "table.go",
+    ],
+    importpath = "bapi/internal/store",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/common",
+        "//internal/pb",
+        "@com_github_davecgh_go_spew//spew",
+        "@com_github_kelindar_bitmap//:bitmap",
+    ],
+)
+
+go_test(
+    name = "store_test",
+    srcs = [
+        "block_test.go",
+        "column_storage_test.go",
+        "ingester_test.go",
+        "lib_test.go",
+        "math_util_test.go",
+        "numeric_storage_test.go",
+    ],
+    data = glob(["fixtures/*.json"]),
+    embed = [":store"],
+    deps = [
+        "//internal/common",
+        "//internal/pb",
+        "@com_github_stretchr_testify//assert",
+    ],
+)
