@@ -39,7 +39,7 @@ message RawRow {
 
 message RowsQuery {
   int64 min_ts = 1;
-  int64 max_ts = 2;
+  optional int64 max_ts = 2;
   repeated Filter int_filters = 3;
   repeated Filter str_filters = 4;
   repeated string int_column_names = 5;
@@ -67,8 +67,8 @@ service Bapi {
 }
 
 message IngestRawRowsRequset { 
-  repeated RawRow jsonRows = 1;
-  optional string stringRows = 2;
+  repeated RawRow rows = 1;
+  bool use_server_ts= 2;
 }
 
 message IngestRawRowsReply { 

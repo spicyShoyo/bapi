@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 	"unsafe"
 
 	"github.com/davecgh/go-spew/spew"
@@ -34,12 +35,6 @@ type Table struct {
 }
 
 func (t *Table) RowsQuery(query *pb.RowsQuery) (*pb.RowsQueryResult, bool) {
-	if t.rowCount == 0 ||
-		t.minTs > query.MaxTs || t.maxTs < query.MinTs || query.MinTs > query.MaxTs {
-		// has value and t.minTs <= query.minTs <= query.MaxTs < t.maxTs
-		return nil, false
-	}
-
 	if len(query.IntColumnNames) == 0 && len(query.StrColumnNames) == 0 {
 		return nil, false
 	}
@@ -112,10 +107,24 @@ func (t *Table) toPbQueryResult(query *pb.RowsQuery, result *BlockQueryResult) (
 	}, true
 }
 
+func (t *Table) verifyRowsQuery(query *pb.RowsQuery) bool {
+	// has value and t.minTs <= query.minTs <= query.MaxTs < t.maxTs
+	if t.rowCount == 0 || t.maxTs < query.MinTs {
+		return false
+	}
+
+	if query.MaxTs != nil {
+		maxTs := query.GetMaxTs()
+		if t.minTs > maxTs || query.MinTs > maxTs {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (t *Table) newRowsQuery(query *pb.RowsQuery) (*blockQuery, bool) {
-	if t.rowCount == 0 ||
-		t.minTs > query.MaxTs || t.maxTs < query.MinTs || query.MinTs > query.MaxTs {
-		// has value and t.minTs <= query.minTs <= query.MaxTs < t.maxTs
+	if ok := t.verifyRowsQuery(query); !ok {
 		return nil, false
 	}
 
@@ -190,9 +199,14 @@ func (t *Table) newBlockfilter(query *pb.RowsQuery) (BlockFilter, bool) {
 		})
 	}
 
+	maxTs := time.Now().Unix()
+	if query.MaxTs != nil {
+		maxTs = query.GetMaxTs()
+	}
+
 	return BlockFilter{
 		MinTs:      query.MinTs,
-		MaxTs:      query.MaxTs,
+		MaxTs:      maxTs,
 		intFilters: intFilters,
 		strFilters: strFilters,
 	}, true
@@ -240,12 +254,11 @@ func (table *Table) IngestFile(fileName string) {
 
 // Reads the given buffer and ingests rows to the table
 func (table *Table) IngestBuf(scanner *bufio.Scanner) {
-	table.ingester.zeroOut()
 	cnt_success := 0
 	cnt_all := 0
 
 	for scanner.Scan() {
-		batch_cnt_success, batch_cnt_all := table.ingestBatch(scanner)
+		batch_cnt_success, batch_cnt_all := table.ingestBufOneBlock(scanner)
 		cnt_success += batch_cnt_success
 		cnt_all += batch_cnt_all
 	}
@@ -268,14 +281,13 @@ func (table *Table) addBlock(block *Block) bool {
 
 // Reads the given buffer and process the rows until either the buffer is empty
 // or reached max rows per block, then add a new block to the table.
-// Note: this assumes that Scan was just called on the scanner.
-// TODO: how to check if the buffer is empty without advancing the cursor?
-func (table *Table) ingestBatch(scanner *bufio.Scanner) (int, int) {
+// *Note* this assumes that Scan was just called on the scanner.
+func (table *Table) ingestBufOneBlock(scanner *bufio.Scanner) (int, int) {
 	table.ingester.zeroOut()
 	cnt_success := 0
 	cnt_all := 0
 
-	// assumes Scan was called but has outstanding unprocessed bytes
+	// assumes Scan was called and has outstanding unprocessed bytes
 	for {
 		cnt_all += 1
 		var rawJson RawJson
@@ -302,29 +314,45 @@ func (table *Table) ingestBatch(scanner *bufio.Scanner) (int, int) {
 	return cnt_success, cnt_all
 }
 
-func (table *Table) IngestJsonRows(rows []*pb.RawRow) int {
-	// TODO: add batching
-	if len(rows) > table.ctx.GetMaxRowsPerBlock() {
-		table.ctx.Logger.Errorf("too many rows to ingest")
-		return 0
-	}
+// Reads the given buffer and process the rows until either the buffer is empty
+// @param useServerTs if true, this overrides the `ts` column with time.Now().Unix()
+// 	This should be set to true for production logging cases and set to false for data backfill.
+func (table *Table) IngestJsonRows(rows []*pb.RawRow, useServerTs bool) int {
 	cnt_success := 0
+	serverReceviedTs := time.Now().Unix()
 
-	for _, row := range rows {
-		if err := table.ingester.ingestRawJson(table, RawJson{
-			Int: row.Int,
-			Str: row.Str,
-		}); err == nil {
-			cnt_success += 1
-		} else {
-			table.ctx.Logger.Errorf("failed to ingest json: %v", err)
+	i := 0
+	for i < len(rows) {
+		table.ingester.zeroOut()
+		cur_block_cnt := 0
+
+		// process until end of rows or reached max rows per block
+		for i < len(rows) {
+			row := rows[i]
+			i++
+			cur_block_cnt++
+
+			if useServerTs {
+				row.Int[TS_COLUMN_NAME] = serverReceviedTs
+			}
+
+			if err := table.ingester.ingestRawJson(table, RawJson{
+				Int: row.Int,
+				Str: row.Str,
+			}); err != nil {
+				table.ctx.Logger.Errorf("failed to ingest row: %v", err)
+			}
+
+			if cur_block_cnt == table.ctx.GetMaxRowsPerBlock() {
+				break
+			}
+		}
+
+		if ok := table.addBlock(table.ingester.buildBlock()); ok {
+			cnt_success += cur_block_cnt
 		}
 	}
 
-	ok := table.addBlock(table.ingester.buildBlock())
-	if !ok {
-		return 0
-	}
 	table.ctx.Logger.Infof("injested: %d, total: %d", cnt_success, len(rows))
 	return cnt_success
 }

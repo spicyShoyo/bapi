@@ -1,1 +1,0 @@
-grpc_cli call localhost:50051 bapi.Bapi.IngestRawRows "stringRows: '{\"int\":{\"ts\":1641712510,\"count\":726},\"str\":{\"event\":\"edit\",\"message\":\"hi\"}}\n{\"int\":{\"ts\":1641712511,\"count\":726},\"str\":{\"event\":\"init_app\",\"message\":\"hi\"}}\n'"

@@ -43,10 +43,12 @@ func TestQuery(t *testing.T) {
 			Str: map[string]string{"event": "create", "source": "modal"},
 		},
 	})
+
+	maxTs := int64(1643175611)
 	result, _ := table.RowsQuery(
 		&pb.RowsQuery{
 			MinTs: 1643175607,
-			MaxTs: 1643175611,
+			MaxTs: &maxTs,
 			IntFilters: []*pb.Filter{
 				{
 					ColumnName: "count",

@@ -4,9 +4,7 @@ import (
 	common "bapi/internal/common"
 	pb "bapi/internal/pb"
 	"bapi/internal/store"
-	"bufio"
 	context "context"
-	"strings"
 )
 
 type server struct {
@@ -41,15 +39,10 @@ func (s *server) InitiateShutdown(ctx context.Context, in *pb.InitiateShutdownRe
 }
 
 func (s *server) IngestRawRows(ctx context.Context, in *pb.IngestRawRowsRequset) (*pb.IngestRawRowsReply, error) {
-	if in.StringRows != nil {
-		s.table.IngestBuf(
-			bufio.NewScanner(strings.NewReader(*in.StringRows)),
-		)
-	} else if len(in.JsonRows) != 0 {
-		s.table.IngestJsonRows(
-			in.JsonRows,
-		)
-	}
+	s.table.IngestJsonRows(
+		in.Rows,
+		in.UseServerTs,
+	)
 
 	return &pb.IngestRawRowsReply{
 		Status:  pb.Status_ACCEPTED,
