@@ -13,11 +13,16 @@ type server struct {
 	table *store.Table
 }
 
-func NewServer(ctx *common.BapiCtx) *server {
+func NewServer(ctx *common.BapiCtx, backfillFile *string) *server {
 	s := &server{}
 	s.ctx = ctx
 	// TODO: properly set up the table
 	s.table = store.NewTable(ctx, "test_table")
+
+	if backfillFile != nil {
+		s.table.IngestFile(*backfillFile)
+	}
+
 	return s
 }
 

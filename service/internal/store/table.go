@@ -245,7 +245,7 @@ func NewTable(ctx *common.BapiCtx, name string) *Table {
 func (table *Table) IngestFile(fileName string) {
 	file, err := os.Open(fileName)
 	if err != nil {
-		table.ctx.Logger.Errorf("failed to open file for ingestion: %v", err)
+		table.ctx.Logger.Errorf("failed to open file for ingestion: %s, %v", fileName, err)
 	}
 	defer file.Close()
 
