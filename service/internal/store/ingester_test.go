@@ -10,6 +10,9 @@ import (
 func TestBuildBlock(t *testing.T) {
 	table := NewTable(common.NewBapiCtx(), "asd")
 	ingester := newIngester()
+	_, err := ingester.buildBlock()
+	assert.NotNilf(t, err, "should not build block when empty")
+
 	rawRows := []RawJson{
 		{
 			Int: map[string]int64{"ts": 1643175607},
@@ -56,7 +59,7 @@ func TestBuildBlock(t *testing.T) {
 		"modal": {2},
 	}, table, ingester, strPartialColumns)
 
-	block := ingester.buildBlock()
+	block, _ := ingester.buildBlock()
 	assert.Equal(t, int64(1643175607), block.minTs)
 	assert.Equal(t, int64(1643175611), block.maxTs)
 	assert.Equal(t, 3, block.rowCount)

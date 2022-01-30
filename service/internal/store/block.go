@@ -42,16 +42,25 @@ func newBasicBlockStorage(
 	strValueMap map[string]strId,
 	intPartialColumns partialColumns[int64],
 	strPartialColumns partialColumns[strId],
-) *basicBlockStorage {
+) (*basicBlockStorage, error) {
+	intColStorage, err := newIntColumnsStorage(intPartialColumns, rowCount)
+	if err != nil {
+		return nil, err
+	}
+
+	strColStorage, err := newStrColumnsStorage(strPartialColumns, rowCount, strIdMap, strValueMap)
+	if err != nil {
+		return nil, err
+	}
+
 	return &basicBlockStorage{
 		minTs:    minTs,
 		maxTs:    maxTs,
 		rowCount: rowCount,
 
-		intColsStorage: newIntColumnsStorage(intPartialColumns, rowCount),
-		strColsStorage: newStrColumnsStorage(
-			strPartialColumns, rowCount, strIdMap, strValueMap),
-	}
+		intColsStorage: intColStorage,
+		strColsStorage: strColStorage,
+	}, nil
 }
 
 func (bbs *basicBlockStorage) query(ctx *common.BapiCtx, query *blockQuery) (*BlockQueryResult, bool) {

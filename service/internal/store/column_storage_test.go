@@ -395,10 +395,12 @@ func debugNewIntColumnsStorageFromRows(t *testing.T, rows debugRows[int64]) *int
 	// since we require every row to have ts, we can assume there is no row not in the intColStorage
 	totalRowCount := len(rows)
 
-	intStorage := newIntColumnsStorage(
+	intStorage, err := newIntColumnsStorage(
 		debugNewPartialColumns(rows),
 		totalRowCount,
 	)
+	assert.Nil(t, err)
+
 	ns := intStorage.numericStorage
 	assert.Nil(t, ns.debugInvariantCheck(), "storage: %v", ns)
 	assertNumericStorageMatchRows(t, rows, &ns, totalRowCount)
@@ -504,7 +506,7 @@ func debugNewStrColumnsStorageFromRows(t *testing.T, rows debugRows[strId], tota
 			}
 		}
 	}
-	strStorage := newStrColumnsStorage(
+	strStorage, _ := newStrColumnsStorage(
 		debugNewPartialColumns(rows),
 		totalRowCount,
 		strIdMap,

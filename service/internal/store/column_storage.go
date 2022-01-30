@@ -1,6 +1,7 @@
 package store
 
 import (
+	"errors"
 	"sort"
 )
 
@@ -12,16 +13,20 @@ type intColumnsStorage struct {
 func newIntColumnsStorage(
 	partialColumns partialColumns[int64],
 	rowCount int,
-) *intColumnsStorage {
-	intStorage := &intColumnsStorage{
-		numericStorage: *fromPartialColumns(partialColumns, rowCount),
+) (*intColumnsStorage, error) {
+	storage, err := fromPartialColumns(partialColumns, rowCount)
+	if err != nil {
+		return nil, err
 	}
 
-	// TODO: don't panic
-	if rowCount != len(intStorage.matrix[0]) {
-		panic("not all rows are being stored to intColStorage, this means that some are missing ts")
+	intStorage := &intColumnsStorage{
+		numericStorage: *storage,
 	}
-	return intStorage
+
+	if rowCount != len(intStorage.matrix[0]) {
+		return nil, errors.New("not all rows are being stored to intColStorage, this means that some are missing ts")
+	}
+	return intStorage, nil
 }
 
 func (ics *intColumnsStorage) get(
@@ -110,12 +115,17 @@ func newStrColumnsStorage(
 	rowCount int,
 	strIdMap map[strId]string,
 	strValueMap map[string]strId,
-) *strColumnsStorage {
+) (*strColumnsStorage, error) {
+	storage, err := fromPartialColumns(partialColumns, rowCount)
+	if err != nil {
+		return nil, err
+	}
+
 	return &strColumnsStorage{
 		strIdMap:       strIdMap,
 		strValueMap:    strValueMap,
-		numericStorage: *fromPartialColumns(partialColumns, rowCount),
-	}
+		numericStorage: *storage,
+	}, nil
 }
 
 func (scs *strColumnsStorage) get(

@@ -83,7 +83,7 @@ func TestFromPartialColumns(t *testing.T) {
 		},
 	}
 	partialColumns := debugNewPartialColumns(rows)
-	ns := fromPartialColumns(partialColumns, 10 /*rowCount*/)
+	ns, _ := fromPartialColumns(partialColumns, 10 /*rowCount*/)
 	assert.Nil(t, ns.debugInvariantCheck(), "storage: %v", ns)
 	assertNumericStorageMatchRows(t, rows, ns, 10)
 }
@@ -116,7 +116,7 @@ func assertFilterHasResult[V OrderedNumeric](
 	}
 
 	partialColumns := debugNewPartialColumns(s.rows)
-	ns := fromPartialColumns(partialColumns, s.rowCount)
+	ns, _ := fromPartialColumns(partialColumns, s.rowCount)
 	assert.Nil(t, ns.debugInvariantCheck(), "storage: %v", ns)
 
 	for _, df := range s.filters {
@@ -338,7 +338,7 @@ func assertGetResultNumericStorage[V OrderedNumeric](
 		idx++
 	})
 
-	ns := fromPartialColumns(debugNewPartialColumns(s.rows), storageRowCount)
+	ns, _ := fromPartialColumns(debugNewPartialColumns(s.rows), storageRowCount)
 	assert.Nil(t, ns.debugInvariantCheck(), "storage: %v", ns)
 	result, actualResultValues := ns.get(ctx, true /* recordValue */)
 	matrix, hasValue := result.matrix, result.hasValue

@@ -97,6 +97,7 @@ func debugNewPrefilledTable(rawRows []RawJson) *Table {
 		)
 	}
 
-	table.addBlock(table.ingester.buildBlock())
+	block, _ := table.ingester.buildBlock()
+	table.addBlock(block)
 	return table
 }

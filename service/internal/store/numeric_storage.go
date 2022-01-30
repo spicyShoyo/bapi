@@ -74,12 +74,11 @@ func newNumericStorage[T OrderedNumeric](colCount int, rowCount int) (*numericSt
 
 // Creates a numericStorage from a partialColumns
 // The caller is responsible to make sure that colId and rowId are valid.
-func fromPartialColumns[T OrderedNumeric](partialColumns partialColumns[T], rowCount int) *numericStorage[T] {
+func fromPartialColumns[T OrderedNumeric](partialColumns partialColumns[T], rowCount int) (*numericStorage[T], error) {
 	colCount := len(partialColumns)
 	storage, ok := newNumericStorage[T](colCount, rowCount)
 	if !ok {
-		// TODO: don't panic
-		panic("failed to create numeric storage")
+		return nil, errors.New("failed to create numeric storage")
 	}
 
 	localColId := localColumnId(0)
@@ -115,7 +114,7 @@ func fromPartialColumns[T OrderedNumeric](partialColumns partialColumns[T], rowC
 		processCol(colId)
 	}
 
-	return storage
+	return storage, nil
 }
 
 // Gets the local column id

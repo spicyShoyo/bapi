@@ -1,6 +1,7 @@
 package store
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 )
@@ -27,7 +28,8 @@ func (ingester *ingester) zeroOut() {
 	ingester.rows = ingester.rows[:0]
 }
 
-// TODO: make this a struct
+// returns intPartialColumns, strPartialColumns, minTs, maxTs
+// should only be called by buildBlock or unit tests
 func (ingester *ingester) prepareBlockData() (partialColumns[int64], partialColumns[strId], int64, int64) {
 	sort.Slice(ingester.rows, func(i, j int) bool {
 		left, right := ingester.rows[i], ingester.rows[j]
@@ -56,23 +58,26 @@ func (ingester *ingester) prepareBlockData() (partialColumns[int64], partialColu
 	return intPartialColumns, strPartialColumns, minTs, maxTs
 }
 
-func (ingester *ingester) buildBlock() *Block {
+func (ingester *ingester) buildBlock() (*Block, error) {
 	if len(ingester.rows) == 0 {
-		// TODO: don't panic
-		panic("ingester is empty")
+		return nil, errors.New("ingester is emptry")
 	}
 	intPartialColumns, strPartialColumns, minTs, maxTs := ingester.prepareBlockData()
-
 	rowCount := len(ingester.rows)
+	blockStorage, err := newBasicBlockStorage(
+		minTs, maxTs, rowCount,
+		ingester.strIdMap, ingester.strValueMap, intPartialColumns, strPartialColumns)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Block{
 		minTs:    minTs,
 		maxTs:    maxTs,
 		rowCount: rowCount,
 
-		storage: newBasicBlockStorage(
-			minTs, maxTs, rowCount,
-			ingester.strIdMap, ingester.strValueMap, intPartialColumns, strPartialColumns),
-	}
+		storage: blockStorage,
+	}, nil
 }
 
 func (ingester *ingester) ingestRawJson(

@@ -272,10 +272,11 @@ func (table *Table) addBlock(block *Block) bool {
 		table.ctx.Logger.Error("refuse to add an empty block")
 		return false
 	}
+
 	table.minTs = min(table.minTs, block.minTs)
 	table.maxTs = max(table.maxTs, block.maxTs)
 	table.rowCount += block.rowCount
-	table.blocks = append(table.blocks, table.ingester.buildBlock())
+	table.blocks = append(table.blocks, block)
 	return true
 }
 
@@ -306,7 +307,13 @@ func (table *Table) ingestBufOneBlock(scanner *bufio.Scanner) (int, int) {
 		}
 	}
 
-	ok := table.addBlock(table.ingester.buildBlock())
+	block, err := table.ingester.buildBlock()
+	if err != nil {
+		table.ctx.Logger.Error("fail to build block: %v", err)
+		return 0, cnt_all
+	}
+
+	ok := table.addBlock(block)
 	if !ok {
 		return 0, cnt_all
 	}
@@ -348,7 +355,13 @@ func (table *Table) IngestJsonRows(rows []*pb.RawRow, useServerTs bool) int {
 			}
 		}
 
-		if ok := table.addBlock(table.ingester.buildBlock()); ok {
+		block, err := table.ingester.buildBlock()
+		if err != nil {
+			table.ctx.Logger.Error("fail to build block: %v", err)
+			continue
+		}
+
+		if ok := table.addBlock(block); ok {
 			cnt_success += cur_block_cnt
 		}
 	}

@@ -268,7 +268,8 @@ func debugBuildTableAndBlockFromIngester(rawRows []RawJson) (*Table, *Block) {
 			rawRow,
 		)
 	}
-	return table, ingester.buildBlock()
+	block, _ := ingester.buildBlock()
+	return table, block
 }
 
 // --------------------------- bitmap ----------------------------
