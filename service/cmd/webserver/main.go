@@ -29,6 +29,7 @@ func main() {
 	{
 		g.GET("/ping", getPing)
 		g.POST("/ingest", postIngest)
+		g.GET("/queryRows", getQueryRows)
 	}
 
 	r.Run(":8080")
@@ -85,4 +86,28 @@ func postIngest(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusAccepted, &reply)
+}
+
+func getQueryRows(c *gin.Context) {
+	request := pb.QueryRowsRequest{}
+	if err := c.BindJSON(&request); err != nil {
+		c.AbortWithError(http.StatusBadRequest, err)
+		return
+	}
+	conn, ok := getServiceConnection()
+	if !ok {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
+	client := pb.NewBapiClient(conn)
+
+	reply, e := client.QueryRows(context.Background(), &request)
+	if e != nil {
+		logger.Warnf("fail to get service reply: %v", e)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, &reply)
 }

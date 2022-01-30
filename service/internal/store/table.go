@@ -205,7 +205,7 @@ func NewTable(ctx *common.BapiCtx, name string) *Table {
 		blocks:        make([]*Block, 0),
 		ColumnNameMap: make(map[string]*ColumnInfo),
 		rowCount:      0,
-		minTs:         0,
+		minTs:         int64(0xFFFFFFFF),
 		maxTs:         0,
 		ctx:           ctx,
 		ingester:      newIngester(),
@@ -251,20 +251,23 @@ func (table *Table) IngestBuf(scanner *bufio.Scanner) {
 	}
 
 	table.ctx.Logger.Infof("injested: %d, total: %d", cnt_success, cnt_all)
-	newBlock := table.ingester.buildBlock()
-	table.addBlock(newBlock)
 }
 
 // TODO sort blocks
-func (table *Table) addBlock(block *Block) {
+func (table *Table) addBlock(block *Block) bool {
+	if block.rowCount == 0 {
+		table.ctx.Logger.Error("refuse to add an empty block")
+		return false
+	}
 	table.minTs = min(table.minTs, block.minTs)
 	table.maxTs = max(table.maxTs, block.maxTs)
 	table.rowCount += block.rowCount
 	table.blocks = append(table.blocks, table.ingester.buildBlock())
+	return true
 }
 
-// Reads the given buffer and ingests rows to the table until either the buffer is empty
-// or reached max rows per block
+// Reads the given buffer and process the rows until either the buffer is empty
+// or reached max rows per block, then add a new block to the table.
 // Note: this assumes that Scan was just called on the scanner.
 // TODO: how to check if the buffer is empty without advancing the cursor?
 func (table *Table) ingestBatch(scanner *bufio.Scanner) (int, int) {
@@ -291,8 +294,9 @@ func (table *Table) ingestBatch(scanner *bufio.Scanner) (int, int) {
 		}
 	}
 
-	if cnt_success > 0 {
-		table.blocks = append(table.blocks, table.ingester.buildBlock())
+	ok := table.addBlock(table.ingester.buildBlock())
+	if !ok {
+		return 0, cnt_all
 	}
 	table.ctx.Logger.Infof("batch injested: %d, total: %d", cnt_success, cnt_all)
 	return cnt_success, cnt_all
@@ -317,8 +321,9 @@ func (table *Table) IngestJsonRows(rows []*pb.RawRow) int {
 		}
 	}
 
-	if cnt_success > 0 {
-		table.blocks = append(table.blocks, table.ingester.buildBlock())
+	ok := table.addBlock(table.ingester.buildBlock())
+	if !ok {
+		return 0
 	}
 	table.ctx.Logger.Infof("injested: %d, total: %d", cnt_success, len(rows))
 	return cnt_success
