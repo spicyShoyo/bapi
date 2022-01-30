@@ -11,14 +11,15 @@ go_library(
         "numeric_storage.go",
         "query.go",
         "table.go",
+        "table_column.go",
     ],
     importpath = "bapi/internal/store",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/common",
         "//internal/pb",
-        "@com_github_davecgh_go_spew//spew",
         "@com_github_kelindar_bitmap//:bitmap",
+        "@org_uber_go_atomic//:atomic",
     ],
 )
 

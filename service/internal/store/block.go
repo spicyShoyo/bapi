@@ -8,6 +8,7 @@ import (
 
 type strId uint32
 
+// An immutable data structure storing some rows in the sorted by ts order
 type Block struct {
 	minTs    int64
 	maxTs    int64

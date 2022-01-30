@@ -5,12 +5,10 @@ import (
 	"bapi/internal/pb"
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"os"
+	"sync"
 	"time"
 	"unsafe"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 /**
@@ -23,15 +21,16 @@ import (
  *   except `ts`, which is created upon the creation of the table.
  */
 type Table struct {
-	Name          string
-	blocks        []*Block
-	ColumnNameMap map[string]*ColumnInfo
+	Name   string
+	blocks []*Block
 
-	rowCount int
-	minTs    int64
-	maxTs    int64
-	ctx      *common.BapiCtx
-	ingester *ingester
+	colInfoMap columnInfoMap
+
+	rowCount     int
+	minTs        int64
+	maxTs        int64
+	ctx          *common.BapiCtx
+	ingesterPool *sync.Pool
 }
 
 func (t *Table) RowsQuery(query *pb.RowsQuery) (*pb.RowsQueryResult, bool) {
@@ -215,18 +214,18 @@ func (t *Table) newBlockfilter(query *pb.RowsQuery) (BlockFilter, bool) {
 // Creates a new table
 func NewTable(ctx *common.BapiCtx, name string) *Table {
 	table := &Table{
-		Name:          name,
-		blocks:        make([]*Block, 0),
-		ColumnNameMap: make(map[string]*ColumnInfo),
-		rowCount:      0,
-		minTs:         int64(0xFFFFFFFF),
-		maxTs:         0,
-		ctx:           ctx,
-		ingester:      newIngester(),
+		Name:         name,
+		blocks:       make([]*Block, 0),
+		rowCount:     0,
+		minTs:        int64(0xFFFFFFFF),
+		maxTs:        0,
+		ctx:          ctx,
+		colInfoMap:   newColumnInfoMap(),
+		ingesterPool: &sync.Pool{New: func() interface{} { return newIngester() }},
 	}
 
 	table.getOrRegisterColumnId(TS_COLUMN_NAME, IntColumnType)
-	_, inColNameMap := table.ColumnNameMap[TS_COLUMN_NAME]
+	_, inColNameMap := table.getColumnInfo(TS_COLUMN_NAME)
 	if !inColNameMap {
 		ctx.Logger.Panic("missing ts column")
 	}
@@ -254,16 +253,18 @@ func (table *Table) IngestFile(fileName string) {
 
 // Reads the given buffer and ingests rows to the table
 func (table *Table) IngestBuf(scanner *bufio.Scanner) {
+	ingester := table.ingesterPool.Get().(*ingester)
 	cnt_success := 0
 	cnt_all := 0
 
 	for scanner.Scan() {
-		batch_cnt_success, batch_cnt_all := table.ingestBufOneBlock(scanner)
+		batch_cnt_success, batch_cnt_all := table.ingestBufOneBlock(ingester, scanner)
 		cnt_success += batch_cnt_success
 		cnt_all += batch_cnt_all
 	}
 
 	table.ctx.Logger.Infof("injested: %d, total: %d", cnt_success, cnt_all)
+	table.ingesterPool.Put(ingester)
 }
 
 // TODO sort blocks
@@ -283,8 +284,8 @@ func (table *Table) addBlock(block *Block) bool {
 // Reads the given buffer and process the rows until either the buffer is empty
 // or reached max rows per block, then add a new block to the table.
 // *Note* this assumes that Scan was just called on the scanner.
-func (table *Table) ingestBufOneBlock(scanner *bufio.Scanner) (int, int) {
-	table.ingester.zeroOut()
+func (table *Table) ingestBufOneBlock(ingester *ingester, scanner *bufio.Scanner) (int, int) {
+	ingester.zeroOut()
 	cnt_success := 0
 	cnt_all := 0
 
@@ -296,7 +297,7 @@ func (table *Table) ingestBufOneBlock(scanner *bufio.Scanner) (int, int) {
 			table.ctx.Logger.Errorf("failed to parse json: %v", err)
 			continue
 		}
-		if err := table.ingester.ingestRawJson(table, rawJson); err == nil {
+		if err := ingester.ingestRawJson(table, rawJson); err == nil {
 			cnt_success += 1
 		} else {
 			table.ctx.Logger.Errorf("failed to ingest json: %v", err)
@@ -307,7 +308,7 @@ func (table *Table) ingestBufOneBlock(scanner *bufio.Scanner) (int, int) {
 		}
 	}
 
-	block, err := table.ingester.buildBlock()
+	block, err := ingester.buildBlock()
 	if err != nil {
 		table.ctx.Logger.Error("fail to build block: %v", err)
 		return 0, cnt_all
@@ -325,12 +326,13 @@ func (table *Table) ingestBufOneBlock(scanner *bufio.Scanner) (int, int) {
 // @param useServerTs if true, this overrides the `ts` column with time.Now().Unix()
 // 	This should be set to true for production logging cases and set to false for data backfill.
 func (table *Table) IngestJsonRows(rows []*pb.RawRow, useServerTs bool) int {
+	ingester := table.ingesterPool.Get().(*ingester)
 	cnt_success := 0
 	serverReceviedTs := time.Now().Unix()
 
 	i := 0
 	for i < len(rows) {
-		table.ingester.zeroOut()
+		ingester.zeroOut()
 		cur_block_cnt := 0
 
 		// process until end of rows or reached max rows per block
@@ -343,7 +345,7 @@ func (table *Table) IngestJsonRows(rows []*pb.RawRow, useServerTs bool) int {
 				row.Int[TS_COLUMN_NAME] = serverReceviedTs
 			}
 
-			if err := table.ingester.ingestRawJson(table, RawJson{
+			if err := ingester.ingestRawJson(table, RawJson{
 				Int: row.Int,
 				Str: row.Str,
 			}); err != nil {
@@ -355,7 +357,7 @@ func (table *Table) IngestJsonRows(rows []*pb.RawRow, useServerTs bool) int {
 			}
 		}
 
-		block, err := table.ingester.buildBlock()
+		block, err := ingester.buildBlock()
 		if err != nil {
 			table.ctx.Logger.Error("fail to build block: %v", err)
 			continue
@@ -367,67 +369,6 @@ func (table *Table) IngestJsonRows(rows []*pb.RawRow, useServerTs bool) int {
 	}
 
 	table.ctx.Logger.Infof("injested: %d, total: %d", cnt_success, len(rows))
+	table.ingesterPool.Put(ingester)
 	return cnt_success
-}
-
-// Creates a new column
-func (table *Table) registerNewColumn(colName string, colType ColumnType) (columnId, error) {
-	if _, alreadyExists := table.ColumnNameMap[colName]; alreadyExists {
-		return 0, fmt.Errorf("column with name already exists: %s", colName)
-	}
-	if len(table.ColumnNameMap) == table.ctx.GetMaxColumn() {
-		return 0, fmt.Errorf("too many columns, max: %d", table.ctx.GetMaxColumn())
-	}
-
-	columnId := columnId(len(table.ColumnNameMap))
-
-	columnInfo := &ColumnInfo{
-		id:         columnId,
-		Name:       colName,
-		ColumnType: colType,
-	}
-
-	table.ColumnNameMap[colName] = columnInfo
-
-	return columnId, nil
-}
-
-// Gets or creates a column of the given name and type
-func (table *Table) getOrRegisterColumnId(colName string, colType ColumnType) (columnId, error) {
-	if columnInfo, ok := table.ColumnNameMap[colName]; ok {
-		if columnInfo.ColumnType != colType {
-			return 0, fmt.Errorf(
-				"column type mismatch for %s, expected: %d, got: %d", columnInfo.Name, columnInfo.ColumnType, colType)
-		}
-		return columnInfo.id, nil
-	}
-
-	return table.registerNewColumn(colName, colType)
-}
-
-func (table *Table) getColumnInfo(colName string) (*ColumnInfo, bool) {
-	if colInfo, ok := table.ColumnNameMap[colName]; ok {
-		return colInfo, true
-	}
-	return nil, false
-}
-
-func (table *Table) getColumnInfoAndAssertType(colName string, colType ColumnType) (*ColumnInfo, bool) {
-	colInfo, ok := table.getColumnInfo(colName)
-	if !ok {
-		table.ctx.Logger.Warnf("unknown column: %s", colName)
-		return nil, false
-	}
-
-	if colInfo.ColumnType != colType {
-		table.ctx.Logger.Warnf("unexpected type for column: %s, expected: %d, got: %d", colName, colInfo.ColumnType, colType)
-		return nil, false
-	}
-
-	return colInfo, true
-}
-
-// --------------------------- debug helpers ----------------------------
-func (table *Table) DebugDump() {
-	fmt.Printf(spew.Sdump(table))
 }

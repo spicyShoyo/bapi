@@ -33,7 +33,7 @@ func TestBuildBlock(t *testing.T) {
 			rawRow,
 		)
 	}
-	assert.Equal(t, len(table.ColumnNameMap), 4)
+	assert.Equal(t, table.colInfoMap.colCount.Load(), uint32(4))
 
 	intPartialColumns, strPartialColumns, minTs, maxTs := ingester.prepareBlockData()
 	assert.Equal(t, int64(1643175607), minTs)

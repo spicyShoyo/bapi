@@ -6,6 +6,8 @@ import (
 	"sort"
 )
 
+// A data structure for processing a set of rows and building the block for inserting into
+// the table. NOT threadsafe
 type ingester struct {
 	strIdMap    map[strId]string
 	strValueMap map[string]strId

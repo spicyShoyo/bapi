@@ -90,14 +90,15 @@ func TestQuery(t *testing.T) {
 
 func debugNewPrefilledTable(rawRows []RawJson) *Table {
 	table := NewTable(common.NewBapiCtx(), "asd")
+	ingester := table.ingesterPool.Get().(*ingester)
 	for _, rawRow := range rawRows {
-		table.ingester.ingestRawJson(
+		ingester.ingestRawJson(
 			table,
 			rawRow,
 		)
 	}
 
-	block, _ := table.ingester.buildBlock()
+	block, _ := ingester.buildBlock()
 	table.addBlock(block)
 	return table
 }
