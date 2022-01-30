@@ -9,28 +9,34 @@ import (
 	"sync"
 	"time"
 	"unsafe"
+
+	"go.uber.org/atomic"
 )
 
 /**
  * Represents a table
- * Name: the name of the table
- * Blocks: data structure that stores the data of this table
- * ColumnNameMap: mapping from column names to column info
+ * blocks: data structure that stores the data of this table
+ * colInfoMap: mapping from column names to column info
  *   A column exists in this table iff the column name is present in this map.
  *   A column is created when the table ingests the first row that has value in this column,
  *   except `ts`, which is created upon the creation of the table.
  */
 type Table struct {
-	Name   string
-	blocks []*Block
-
+	ctx        *common.BapiCtx
+	tableInfo  tableInfo
 	colInfoMap columnInfoMap
 
-	rowCount     int
-	minTs        int64
-	maxTs        int64
-	ctx          *common.BapiCtx
 	ingesterPool *sync.Pool
+
+	// TODO: make this threadsafe
+	blocks []*Block
+}
+
+type tableInfo struct {
+	name     string
+	rowCount *atomic.Uint32
+	minTs    *atomic.Int64
+	maxTs    *atomic.Int64
 }
 
 func (t *Table) RowsQuery(query *pb.RowsQuery) (*pb.RowsQueryResult, bool) {
@@ -108,13 +114,13 @@ func (t *Table) toPbQueryResult(query *pb.RowsQuery, result *BlockQueryResult) (
 
 func (t *Table) verifyRowsQuery(query *pb.RowsQuery) bool {
 	// has value and t.minTs <= query.minTs <= query.MaxTs < t.maxTs
-	if t.rowCount == 0 || t.maxTs < query.MinTs {
+	if t.tableInfo.rowCount.Load() == 0 || t.tableInfo.maxTs.Load() < query.MinTs {
 		return false
 	}
 
 	if query.MaxTs != nil {
 		maxTs := query.GetMaxTs()
-		if t.minTs > maxTs || query.MinTs > maxTs {
+		if t.tableInfo.minTs.Load() > maxTs || query.MinTs > maxTs {
 			return false
 		}
 	}
@@ -214,13 +220,16 @@ func (t *Table) newBlockfilter(query *pb.RowsQuery) (BlockFilter, bool) {
 // Creates a new table
 func NewTable(ctx *common.BapiCtx, name string) *Table {
 	table := &Table{
-		Name:         name,
+		ctx:        ctx,
+		colInfoMap: newColumnInfoMap(),
+		tableInfo: tableInfo{
+			name:     name,
+			rowCount: atomic.NewUint32(0),
+			minTs:    atomic.NewInt64(0xFFFFFFFF),
+			maxTs:    atomic.NewInt64(0),
+		},
+
 		blocks:       make([]*Block, 0),
-		rowCount:     0,
-		minTs:        int64(0xFFFFFFFF),
-		maxTs:        0,
-		ctx:          ctx,
-		colInfoMap:   newColumnInfoMap(),
 		ingesterPool: &sync.Pool{New: func() interface{} { return newIngester() }},
 	}
 
@@ -274,9 +283,21 @@ func (table *Table) addBlock(block *Block) bool {
 		return false
 	}
 
-	table.minTs = min(table.minTs, block.minTs)
-	table.maxTs = max(table.maxTs, block.maxTs)
-	table.rowCount += block.rowCount
+	for {
+		oldMinTs := table.tableInfo.minTs.Load()
+		if swapped := table.tableInfo.minTs.CAS(oldMinTs, min(oldMinTs, block.minTs)); swapped {
+			break
+		}
+	}
+
+	for {
+		oldMaxTs := table.tableInfo.maxTs.Load()
+		if swapped := table.tableInfo.maxTs.CAS(oldMaxTs, max(oldMaxTs, block.maxTs)); swapped {
+			break
+		}
+	}
+
+	table.tableInfo.rowCount.Add(uint32(block.rowCount))
 	table.blocks = append(table.blocks, block)
 	return true
 }
