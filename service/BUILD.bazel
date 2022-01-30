@@ -14,8 +14,13 @@ gazelle(
 )
 
 alias(
-    name = "server",
+    name = "bapiserver",
     actual = "//cmd/bapiserver:bapiserver",
+)
+
+alias(
+    name = "webserver",
+    actual = "//cmd/webserver:webserver",
 )
 
 alias(

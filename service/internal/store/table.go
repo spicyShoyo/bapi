@@ -27,6 +27,8 @@ type Table struct {
 	colInfoMap columnInfoMap
 
 	ingesterPool *sync.Pool
+	pbChan       chan pbMessage
+	pbQueue      []*partialBlock
 
 	// TODO: make this threadsafe
 	blocks []*Block
@@ -47,6 +49,7 @@ func (t *Table) RowsQuery(query *pb.RowsQuery) (*pb.RowsQueryResult, bool) {
 	rowsQuery, ok := t.newRowsQuery(query)
 	if !ok {
 		t.ctx.Logger.Warn("failed to build query")
+		return nil, false
 	}
 
 	// TODO: handle multiple blocks
@@ -217,6 +220,11 @@ func (t *Table) newBlockfilter(query *pb.RowsQuery) (BlockFilter, bool) {
 	}, true
 }
 
+type pbMessage struct {
+	pb       *partialBlock
+	syncChan chan bool
+}
+
 // Creates a new table
 func NewTable(ctx *common.BapiCtx, name string) *Table {
 	table := &Table{
@@ -231,6 +239,8 @@ func NewTable(ctx *common.BapiCtx, name string) *Table {
 
 		blocks:       make([]*Block, 0),
 		ingesterPool: &sync.Pool{New: func() interface{} { return newIngester() }},
+		pbChan:       make(chan pbMessage, ctx.GetMaxPartialBlocks()),
+		pbQueue:      make([]*partialBlock, 0),
 	}
 
 	table.getOrRegisterColumnId(TS_COLUMN_NAME, IntColumnType)
@@ -239,7 +249,48 @@ func NewTable(ctx *common.BapiCtx, name string) *Table {
 		ctx.Logger.Panic("missing ts column")
 	}
 
+	go func() {
+		ticker := time.NewTicker(table.ctx.GetPartialBlockFlushInterval())
+		for {
+			select {
+			case pbMsg := <-table.pbChan:
+				table.pbQueue = append(table.pbQueue, pbMsg.pb)
+
+				if len(table.pbQueue) == table.ctx.GetMaxPartialBlocks() || pbMsg.syncChan != nil {
+					success := table.processPbQueue()
+					if pbMsg.syncChan != nil {
+						pbMsg.syncChan <- success
+					}
+				}
+
+			case <-ticker.C:
+				if success := table.processPbQueue(); success {
+					table.ctx.Logger.Info("added blocks from peroidic task")
+				}
+			}
+		}
+	}()
+
 	return table
+}
+
+func (t *Table) processPbQueue() bool {
+	if len(t.pbQueue) == 0 {
+		return false
+	}
+
+	success := true
+	for _, pb := range t.pbQueue {
+		block, err := pb.buildBlock()
+		if err != nil {
+			t.ctx.Logger.Error("fail to build block: %v", err)
+			success = false
+		} else {
+			t.addBlock(block)
+		}
+	}
+	t.pbQueue = t.pbQueue[:0]
+	return success
 }
 
 /**
@@ -276,19 +327,24 @@ func (table *Table) IngestBuf(scanner *bufio.Scanner) {
 	table.ingesterPool.Put(ingester)
 }
 
-func (t *Table) addPartialBlock(pb *partialBlock) bool {
+func (t *Table) addPartialBlock(pb *partialBlock, flushImmediatly bool) bool {
 	if pb.rowCount == 0 {
 		t.ctx.Logger.Error("refuse to add an empty block")
 		return false
 	}
 
-	// TODO async
-	block, err := pb.buildBlock()
-	if err != nil {
-		t.ctx.Logger.Error("fail to build block: %v", err)
-		return false
+	var syncChan chan bool
+	if flushImmediatly {
+		syncChan = make(chan bool)
 	}
-	return t.addBlock(block)
+
+	t.pbChan <- pbMessage{pb, syncChan}
+
+	if flushImmediatly {
+		return <-syncChan
+	}
+
+	return true
 }
 
 // TODO sort blocks
@@ -350,7 +406,7 @@ func (table *Table) ingestBufOneBlock(ingester *ingester, scanner *bufio.Scanner
 		return 0, cnt_all
 	}
 
-	ok := table.addPartialBlock(pb)
+	ok := table.addPartialBlock(pb, true /* flushImmediatly */)
 	if !ok {
 		return 0, cnt_all
 	}
@@ -399,7 +455,7 @@ func (table *Table) IngestJsonRows(rows []*pb.RawRow, useServerTs bool) int {
 			continue
 		}
 
-		if ok := table.addPartialBlock(pb); ok {
+		if ok := table.addPartialBlock(pb, false /* flushImmediatly */); ok {
 			cnt_success += cur_block_cnt
 		}
 	}

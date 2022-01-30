@@ -99,6 +99,6 @@ func debugNewPrefilledTable(rawRows []RawJson) *Table {
 	}
 
 	pb, _ := ingester.buildPartialBlock()
-	table.addPartialBlock(pb)
+	table.addPartialBlock(pb, true)
 	return table
 }
