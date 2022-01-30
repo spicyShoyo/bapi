@@ -268,7 +268,9 @@ func debugBuildTableAndBlockFromIngester(rawRows []RawJson) (*Table, *Block) {
 			rawRow,
 		)
 	}
-	block, _ := ingester.buildBlock()
+
+	pb, _ := ingester.buildPartialBlock()
+	block, _ := pb.buildBlock()
 	return table, block
 }
 

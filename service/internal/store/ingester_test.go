@@ -10,7 +10,7 @@ import (
 func TestBuildBlock(t *testing.T) {
 	table := NewTable(common.NewBapiCtx(), "asd")
 	ingester := newIngester()
-	_, err := ingester.buildBlock()
+	_, err := ingester.buildPartialBlock()
 	assert.NotNilf(t, err, "should not build block when empty")
 
 	rawRows := []RawJson{
@@ -35,31 +35,31 @@ func TestBuildBlock(t *testing.T) {
 	}
 	assert.Equal(t, table.colInfoMap.colCount.Load(), uint32(4))
 
-	intPartialColumns, strPartialColumns, minTs, maxTs := ingester.prepareBlockData()
-	assert.Equal(t, int64(1643175607), minTs)
-	assert.Equal(t, int64(1643175611), maxTs)
+	pb, _ := ingester.buildPartialBlock()
+	assert.Equal(t, int64(1643175607), pb.minTs)
+	assert.Equal(t, int64(1643175611), pb.maxTs)
 
 	assertIntPartialColData(t, "ts", partialColumnData[int64]{
 		1643175607: {0},
 		1643175609: {1},
 		1643175611: {2},
-	}, table, intPartialColumns)
+	}, table, pb.intPartialColumns)
 
 	assertIntPartialColData(t, "count", partialColumnData[int64]{
 		1: {1, 2},
-	}, table, intPartialColumns)
+	}, table, pb.intPartialColumns)
 
 	assertStrPartialColData(t, "event", partialColumnData[string]{
 		"init_app": {0},
 		"publish":  {1},
 		"create":   {2},
-	}, table, ingester, strPartialColumns)
+	}, table, ingester, pb.strPartialColumns)
 
 	assertStrPartialColData(t, "source", partialColumnData[string]{
 		"modal": {2},
-	}, table, ingester, strPartialColumns)
+	}, table, ingester, pb.strPartialColumns)
 
-	block, _ := ingester.buildBlock()
+	block, _ := pb.buildBlock()
 	assert.Equal(t, int64(1643175607), block.minTs)
 	assert.Equal(t, int64(1643175611), block.maxTs)
 	assert.Equal(t, 3, block.rowCount)

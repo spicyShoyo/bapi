@@ -35,29 +35,21 @@ type basicBlockStorage struct {
 	strColsStorage *strColumnsStorage
 }
 
-func newBasicBlockStorage(
-	minTs int64,
-	maxTs int64,
-	rowCount int,
-	strIdMap map[strId]string,
-	strValueMap map[string]strId,
-	intPartialColumns partialColumns[int64],
-	strPartialColumns partialColumns[strId],
-) (*basicBlockStorage, error) {
-	intColStorage, err := newIntColumnsStorage(intPartialColumns, rowCount)
+func newBasicBlockStorage(pb *partialBlock) (*basicBlockStorage, error) {
+	intColStorage, err := newIntColumnsStorage(pb.intPartialColumns, pb.rowCount)
 	if err != nil {
 		return nil, err
 	}
 
-	strColStorage, err := newStrColumnsStorage(strPartialColumns, rowCount, strIdMap, strValueMap)
+	strColStorage, err := newStrColumnsStorage(pb.strPartialColumns, pb.rowCount, pb.strIdMap, pb.strValueMap)
 	if err != nil {
 		return nil, err
 	}
 
 	return &basicBlockStorage{
-		minTs:    minTs,
-		maxTs:    maxTs,
-		rowCount: rowCount,
+		minTs:    pb.minTs,
+		maxTs:    pb.maxTs,
+		rowCount: pb.rowCount,
 
 		intColsStorage: intColStorage,
 		strColsStorage: strColStorage,

@@ -32,7 +32,11 @@ func (ingester *ingester) zeroOut() {
 
 // returns intPartialColumns, strPartialColumns, minTs, maxTs
 // should only be called by buildBlock or unit tests
-func (ingester *ingester) prepareBlockData() (partialColumns[int64], partialColumns[strId], int64, int64) {
+func (ingester *ingester) buildPartialBlock() (*partialBlock, error) {
+	if len(ingester.rows) == 0 {
+		return nil, errors.New("ingester is emptry")
+	}
+
 	sort.Slice(ingester.rows, func(i, j int) bool {
 		left, right := ingester.rows[i], ingester.rows[j]
 		return left.getTs() < right.getTs()
@@ -57,28 +61,16 @@ func (ingester *ingester) prepareBlockData() (partialColumns[int64], partialColu
 		}
 	}
 
-	return intPartialColumns, strPartialColumns, minTs, maxTs
-}
+	return &partialBlock{
+		intPartialColumns: intPartialColumns,
+		strPartialColumns: strPartialColumns,
 
-func (ingester *ingester) buildBlock() (*Block, error) {
-	if len(ingester.rows) == 0 {
-		return nil, errors.New("ingester is emptry")
-	}
-	intPartialColumns, strPartialColumns, minTs, maxTs := ingester.prepareBlockData()
-	rowCount := len(ingester.rows)
-	blockStorage, err := newBasicBlockStorage(
-		minTs, maxTs, rowCount,
-		ingester.strIdMap, ingester.strValueMap, intPartialColumns, strPartialColumns)
-	if err != nil {
-		return nil, err
-	}
+		strIdMap:    ingester.strIdMap,
+		strValueMap: ingester.strValueMap,
 
-	return &Block{
+		rowCount: len(ingester.rows),
 		minTs:    minTs,
 		maxTs:    maxTs,
-		rowCount: rowCount,
-
-		storage: blockStorage,
 	}, nil
 }
 
@@ -181,7 +173,7 @@ func (row *row) getTs() int64 {
 // --------------------------- partialColumn ----------------------------
 /**
  * A bookkeeping data structure created after all raw rows have been proocessed and used
- * 	for creating a new block for the table.
+ * 	for creating a new partialBlock, which is then used to create a block to be inserted into the table.
  * partialColumns is a map from a column id to a partialColumnData, which is
  * 	a map from a value to a slice of rows that have this value.
  * e.g. given a row with rowId of 123 has value "init" in the column with columnId of 2:
@@ -189,6 +181,34 @@ func (row *row) getTs() int64 {
  */
 type partialColumnData[T comparable] map[T][]uint32
 type partialColumns[T comparable] map[columnId]partialColumnData[T]
+
+// A bookkeeping data structure that has everything needed to create a block
+type partialBlock struct {
+	intPartialColumns partialColumns[int64]
+	strPartialColumns partialColumns[strId]
+
+	strIdMap    map[strId]string
+	strValueMap map[string]strId
+
+	rowCount int
+	minTs    int64
+	maxTs    int64
+}
+
+func (pb *partialBlock) buildBlock() (*Block, error) {
+	blockStorage, err := newBasicBlockStorage(pb)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Block{
+		minTs:    pb.minTs,
+		maxTs:    pb.maxTs,
+		rowCount: pb.rowCount,
+
+		storage: blockStorage,
+	}, nil
+}
 
 func newPartialColumns[T comparable]() partialColumns[T] {
 	return make(map[columnId]partialColumnData[T])

@@ -276,6 +276,21 @@ func (table *Table) IngestBuf(scanner *bufio.Scanner) {
 	table.ingesterPool.Put(ingester)
 }
 
+func (t *Table) addPartialBlock(pb *partialBlock) bool {
+	if pb.rowCount == 0 {
+		t.ctx.Logger.Error("refuse to add an empty block")
+		return false
+	}
+
+	// TODO async
+	block, err := pb.buildBlock()
+	if err != nil {
+		t.ctx.Logger.Error("fail to build block: %v", err)
+		return false
+	}
+	return t.addBlock(block)
+}
+
 // TODO sort blocks
 func (table *Table) addBlock(block *Block) bool {
 	if block.rowCount == 0 {
@@ -329,13 +344,13 @@ func (table *Table) ingestBufOneBlock(ingester *ingester, scanner *bufio.Scanner
 		}
 	}
 
-	block, err := ingester.buildBlock()
+	pb, err := ingester.buildPartialBlock()
 	if err != nil {
-		table.ctx.Logger.Error("fail to build block: %v", err)
+		table.ctx.Logger.Error("fail to build partialBlock: %v", err)
 		return 0, cnt_all
 	}
 
-	ok := table.addBlock(block)
+	ok := table.addPartialBlock(pb)
 	if !ok {
 		return 0, cnt_all
 	}
@@ -378,13 +393,13 @@ func (table *Table) IngestJsonRows(rows []*pb.RawRow, useServerTs bool) int {
 			}
 		}
 
-		block, err := ingester.buildBlock()
+		pb, err := ingester.buildPartialBlock()
 		if err != nil {
-			table.ctx.Logger.Error("fail to build block: %v", err)
+			table.ctx.Logger.Error("fail to build partialBlock: %v", err)
 			continue
 		}
 
-		if ok := table.addBlock(block); ok {
+		if ok := table.addPartialBlock(pb); ok {
 			cnt_success += cur_block_cnt
 		}
 	}
