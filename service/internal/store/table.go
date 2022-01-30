@@ -298,6 +298,32 @@ func (table *Table) ingestBatch(scanner *bufio.Scanner) (int, int) {
 	return cnt_success, cnt_all
 }
 
+func (table *Table) IngestJsonRows(rows []*pb.RawRow) int {
+	// TODO: add batching
+	if len(rows) > table.ctx.GetMaxRowsPerBlock() {
+		table.ctx.Logger.Errorf("too many rows to ingest")
+		return 0
+	}
+	cnt_success := 0
+
+	for _, row := range rows {
+		if err := table.ingester.ingestRawJson(table, RawJson{
+			Int: row.Int,
+			Str: row.Str,
+		}); err == nil {
+			cnt_success += 1
+		} else {
+			table.ctx.Logger.Errorf("failed to ingest json: %v", err)
+		}
+	}
+
+	if cnt_success > 0 {
+		table.blocks = append(table.blocks, table.ingester.buildBlock())
+	}
+	table.ctx.Logger.Infof("injested: %d, total: %d", cnt_success, len(rows))
+	return cnt_success
+}
+
 // Creates a new column
 func (table *Table) registerNewColumn(colName string, colType ColumnType) (columnId, error) {
 	if _, alreadyExists := table.ColumnNameMap[colName]; alreadyExists {

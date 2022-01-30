@@ -32,6 +32,11 @@ message Filter {
   }
 }
 
+message RawRow {
+  map<string, int64>  int = 1;
+  map<string, string>  str = 2;
+}
+
 message RowsQuery {
   int64 min_ts = 1;
   int64 max_ts = 2;
@@ -61,7 +66,11 @@ service Bapi {
   rpc InitiateShutdown(InitiateShutdownRequest) returns (InitiateShutdownReply) {}
 }
 
-message IngestRawRowsRequset { string rows = 1; }
+message IngestRawRowsRequset { 
+  repeated RawRow jsonRows = 1;
+  optional string stringRows = 2;
+}
+
 message IngestRawRowsReply { 
   Status status = 1;
   optional string message = 2; 

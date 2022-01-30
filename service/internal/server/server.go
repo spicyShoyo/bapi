@@ -41,10 +41,16 @@ func (s *server) InitiateShutdown(ctx context.Context, in *pb.InitiateShutdownRe
 }
 
 func (s *server) IngestRawRows(ctx context.Context, in *pb.IngestRawRowsRequset) (*pb.IngestRawRowsReply, error) {
-	s.ctx.Logger.Info(in.Rows)
-	s.table.IngestBuf(
-		bufio.NewScanner(strings.NewReader(in.Rows)),
-	)
+	if in.StringRows != nil {
+		s.table.IngestBuf(
+			bufio.NewScanner(strings.NewReader(*in.StringRows)),
+		)
+	} else if len(in.JsonRows) != 0 {
+		s.table.IngestJsonRows(
+			in.JsonRows,
+		)
+	}
+
 	return &pb.IngestRawRowsReply{
 		Status:  pb.Status_ACCEPTED,
 		Message: nil,
