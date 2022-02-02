@@ -146,11 +146,10 @@ func (ns *numericStorage[T]) filterNumericStorage(
 	}
 
 	values := ns.values[filter.localColId]
-	for rowIdx := ctx.startIdx; rowIdx <= ctx.endIdx; rowIdx++ {
+	for rowIdx, valueIdx := range rows {
 		if !ctx.bitmap.Contains(uint32(rowIdx)) {
 			continue
 		}
-		valueIdx := rows[rowIdx]
 		if valueIdx == nullValueIndex {
 			switch filter.op {
 			case FilterNull, FilterNe:

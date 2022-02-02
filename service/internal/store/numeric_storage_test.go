@@ -96,8 +96,6 @@ type debugFilter[T comparable] struct {
 type debugFilterTestSetup[T, U comparable] struct {
 	rows         debugRows[T]
 	rowCount     int
-	startIdx     uint32
-	endIdx       uint32
 	filters      []debugFilter[U] // this is a separate type so that strColStorage can reuse some code
 	expectedRows []uint32
 }
@@ -106,13 +104,10 @@ func assertFilterHasResult[V OrderedNumeric](
 	t *testing.T,
 	s debugFilterTestSetup[V, V],
 ) {
-	bitmap, ok := newBitmapWithOnesRange(s.rowCount, s.startIdx, s.endIdx)
-	assert.True(t, ok)
+	bitmap := newBitmapWithOnes(s.rowCount)
 	ctx := &filterCtx{
-		ctx:      common.NewBapiCtx(),
-		bitmap:   bitmap,
-		startIdx: s.startIdx,
-		endIdx:   s.endIdx,
+		ctx:    common.NewBapiCtx(),
+		bitmap: bitmap,
 	}
 
 	partialColumns := debugNewPartialColumns(s.rows)
@@ -151,7 +146,6 @@ func TestFilterBasic(t *testing.T) {
 	// col_22 == strId(15)
 	assertFilterHasResult(t, debugFilterTestSetup[strId, strId]{
 		rows: rows, rowCount: 10,
-		startIdx: 0, endIdx: 9,
 		filters: []debugFilter[strId]{{
 			colId: columnId(22),
 			op:    FilterEq,
@@ -163,7 +157,6 @@ func TestFilterBasic(t *testing.T) {
 	// col_22 != strId(15) && col_22 != null
 	assertFilterHasResult(t, debugFilterTestSetup[strId, strId]{
 		rows: rows, rowCount: 10,
-		startIdx: 0, endIdx: 9,
 		filters: []debugFilter[strId]{
 			{
 				colId: columnId(22),
@@ -181,14 +174,13 @@ func TestFilterBasic(t *testing.T) {
 	// col_22 == null
 	assertFilterHasResult(t, debugFilterTestSetup[strId, strId]{
 		rows: rows, rowCount: 10,
-		startIdx: 0, endIdx: 3,
 		filters: []debugFilter[strId]{
 			{
 				colId: columnId(22),
 				op:    FilterNull,
 				value: strId(0),
 			}},
-		expectedRows: []uint32{1, 2, 3},
+		expectedRows: []uint32{1, 2, 3, 4, 7, 8, 9},
 	})
 }
 
@@ -211,7 +203,6 @@ func TestFilterComparator(t *testing.T) {
 
 	assertFilterHasResult(t, debugFilterTestSetup[int, int]{
 		rows: rows, rowCount: 10,
-		startIdx: 0, endIdx: 5,
 		filters: []debugFilter[int]{
 			{
 				colId: columnId(28),
@@ -224,7 +215,6 @@ func TestFilterComparator(t *testing.T) {
 
 	assertFilterHasResult(t, debugFilterTestSetup[int, int]{
 		rows: rows, rowCount: 10,
-		startIdx: 0, endIdx: 5,
 		filters: []debugFilter[int]{
 			{
 				colId: columnId(28),
@@ -238,7 +228,6 @@ func TestFilterComparator(t *testing.T) {
 	// col_22 < 19 && col_23 > 16
 	assertFilterHasResult(t, debugFilterTestSetup[int, int]{
 		rows: rows, rowCount: 10,
-		startIdx: 0, endIdx: 9,
 		filters: []debugFilter[int]{
 			{
 				colId: columnId(22),
@@ -256,7 +245,6 @@ func TestFilterComparator(t *testing.T) {
 	// col_22 <= 19 && col_23 >= 16 && col_28 != null
 	assertFilterHasResult(t, debugFilterTestSetup[int, int]{
 		rows: rows, rowCount: 10,
-		startIdx: 0, endIdx: 9,
 		filters: []debugFilter[int]{
 			{
 				colId: columnId(22),
@@ -304,7 +292,7 @@ func assertGetResultNumericStorage[V OrderedNumeric](
 	}
 
 	// set up bitmap to include only rows requested
-	bitmap, _ := newBitmapWithOnesRange(storageRowCount, 0 /* startIdx */, 0 /*endIdx*/)
+	bitmap := newBitmapWithOnes(storageRowCount)
 	bitmap.Clear()
 	for _, rowId := range s.requestedRowIds {
 		bitmap.Set(rowId)

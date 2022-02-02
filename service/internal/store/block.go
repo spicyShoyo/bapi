@@ -89,15 +89,16 @@ func (bbs *basicBlockStorage) buildResult(ctx *common.BapiCtx, query *blockQuery
 // --------------------------- filter ----------------------------
 func (bbs *basicBlockStorage) filterBlock(
 	ctx *common.BapiCtx,
-	filter *BlockFilter,
+	filter *blockFilter,
 ) (*bitmap.Bitmap, bool) {
-	filterCtx, hasRows := bbs.getBlockFilterCtx(ctx, filter.MinTs, filter.MaxTs)
+	filterCtx, hasRows := bbs.getBlockFilterCtx(ctx, filter.minTs, filter.maxTs)
 	if !hasRows {
 		return nil, false
 	}
 
 	ctx.Logger.Info("filtering block")
 
+	bbs.intColsStorage.filter(filterCtx, filter.tsFilters)
 	bbs.intColsStorage.filter(filterCtx, filter.intFilters)
 	bbs.strColsStorage.filter(filterCtx, filter.strFilters)
 
@@ -111,55 +112,30 @@ func (bbs *basicBlockStorage) filterBlock(
 func (bbs *basicBlockStorage) getBlockFilterCtx(ctx *common.BapiCtx,
 	queryMinTs int64,
 	queryMaxTs int64) (*filterCtx, bool) {
-	startIdx, endIdx, ok := bbs.getStartIdxAndEndIdx(ctx, queryMinTs, queryMaxTs)
-	if !ok {
+	if bbs.maxTs < queryMinTs || bbs.minTs > queryMaxTs {
+		ctx.Logger.Info("skip block for not in range")
 		return nil, false
 	}
 
-	bitmap, ok := newBitmapWithOnesRange(bbs.rowCount, startIdx, endIdx)
-	if !ok {
-		ctx.Logger.DPanicf(
-			"unable to create bitmap with size: %d, startIdx: %d, endIdx: %d", bbs.rowCount, startIdx, endIdx)
-		return nil, false
-	}
+	bitmap := newBitmapWithOnes(bbs.rowCount)
+
 	return &filterCtx{
 		ctx,
 		bitmap,
-		startIdx,
-		endIdx,
+		queryMinTs,
+		queryMaxTs,
 	}, true
 }
 
-func (bbs *basicBlockStorage) getStartIdxAndEndIdx(
-	ctx *common.BapiCtx,
-	queryMinTs int64,
-	queryMaxTs int64) (uint32, uint32, bool) {
-	if bbs.maxTs < queryMinTs || bbs.minTs > queryMaxTs {
-		ctx.Logger.Info("skip block for not in range")
-		return 0, 0, false
-	}
-
-	startIdx, endIdx, ok := bbs.intColsStorage.getStartIdxAndEndIdx(queryMinTs, queryMaxTs)
-	if !ok {
-		ctx.Logger.DPanicf("storage is empty or not correctly sorted by timestamp")
-	}
-
-	return uint32(startIdx), uint32(endIdx), ok
-}
-
-// Creates a bitmap of the given set and sets the bits [startIdx, endIdx] to 1.
-// Invariant: startIdx <= endIdx < size. The bitmap starts from idx 0.
-func newBitmapWithOnesRange(size int, startIdx uint32, endIdx uint32) (*bitmap.Bitmap, bool) {
-	if !(startIdx <= endIdx && endIdx < uint32(size)) {
-		return nil, false
-	}
+// Creates a bitmap of the given size and set all bits to 1
+func newBitmapWithOnes(size int) *bitmap.Bitmap {
 	bitmap := &bitmap.Bitmap{}
 	bitmap.Grow(uint32(size))
 
 	bitmap.Ones()
 	bitmap.Filter(func(idx uint32) bool {
-		return idx >= startIdx && idx <= endIdx
+		return idx < uint32(size)
 	})
 
-	return bitmap, true
+	return bitmap
 }

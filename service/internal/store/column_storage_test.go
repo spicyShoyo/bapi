@@ -30,59 +30,6 @@ func TestNewIntColumnsStorage(t *testing.T) {
 	debugNewIntColumnsStorageFromRows(t, rows)
 }
 
-func TestGetStartIdxAndEndIdx(t *testing.T) {
-	rows := debugRows[int64]{
-		0: {
-			debugNewDebugPair[int64](columnId(TS_COLUMN_ID), 1643091786),
-		},
-		1: {
-			debugNewDebugPair[int64](columnId(TS_COLUMN_ID), 1643091788),
-		},
-		2: {
-			debugNewDebugPair[int64](columnId(TS_COLUMN_ID), 1643091790),
-		},
-		3: {
-			debugNewDebugPair[int64](columnId(TS_COLUMN_ID), 1643091790),
-		},
-		4: {
-			debugNewDebugPair[int64](columnId(TS_COLUMN_ID), 1643091794),
-		},
-		5: {
-			debugNewDebugPair[int64](columnId(TS_COLUMN_ID), 1643091796),
-		},
-	}
-	intColStorage := debugNewIntColumnsStorageFromRows(t, rows)
-
-	_, _, hasValue := intColStorage.getStartIdxAndEndIdx(1643091780, 1643091784)
-	assert.False(t, hasValue) // queryMaxTs < storeMinTs
-	_, _, hasValue = intColStorage.getStartIdxAndEndIdx(1643091798, 1643091799)
-	assert.False(t, hasValue) // queryMinTs > storeMaxTs
-
-	// queryMinTs < storeMinTs < storeMaxTs < queryMaxTs
-	assertStartAndEndIdx(t, intColStorage, 1643091784, 1643091799, 0, 5)
-	// storeMinTs < queryMinTs  < queryMaxTs < storeMaxTs
-	assertStartAndEndIdx(t, intColStorage, 1643091787, 1643091791, 1, 3)
-
-	// queryMinTs <= storeMinTs < queryMaxTs < storeMaxTs
-	assertStartAndEndIdx(t, intColStorage, 1643091786, 1643091791, 0, 3)
-	// storeMinTs < queryMinTs < storeMaxTs < queryMaxTs
-	assertStartAndEndIdx(t, intColStorage, 1643091791, 1643091798, 4, 5)
-	// storeMinTs = queryMinTs = storeMaxTs < queryMaxTs
-	assertStartAndEndIdx(t, intColStorage, 1643091786, 1643091786, 0, 0)
-	// storeMinTs < queryMinTs = storeMaxTs = queryMaxTs
-	assertStartAndEndIdx(t, intColStorage, 1643091796, 1643091796, 5, 5)
-
-	rows = debugRows[int64]{
-		0: {
-			debugNewDebugPair[int64](columnId(TS_COLUMN_ID), 1643091786),
-		},
-	}
-	intColStorage = debugNewIntColumnsStorageFromRows(t, rows)
-	assertStartAndEndIdx(t, intColStorage, 1643091786, 1643091786, 0, 0)
-	assertStartAndEndIdx(t, intColStorage, 1643091785, 1643091786, 0, 0)
-	assertStartAndEndIdx(t, intColStorage, 1643091786, 1643091787, 0, 0)
-}
-
 func TestFilterIntColumnsStorage(t *testing.T) {
 	rows := debugRows[int64]{
 		0: {
@@ -105,7 +52,6 @@ func TestFilterIntColumnsStorage(t *testing.T) {
 	// col_28 < 21 && col_22 <= 19
 	assertIntFilterHasResult(t, debugFilterTestSetup[int64, int64]{
 		rows: rows, rowCount: 3,
-		startIdx: 0, endIdx: 2,
 		filters: []debugFilter[int64]{
 			{
 				colId: columnId(28),
@@ -124,7 +70,6 @@ func TestFilterIntColumnsStorage(t *testing.T) {
 	// col_22 >= 15
 	assertIntFilterHasResult(t, debugFilterTestSetup[int64, int64]{
 		rows: rows, rowCount: 3,
-		startIdx: 0, endIdx: 2,
 		filters: []debugFilter[int64]{{
 			colId: columnId(22),
 			op:    FilterEq,
@@ -136,7 +81,6 @@ func TestFilterIntColumnsStorage(t *testing.T) {
 	// col_22 == 15 && col_23 != null && col28 == null
 	assertIntFilterHasResult(t, debugFilterTestSetup[int64, int64]{
 		rows: rows, rowCount: 3,
-		startIdx: 0, endIdx: 2,
 		filters: []debugFilter[int64]{
 			{
 				colId: columnId(22),
@@ -160,7 +104,6 @@ func TestFilterIntColumnsStorage(t *testing.T) {
 	// col_22 != 15 && col_22 != null && col_28 != null
 	assertIntFilterHasResult(t, debugFilterTestSetup[int64, int64]{
 		rows: rows, rowCount: 3,
-		startIdx: 0, endIdx: 2,
 		filters: []debugFilter[int64]{
 			{
 				colId: columnId(22),
@@ -184,7 +127,6 @@ func TestFilterIntColumnsStorage(t *testing.T) {
 	// col_29 == null && col_30 != "test"
 	assertIntFilterHasResult(t, debugFilterTestSetup[int64, int64]{
 		rows: rows, rowCount: 3,
-		startIdx: 1, endIdx: 2,
 		filters: []debugFilter[int64]{
 			{
 				colId: columnId(29),
@@ -197,7 +139,7 @@ func TestFilterIntColumnsStorage(t *testing.T) {
 				value: 32,
 			},
 		},
-		expectedRows: []uint32{1, 2},
+		expectedRows: []uint32{0, 1, 2},
 	})
 }
 
@@ -282,7 +224,6 @@ func TestFilterStrColumnsStorage(t *testing.T) {
 	// col_22 == "15"
 	assertStrFilterHasResult(t, debugFilterTestSetup[strId, string]{
 		rows: rows, rowCount: 10,
-		startIdx: 0, endIdx: 9,
 		filters: []debugFilter[string]{{
 			colId: columnId(22),
 			op:    FilterEq,
@@ -294,7 +235,6 @@ func TestFilterStrColumnsStorage(t *testing.T) {
 	// col_22 == "15" && col_23 != null && col28 == null
 	assertStrFilterHasResult(t, debugFilterTestSetup[strId, string]{
 		rows: rows, rowCount: 10,
-		startIdx: 0, endIdx: 9,
 		filters: []debugFilter[string]{
 			{
 				colId: columnId(22),
@@ -318,7 +258,6 @@ func TestFilterStrColumnsStorage(t *testing.T) {
 	// col_22 != "15" && col_22 != null
 	assertStrFilterHasResult(t, debugFilterTestSetup[strId, string]{
 		rows: rows, rowCount: 10,
-		startIdx: 0, endIdx: 9,
 		filters: []debugFilter[string]{
 			{
 				colId: columnId(22),
@@ -337,7 +276,6 @@ func TestFilterStrColumnsStorage(t *testing.T) {
 	// col_29 == null && col_30 != "test"
 	assertStrFilterHasResult(t, debugFilterTestSetup[strId, string]{
 		rows: rows, rowCount: 10,
-		startIdx: 2, endIdx: 9,
 		filters: []debugFilter[string]{
 			{
 				colId: columnId(29),
@@ -350,7 +288,7 @@ func TestFilterStrColumnsStorage(t *testing.T) {
 				value: "test",
 			},
 		},
-		expectedRows: []uint32{2, 3, 4, 5, 6, 7, 8, 9},
+		expectedRows: []uint32{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	})
 }
 
@@ -411,13 +349,10 @@ func assertIntFilterHasResult(
 	t *testing.T,
 	s debugFilterTestSetup[int64, int64],
 ) {
-	bitmap, ok := newBitmapWithOnesRange(s.rowCount, s.startIdx, s.endIdx)
-	assert.True(t, ok)
+	bitmap := newBitmapWithOnes(s.rowCount)
 	ctx := &filterCtx{
-		ctx:      common.NewBapiCtx(),
-		bitmap:   bitmap,
-		startIdx: s.startIdx,
-		endIdx:   s.endIdx,
+		ctx:    common.NewBapiCtx(),
+		bitmap: bitmap,
 	}
 
 	intStorage := debugNewIntColumnsStorageFromRows(t, s.rows)
@@ -449,7 +384,7 @@ func assertGetResultIntStorage(
 	storageRowCount := len(s.rows) // intStorage should contain all rows since ts is required
 
 	// set up bitmap to include only rows requested
-	bitmap, _ := newBitmapWithOnesRange(storageRowCount, 0 /* startIdx */, 0 /*endIdx*/)
+	bitmap := newBitmapWithOnes(storageRowCount)
 	bitmap.Clear()
 	for _, rowId := range s.requestedRowIds {
 		bitmap.Set(rowId)
@@ -522,13 +457,10 @@ func assertStrFilterHasResult(
 	t *testing.T,
 	s debugFilterTestSetup[strId, string],
 ) {
-	bitmap, ok := newBitmapWithOnesRange(s.rowCount, s.startIdx, s.endIdx)
-	assert.True(t, ok)
+	bitmap := newBitmapWithOnes(s.rowCount)
 	ctx := &filterCtx{
-		ctx:      common.NewBapiCtx(),
-		bitmap:   bitmap,
-		startIdx: s.startIdx,
-		endIdx:   s.endIdx,
+		ctx:    common.NewBapiCtx(),
+		bitmap: bitmap,
 	}
 
 	strStorage := debugNewStrColumnsStorageFromRows(t, s.rows, s.rowCount)
@@ -564,7 +496,7 @@ func assertGetResultStrStorage(
 	}
 
 	// set up bitmap to include only rows requested
-	bitmap, _ := newBitmapWithOnesRange(storageRowCount, 0 /* startIdx */, 0 /*endIdx*/)
+	bitmap := newBitmapWithOnes(storageRowCount)
 	bitmap.Clear()
 	for _, rowId := range s.requestedRowIds {
 		bitmap.Set(rowId)
@@ -613,11 +545,4 @@ func assertGetResultStrStorage(
 
 	// assert that the result matches the expected
 	assertGetResult(t, s, colIdxLookup, rowIdxLookup, matrix, hasValue, actualResultValues, true /* recordValues */)
-}
-
-func assertStartAndEndIdx(
-	t *testing.T, intColStorage *intColumnsStorage, startTs int64, endTs int64, startIdx int, endIdx int) {
-	actualStartIdx, actualEndIdx, _ := intColStorage.getStartIdxAndEndIdx(startTs, endTs)
-	assert.Equal(t, uint32(startIdx), actualStartIdx)
-	assert.Equal(t, uint32(endIdx), actualEndIdx)
 }

@@ -56,15 +56,43 @@ type StrFilter struct {
 	Value      string
 }
 
-type BlockFilter struct {
-	MinTs      int64
-	MaxTs      int64
+type blockFilter struct {
+	minTs      int64
+	maxTs      int64
+	tsFilters  []IntFilter
 	intFilters []IntFilter
 	strFilters []StrFilter
 }
 
+func newBlockFilter(
+	minTs int64,
+	maxTs int64,
+	tsColInfo *ColumnInfo,
+	intFilters []IntFilter,
+	strFilters []StrFilter,
+) blockFilter {
+	return blockFilter{
+		minTs: minTs,
+		maxTs: maxTs,
+		tsFilters: []IntFilter{
+			{
+				ColumnInfo: tsColInfo,
+				FilterOp:   FilterGe,
+				Value:      minTs,
+			},
+			{
+				ColumnInfo: tsColInfo,
+				FilterOp:   FilterLe,
+				Value:      maxTs,
+			},
+		},
+		intFilters: intFilters,
+		strFilters: strFilters,
+	}
+}
+
 type blockQuery struct {
-	filter     BlockFilter
+	filter     blockFilter
 	intColumns []*ColumnInfo
 	strColumns []*ColumnInfo
 }
@@ -94,10 +122,10 @@ type numericFilter[T OrderedNumeric] struct {
 }
 
 type filterCtx struct {
-	ctx      *common.BapiCtx
-	bitmap   *bitmap.Bitmap
-	startIdx uint32
-	endIdx   uint32
+	ctx        *common.BapiCtx
+	bitmap     *bitmap.Bitmap
+	queryMinTs int64
+	queryMaxTs int64
 }
 
 type getCtx struct {
@@ -119,13 +147,13 @@ func filterByNullable[T OrderedNumeric](
 		predicate = predicateEq[valueIndex]
 	}
 
-	for idx := ctx.startIdx; idx <= ctx.endIdx; idx++ {
-		if !ctx.bitmap.Contains(idx) {
+	for idx, row := range rows {
+		if !ctx.bitmap.Contains(uint32(idx)) {
 			continue
 		}
 
-		if !predicate(rows[idx], nullValueIndex) {
-			ctx.bitmap.Remove(idx)
+		if !predicate(row, nullValueIndex) {
+			ctx.bitmap.Remove(uint32(idx))
 		}
 	}
 }

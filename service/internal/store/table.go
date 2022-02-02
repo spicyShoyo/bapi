@@ -166,18 +166,18 @@ func (t *Table) newRowsQuery(query *pb.RowsQuery) (*blockQuery, bool) {
 	}, true
 }
 
-func (t *Table) newBlockfilter(query *pb.RowsQuery) (BlockFilter, bool) {
+func (t *Table) newBlockfilter(query *pb.RowsQuery) (blockFilter, bool) {
 	intFilters := make([]IntFilter, 0)
 	for _, intFilter := range query.IntFilters {
 		colInfo, ok := t.getColumnInfoAndAssertType(intFilter.ColumnName, IntColumnType)
 		if !ok {
-			return BlockFilter{}, false
+			return blockFilter{}, false
 		}
 
 		intVal, ok := intFilter.GetValue().(*pb.Filter_IntVal)
 		if !ok {
 			t.ctx.Logger.Warnf("fail to build filter. int value missing for int filter: %s", intFilter.ColumnName)
-			return BlockFilter{}, false
+			return blockFilter{}, false
 		}
 
 		intFilters = append(intFilters, IntFilter{
@@ -191,13 +191,13 @@ func (t *Table) newBlockfilter(query *pb.RowsQuery) (BlockFilter, bool) {
 	for _, strFilter := range query.StrFilters {
 		colInfo, ok := t.getColumnInfoAndAssertType(strFilter.ColumnName, StrColumnType)
 		if !ok {
-			return BlockFilter{}, false
+			return blockFilter{}, false
 		}
 
 		strVal, ok := strFilter.GetValue().(*pb.Filter_StrVal)
 		if !ok {
 			t.ctx.Logger.Warnf("fail to build filter. str value missing for int filter: %s", strFilter.ColumnName)
-			return BlockFilter{}, false
+			return blockFilter{}, false
 		}
 
 		strFilters = append(strFilters, StrFilter{
@@ -212,12 +212,19 @@ func (t *Table) newBlockfilter(query *pb.RowsQuery) (BlockFilter, bool) {
 		maxTs = query.GetMaxTs()
 	}
 
-	return BlockFilter{
-		MinTs:      query.MinTs,
-		MaxTs:      maxTs,
-		intFilters: intFilters,
-		strFilters: strFilters,
-	}, true
+	tsColInfo, ok := t.getColumnInfoAndAssertType(TS_COLUMN_NAME, IntColumnType)
+	if !ok {
+		t.ctx.Logger.DPanic("fail to get tsColInfo ")
+		return blockFilter{}, false
+	}
+
+	return newBlockFilter(
+		query.MinTs,
+		maxTs,
+		tsColInfo,
+		intFilters,
+		strFilters,
+	), true
 }
 
 type pbMessage struct {

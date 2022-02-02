@@ -203,7 +203,7 @@ func debugNewBlockFilter(
 	t *testing.T, table *Table,
 	minTs int64, maxTs int64,
 	intDebugFilters []debugBlockFilter[int], strDebugFilters []debugBlockFilter[string],
-) BlockFilter {
+) blockFilter {
 	intFilters := make([]IntFilter, 0)
 	for _, filter := range intDebugFilters {
 		colInfo, ok := table.getColumnInfo(filter.colName)
@@ -227,13 +227,14 @@ func debugNewBlockFilter(
 			Value:      filter.value,
 		})
 	}
-
-	return BlockFilter{
-		MinTs:      minTs,
-		MaxTs:      maxTs,
-		intFilters: intFilters,
-		strFilters: strFilters,
-	}
+	tsColInfo, _ := table.getColumnInfo(TS_COLUMN_NAME)
+	return newBlockFilter(
+		minTs,
+		maxTs,
+		tsColInfo,
+		intFilters,
+		strFilters,
+	)
 }
 
 func assertBlockFilter(
@@ -275,39 +276,23 @@ func debugBuildTableAndBlockFromIngester(rawRows []RawJson) (*Table, *Block) {
 }
 
 // --------------------------- bitmap ----------------------------
-func TestBitmapInvariantViolation(t *testing.T) {
-	// invariant: startIdx <= endIdx < size
-	_, ok := newBitmapWithOnesRange(1, 2, 3)
-	assert.False(t, ok)
-	_, ok = newBitmapWithOnesRange(2, 1, 3)
-	assert.False(t, ok)
-	_, ok = newBitmapWithOnesRange(3, 2, 1)
-	assert.False(t, ok)
-}
-
 func TestBitmapCreation(t *testing.T) {
-	bitmap, _ := newBitmapWithOnesRange(3, 0, 0)
+	bitmap := newBitmapWithOnes(3)
 	assert.True(t, bitmap.Contains(0))
-	assert.False(t, bitmap.Contains(1))
-	assert.False(t, bitmap.Contains(2))
-	assert.Equal(t, bitmap.Count(), 1)
-	maxOne, _ := bitmap.Max()
-	assert.Equal(t, maxOne, uint32(0))
-
-	bitmap, _ = newBitmapWithOnesRange(300, 232, 246)
-	assert.Equal(t, bitmap.Count(), 15)
-	minOne, _ := bitmap.Min()
-	maxOne, _ = bitmap.Max()
-	assert.Equal(t, minOne, uint32(232))
-	assert.Equal(t, maxOne, uint32(246))
+	assert.True(t, bitmap.Contains(1))
+	assert.True(t, bitmap.Contains(2))
+	assert.Equal(t, bitmap.Count(), 3)
 }
 
 func TestBitmapMutation(t *testing.T) {
-	bitmap, _ := newBitmapWithOnesRange(300, 232, 246)
+	bitmap := newBitmapWithOnes(300)
 	bitmap.Remove(246)
-	assert.Equal(t, bitmap.Count(), 14)
+	bitmap.Remove(287)
+	assert.Equal(t, bitmap.Count(), 298)
 	maxOne, _ := bitmap.Max()
-	assert.Equal(t, maxOne, uint32(245))
+	assert.Equal(t, maxOne, uint32(299))
+	minZero, _ := bitmap.MinZero()
+	assert.Equal(t, minZero, uint32(246))
 
 	bitmap.Clear()
 	assert.Equal(t, bitmap.Count(), 0)
