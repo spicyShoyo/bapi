@@ -28,6 +28,7 @@ const nullValueIndex = valueIndex(0)
  * values:
  * 	- A 2d slice of size (colCount, count distinct values).
  * 	- `values[localColId][valueIdx]` is a value in this column.
+ *  - `values[localColId]` is allowed to have duplication (which makes merging easier).
  * columnIds:
  * 	- For mapping a table-level column id to the local column id.
  *
@@ -36,7 +37,6 @@ const nullValueIndex = valueIndex(0)
  * 		i.e. `some(matrix[localColId], valueIdx => valueIdx != nullValueIndex)` for all columnId
  * 		since we do not store a column if no row has value in it.
  * 	2. A value is in `values[localColId]` iff there is at least one row has this value in the column.
- * 	3. Values in `values[localColId][1:]` are unique.
  * 	4. `every(matrix[localColId], valueIdx => valueIdx < len(values[localColId]))` since they are used as index.
  * 	5. `every(columnIds[colId], localColId => localColId < len(values) && localColId < len(matrix))` since they are used as index.
  * 	6. Null value is represented by having `valueIdx` of nullValueIndex;
@@ -319,23 +319,6 @@ func (ns *numericStorage[T]) debugInvariantCheck() error {
 		if badValueIdx {
 			// invariant #4
 			return errors.New("invalid valueIdx")
-		}
-
-		valuesAreUnique := every(ns.values,
-			func(values []T) bool {
-				valuesMap := make(map[T]bool)
-				return every(values, func(value T) bool {
-					if _, seen := valuesMap[value]; seen {
-						return false
-					}
-					valuesMap[value] = true
-					return true
-				})
-			},
-		)
-		if !valuesAreUnique {
-			// invariant #3
-			return errors.New("values[localColId][1:] is not distinct")
 		}
 
 		lastOne, hasLastOne := valueIsUsedBySomeRow.Max()

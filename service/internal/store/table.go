@@ -6,9 +6,9 @@ import (
 	"bufio"
 	"encoding/json"
 	"os"
+	"sort"
 	"sync"
 	"time"
-	"unsafe"
 
 	"go.uber.org/atomic"
 )
@@ -30,8 +30,8 @@ type Table struct {
 	pbChan       chan pbMessage
 	pbQueue      []*partialBlock
 
-	// TODO: make this threadsafe
-	blocks []*Block
+	blocksLock *sync.RWMutex
+	blocks     []*Block
 }
 
 type tableInfo struct {
@@ -52,57 +52,135 @@ func (t *Table) RowsQuery(query *pb.RowsQuery) (*pb.RowsQueryResult, bool) {
 		return nil, false
 	}
 
-	// TODO: handle multiple blocks
-	result, ok := t.blocks[len(t.blocks)-1].query(t.ctx, rowsQuery)
+	blocksToQuery, ok := t.getBlocksToQuery(query)
 	if !ok {
 		return nil, false
 	}
-	return t.toPbQueryResult(query, result)
+
+	blockResults := make([]*BlockQueryResult, 0)
+	for _, block := range blocksToQuery {
+		result, ok := block.query(t.ctx, rowsQuery)
+		if !ok {
+			continue
+		}
+		blockResults = append(blockResults, result)
+	}
+
+	return t.toPbQueryResult(query, blockResults)
 }
 
-// TODO: handle multiple blocks
-func (t *Table) toPbQueryResult(query *pb.RowsQuery, result *BlockQueryResult) (*pb.RowsQueryResult, bool) {
-	intResultLen := result.Count * len(query.IntColumnNames)
+func (t *Table) getBlocksToQuery(query *pb.RowsQuery) ([]*Block, bool) {
+	t.blocksLock.RLock()
+	defer func() {
+		t.blocksLock.RUnlock()
+	}()
+	// first block whose minTs >= query.minTs
+	startBlock := sort.Search(len(t.blocks),
+		func(i int) bool {
+			return t.blocks[i].minTs >= query.MinTs
+		})
+
+	endBlock := len(t.blocks) - 1
+	if query.MaxTs != nil {
+		// first block whose minTs > query.maxTs
+		firstLarger := sort.Search(len(t.blocks),
+			func(i int) bool {
+				return t.blocks[i].minTs > *query.MaxTs
+			})
+		endBlock = firstLarger - 1
+	}
+
+	if startBlock == len(t.blocks) {
+		return nil, false
+	}
+
+	if startBlock > endBlock {
+		t.ctx.Logger.DPanic("table.blocks is not sorted")
+		return nil, false
+	}
+
+	blocksToQuery := make([]*Block, endBlock-startBlock+1)
+	copy(blocksToQuery, t.blocks[startBlock:endBlock+1])
+	return blocksToQuery, true
+}
+
+func (t *Table) toPbQueryResult(query *pb.RowsQuery, blockResults []*BlockQueryResult) (*pb.RowsQueryResult, bool) {
+	if len(blockResults) == 0 {
+		return nil, false
+	}
+
+	rowCount := 0
+	for _, r := range blockResults {
+		rowCount += r.Count
+	}
+
+	intResultLen := rowCount * len(query.IntColumnNames)
 	intResult := make([]int64, intResultLen)
 	intHasValue := make([]bool, intResultLen)
-	for idx := range query.IntColumnNames {
-		count := copy(intResult, result.IntResult.matrix[idx])
-		if count != result.Count {
-			t.ctx.Logger.DPanic("invalid result")
-			return nil, false
-		}
-		count = copy(intHasValue, result.IntResult.hasValue[idx])
-		if count != result.Count {
-			t.ctx.Logger.DPanic("invalid result")
-			return nil, false
+	for colIdx := range query.IntColumnNames {
+		rowStartIdx := colIdx * rowCount
+		copied := 0
+
+		for _, result := range blockResults {
+			blockStartIdx := rowStartIdx + copied
+
+			count := copy(intResult[blockStartIdx:], result.IntResult.matrix[colIdx])
+			if count != result.Count {
+				t.ctx.Logger.DPanic("invalid result")
+				return nil, false
+			}
+
+			count = copy(intHasValue, result.IntResult.hasValue[colIdx])
+			if count != result.Count {
+				t.ctx.Logger.DPanic("invalid result")
+				return nil, false
+			}
+			copied += result.Count
 		}
 	}
 
-	strResultLen := result.Count * len(query.StrColumnNames)
+	// TODO: strId at table level so we don't need this?
+	strIdMap := make(map[uint32]string)
+	strValueMap := make(map[string]uint32)
+	for _, result := range blockResults {
+		for _, str := range result.StrResult.strIdMap {
+			if _, ok := strValueMap[str]; ok {
+				continue
+			}
+			strId := uint32(len(strIdMap))
+			strIdMap[strId] = str
+			strValueMap[str] = strId
+		}
+	}
+
+	strResultLen := rowCount * len(query.StrColumnNames)
 	strResult := make([]uint32, strResultLen)
 	strHasValue := make([]bool, strResultLen)
-	for idx := range query.StrColumnNames {
-		// *Note* casting strId to its underline type uint32
-		castedStrResult := (*[]uint32)(unsafe.Pointer(&result.StrResult.matrix[idx]))
-		count := copy(strResult, *castedStrResult)
-		if count != result.Count {
-			t.ctx.Logger.DPanic("invalid result")
-			return nil, false
-		}
-		count = copy(strHasValue, result.StrResult.hasValue[idx])
-		if count != result.Count {
-			t.ctx.Logger.DPanic("invalid result")
-			return nil, false
-		}
-	}
+	for colIdx := range query.StrColumnNames {
+		rowStartIdx := colIdx * rowCount
+		copied := 0
 
-	strIdMap := make(map[uint32]string)
-	for strId, str := range result.StrResult.strIdMap {
-		strIdMap[uint32(strId)] = str
+		for _, result := range blockResults {
+			blockStartIdx := rowStartIdx + copied
+
+			for rowIdx := range result.StrResult.matrix[colIdx] {
+				if result.StrResult.hasValue[colIdx][rowIdx] {
+					str := result.StrResult.strIdMap[result.StrResult.matrix[colIdx][rowIdx]]
+					strResult[blockStartIdx+rowIdx] = strValueMap[str]
+				}
+			}
+
+			count := copy(strHasValue, result.StrResult.hasValue[colIdx])
+			if count != result.Count {
+				t.ctx.Logger.DPanic("invalid result")
+				return nil, false
+			}
+			copied += result.Count
+		}
 	}
 
 	return &pb.RowsQueryResult{
-		Count: int32(result.Count),
+		Count: int32(rowCount),
 
 		IntColumnNames: query.IntColumnNames,
 		IntResult:      intResult,
@@ -244,6 +322,7 @@ func NewTable(ctx *common.BapiCtx, name string) *Table {
 			maxTs:    atomic.NewInt64(0),
 		},
 
+		blocksLock:   &sync.RWMutex{},
 		blocks:       make([]*Block, 0),
 		ingesterPool: &sync.Pool{New: func() interface{} { return newIngester() }},
 		pbChan:       make(chan pbMessage, ctx.GetMaxPartialBlocks()),
@@ -354,13 +433,13 @@ func (t *Table) addPartialBlock(pb *partialBlock, flushImmediatly bool) bool {
 	return true
 }
 
-// TODO sort blocks
 func (table *Table) addBlock(block *Block) bool {
 	if block.rowCount == 0 {
 		table.ctx.Logger.Error("refuse to add an empty block")
 		return false
 	}
 
+	// we probably should update metadata and the blocks atomically, but this is good for now.
 	for {
 		oldMinTs := table.tableInfo.minTs.Load()
 		if swapped := table.tableInfo.minTs.CAS(oldMinTs, min(oldMinTs, block.minTs)); swapped {
@@ -376,7 +455,17 @@ func (table *Table) addBlock(block *Block) bool {
 	}
 
 	table.tableInfo.rowCount.Add(uint32(block.rowCount))
+
+	table.blocksLock.Lock()
+	defer func() {
+		table.blocksLock.Unlock()
+	}()
+
 	table.blocks = append(table.blocks, block)
+	sort.Slice(table.blocks, func(i, j int) bool {
+		left, right := table.blocks[i], table.blocks[j]
+		return left.minTs < right.minTs || (left.minTs == right.minTs && left.maxTs < right.maxTs)
+	})
 	return true
 }
 
