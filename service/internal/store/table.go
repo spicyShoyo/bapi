@@ -219,22 +219,14 @@ func (t *Table) newRowsQuery(query *pb.RowsQuery) (*blockQuery, bool) {
 		return nil, false
 	}
 
-	intColumns := make([]*ColumnInfo, 0)
-	for _, intColName := range query.IntColumnNames {
-		colInfo, ok := t.getColumnInfoAndAssertType(intColName, IntColumnType)
-		if !ok {
-			return nil, false
-		}
-		intColumns = append(intColumns, colInfo)
+	intColumns, ok := t.colInfoMap.getColumnInfoSliceForType(query.IntColumnNames, IntColumnType)
+	if !ok {
+		return nil, false
 	}
 
-	strColumns := make([]*ColumnInfo, 0)
-	for _, strColName := range query.StrColumnNames {
-		colInfo, ok := t.getColumnInfoAndAssertType(strColName, StrColumnType)
-		if !ok {
-			return nil, false
-		}
-		strColumns = append(strColumns, colInfo)
+	strColumns, ok := t.colInfoMap.getColumnInfoSliceForType(query.StrColumnNames, StrColumnType)
+	if !ok {
+		return nil, false
 	}
 
 	return &blockQuery{
@@ -247,7 +239,7 @@ func (t *Table) newRowsQuery(query *pb.RowsQuery) (*blockQuery, bool) {
 func (t *Table) newBlockfilter(query *pb.RowsQuery) (blockFilter, bool) {
 	intFilters := make([]IntFilter, 0)
 	for _, intFilter := range query.IntFilters {
-		colInfo, ok := t.getColumnInfoAndAssertType(intFilter.ColumnName, IntColumnType)
+		colInfo, ok := t.colInfoMap.getColumnInfoAndAssertType(intFilter.ColumnName, IntColumnType)
 		if !ok {
 			return blockFilter{}, false
 		}
@@ -267,7 +259,7 @@ func (t *Table) newBlockfilter(query *pb.RowsQuery) (blockFilter, bool) {
 
 	strFilters := make([]StrFilter, 0)
 	for _, strFilter := range query.StrFilters {
-		colInfo, ok := t.getColumnInfoAndAssertType(strFilter.ColumnName, StrColumnType)
+		colInfo, ok := t.colInfoMap.getColumnInfoAndAssertType(strFilter.ColumnName, StrColumnType)
 		if !ok {
 			return blockFilter{}, false
 		}
@@ -290,7 +282,7 @@ func (t *Table) newBlockfilter(query *pb.RowsQuery) (blockFilter, bool) {
 		maxTs = query.GetMaxTs()
 	}
 
-	tsColInfo, ok := t.getColumnInfoAndAssertType(TS_COLUMN_NAME, IntColumnType)
+	tsColInfo, ok := t.colInfoMap.getColumnInfoAndAssertType(TS_COLUMN_NAME, IntColumnType)
 	if !ok {
 		t.ctx.Logger.DPanic("fail to get tsColInfo ")
 		return blockFilter{}, false
@@ -314,7 +306,7 @@ type pbMessage struct {
 func NewTable(ctx *common.BapiCtx, name string) *Table {
 	table := &Table{
 		ctx:        ctx,
-		colInfoMap: newColumnInfoMap(),
+		colInfoMap: newColumnInfoMap(ctx),
 		tableInfo: tableInfo{
 			name:     name,
 			rowCount: atomic.NewUint32(0),
@@ -329,8 +321,8 @@ func NewTable(ctx *common.BapiCtx, name string) *Table {
 		pbQueue:      make([]*partialBlock, 0),
 	}
 
-	table.getOrRegisterColumnId(TS_COLUMN_NAME, IntColumnType)
-	_, inColNameMap := table.getColumnInfo(TS_COLUMN_NAME)
+	table.colInfoMap.getOrRegisterColumnId(TS_COLUMN_NAME, IntColumnType)
+	_, inColNameMap := table.colInfoMap.getColumnInfo(TS_COLUMN_NAME)
 	if !inColNameMap {
 		ctx.Logger.Panic("missing ts column")
 	}

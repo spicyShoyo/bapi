@@ -67,7 +67,7 @@ func TestBuildBlock(t *testing.T) {
 
 func assertIntPartialColData(
 	t *testing.T, colName string, expected partialColumnData[int64], table *Table, intCol partialColumns[int64]) {
-	colId, found := table.getOrRegisterColumnId(colName, IntColumnType)
+	colId, found := table.colInfoMap.getOrRegisterColumnId(colName, IntColumnType)
 	assert.Nil(t, found)
 	assertPartialColumnDataEqual(t, expected, intCol[colId])
 }
@@ -79,7 +79,7 @@ func assertStrPartialColData(
 		expectedStrIdCol[ingester.strValueMap[s]] = rows
 	}
 
-	colId, found := table.getOrRegisterColumnId(colName, StrColumnType)
+	colId, found := table.colInfoMap.getOrRegisterColumnId(colName, StrColumnType)
 	assert.Nil(t, found)
 	assertPartialColumnDataEqual(t, expectedStrIdCol, strCol[colId])
 }

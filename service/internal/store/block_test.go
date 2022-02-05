@@ -27,8 +27,8 @@ func TestBlockQuery(t *testing.T) {
 		},
 	})
 
-	table.getOrRegisterColumnId("not_exist_int", IntColumnType)
-	table.getOrRegisterColumnId("not_exist_str", StrColumnType)
+	table.colInfoMap.getOrRegisterColumnId("not_exist_int", IntColumnType)
+	table.colInfoMap.getOrRegisterColumnId("not_exist_str", StrColumnType)
 	assertBlockQuery(t, table, block, 1643175607, 1643175618,
 		[]debugBlockFilter[int]{
 			debugGt("count", 1),
@@ -76,12 +76,12 @@ func debugNewQuery(
 	intColumns := make([]*ColumnInfo, 0)
 	strColumns := make([]*ColumnInfo, 0)
 	for _, intCol := range intCols {
-		colInfo, found := table.getColumnInfo(intCol)
+		colInfo, found := table.colInfoMap.getColumnInfo(intCol)
 		assert.True(t, found)
 		intColumns = append(intColumns, colInfo)
 	}
 	for _, strCol := range strCols {
-		colInfo, found := table.getColumnInfo(strCol)
+		colInfo, found := table.colInfoMap.getColumnInfo(strCol)
 		assert.True(t, found)
 		strColumns = append(strColumns, colInfo)
 	}
@@ -177,8 +177,8 @@ func TestBlockFilter(t *testing.T) {
 	)
 
 	// can handle columns not in block but in table
-	table.getOrRegisterColumnId("not_exist_int", IntColumnType)
-	table.getOrRegisterColumnId("not_exist_str", StrColumnType)
+	table.colInfoMap.getOrRegisterColumnId("not_exist_int", IntColumnType)
+	table.colInfoMap.getOrRegisterColumnId("not_exist_str", StrColumnType)
 	assertBlockFilter(t, table, block, 1643175608, 1643175618,
 		[]debugBlockFilter[int]{
 			debugNull[int]("not_exist_int"),
@@ -206,7 +206,7 @@ func debugNewBlockFilter(
 ) blockFilter {
 	intFilters := make([]IntFilter, 0)
 	for _, filter := range intDebugFilters {
-		colInfo, ok := table.getColumnInfo(filter.colName)
+		colInfo, ok := table.colInfoMap.getColumnInfo(filter.colName)
 		assert.True(t, ok)
 
 		intFilters = append(intFilters, IntFilter{
@@ -218,7 +218,7 @@ func debugNewBlockFilter(
 
 	strFilters := make([]StrFilter, 0)
 	for _, filter := range strDebugFilters {
-		colInfo, ok := table.getColumnInfo(filter.colName)
+		colInfo, ok := table.colInfoMap.getColumnInfo(filter.colName)
 		assert.True(t, ok)
 
 		strFilters = append(strFilters, StrFilter{
@@ -227,7 +227,7 @@ func debugNewBlockFilter(
 			Value:      filter.value,
 		})
 	}
-	tsColInfo, _ := table.getColumnInfo(TS_COLUMN_NAME)
+	tsColInfo, _ := table.colInfoMap.getColumnInfo(TS_COLUMN_NAME)
 	return newBlockFilter(
 		minTs,
 		maxTs,

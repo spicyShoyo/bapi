@@ -4,10 +4,14 @@ import (
 	"sync"
 )
 
-type strStore interface {
-	getOrInsertStrId(str string) (strId, bool)
+type readOnlyStrStore interface {
 	getStrId(str string) (strId, bool)
 	getStr(id strId) (string, bool)
+}
+
+type strStore interface {
+	readOnlyStrStore
+	getOrInsertStrId(str string) (strId, bool)
 }
 
 type basicStrStore struct {

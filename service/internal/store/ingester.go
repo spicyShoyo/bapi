@@ -18,6 +18,10 @@ type ingester struct {
 	rows        []*row
 }
 
+type ingesterCtx struct {
+	readOnlyStrStore
+}
+
 func newIngester() *ingester {
 	return &ingester{
 		strIdSet:    make(map[strId]bool),
@@ -30,6 +34,7 @@ func newIngester() *ingester {
 // Zeros out so can be reused.
 // *Always* call this before using the ingester.
 func (ingester *ingester) zeroOut() {
+	ingester.strIdSet = make(map[strId]bool)
 	ingester.strIdMap = make(map[strId]string)
 	ingester.strValueMap = make(map[string]strId)
 	ingester.rows = ingester.rows[:0]
@@ -86,7 +91,7 @@ func (ingester *ingester) ingestRawJson(
 	row.addInt(columnId(TS_COLUMN_ID), ts) // making sure the first value is ts
 
 	for columnName, value := range rawJson.Int {
-		colId, err := table.getOrRegisterColumnId(columnName, IntColumnType)
+		colId, err := table.colInfoMap.getOrRegisterColumnId(columnName, IntColumnType)
 		if err != nil {
 			return err
 		}
@@ -98,7 +103,7 @@ func (ingester *ingester) ingestRawJson(
 	}
 
 	for columnName, value := range rawJson.Str {
-		colId, err := table.getOrRegisterColumnId(columnName, StrColumnType)
+		colId, err := table.colInfoMap.getOrRegisterColumnId(columnName, StrColumnType)
 		if err != nil {
 			return err
 		}
