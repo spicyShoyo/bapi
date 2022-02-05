@@ -17,7 +17,7 @@ const nullValueIndex = valueIndex(0)
  * Concepts:
  * 	- "row" refers to a record being stored in Bapi (same as the rest of the codebase),
  * 		not a row in a matrix, unless specified.
- * 	- Under the context of numericStorage, an "id" is used as index into some slice.
+ * 	- Under the context of numericStore, an "id" is used as index into some slice.
  * 	- Given a row looks like {"count": 3}, we say this row has value 3 in the column "count".
  *
  * matrix:
@@ -32,7 +32,7 @@ const nullValueIndex = valueIndex(0)
  * columnIds:
  * 	- For mapping a table-level column id to the local column id.
  *
- * Invariants (of initialized numericStorage):
+ * Invariants (of initialized numericStore):
  * 	1. A `columnId` is present in `columnIds` iff this storage has at least one row that has value in the column.
  * 		i.e. `some(matrix[localColId], valueIdx => valueIdx != nullValueIndex)` for all columnId
  * 		since we do not store a column if no row has value in it.
@@ -50,7 +50,7 @@ const nullValueIndex = valueIndex(0)
  * 	2. valueIdx := matrix[localColId][rowIdx]
  * 	3. value := values[localColId][valueIdx]
  */
-type numericStorage[T OrderedNumeric] struct {
+type numericStore[T OrderedNumeric] struct {
 	matrix [][]valueIndex
 	values [][]T
 
@@ -60,23 +60,23 @@ type numericStorage[T OrderedNumeric] struct {
 // Creates an uninitialized storage.
 // The created storage violates the invariants because the values are not populated and
 // the caller is responsible to initialized the storage correctly.
-func newNumericStorage[T OrderedNumeric](colCount int, rowCount int) (*numericStorage[T], bool) {
+func newNumericStore[T OrderedNumeric](colCount int, rowCount int) (*numericStore[T], bool) {
 	if colCount <= 0 || rowCount <= 0 {
 		return nil, false
 	}
 	matrix, _ := make2dSlice[valueIndex](colCount, rowCount)
-	return &numericStorage[T]{
+	return &numericStore[T]{
 		matrix:    matrix,
 		values:    make([][]T, colCount),
 		columnIds: make(map[columnId]localColumnId),
 	}, true
 }
 
-// Creates a numericStorage from a partialColumns
+// Creates a numericStore from a partialColumns
 // The caller is responsible to make sure that colId and rowId are valid.
-func fromPartialColumns[T OrderedNumeric](partialColumns partialColumns[T], rowCount int) (*numericStorage[T], error) {
+func fromPartialColumns[T OrderedNumeric](partialColumns partialColumns[T], rowCount int) (*numericStore[T], error) {
 	colCount := len(partialColumns)
-	storage, ok := newNumericStorage[T](colCount, rowCount)
+	storage, ok := newNumericStore[T](colCount, rowCount)
 	if !ok {
 		return nil, errors.New("failed to create numeric storage")
 	}
@@ -119,7 +119,7 @@ func fromPartialColumns[T OrderedNumeric](partialColumns partialColumns[T], rowC
 
 // Gets the local column id
 // The column exist in the storage iff there is at least one row has value in this column.
-func (ns *numericStorage[T]) getLocalColumnId(colInfo *ColumnInfo) (localColumnId, bool) {
+func (ns *numericStore[T]) getLocalColumnId(colInfo *ColumnInfo) (localColumnId, bool) {
 	localColId, exists := ns.columnIds[colInfo.id]
 	if !exists {
 		return 0, false
@@ -129,7 +129,7 @@ func (ns *numericStorage[T]) getLocalColumnId(colInfo *ColumnInfo) (localColumnI
 }
 
 // Performs the filtering and updates the bitmap in filterCtx in place.
-func (ns *numericStorage[T]) filterNumericStorage(
+func (ns *numericStore[T]) filterNumericStore(
 	ctx *filterCtx,
 	filter numericFilter[T],
 ) {
@@ -194,12 +194,12 @@ func canContinueElseStopForColNotExist(ctx *filterCtx, op FilterOp) bool {
  * 	len(matrix) == len(hasValue)
  * 	max(hasValue[colIdx]) < len(matrix[colIdx]) for all colIdx
  */
-type numericStorageResult[T OrderedNumeric] struct {
+type numericStoreResult[T OrderedNumeric] struct {
 	matrix   [][]T
 	hasValue [][]bool
 }
 
-func newNumericStorageResult[T OrderedNumeric](rowCount int, colCount int) *numericStorageResult[T] {
+func newNumericStoreResult[T OrderedNumeric](rowCount int, colCount int) *numericStoreResult[T] {
 	matrix := make([][]T, colCount)
 	hasValue := make([][]bool, colCount)
 	for colId := 0; colId < colCount; colId++ {
@@ -207,7 +207,7 @@ func newNumericStorageResult[T OrderedNumeric](rowCount int, colCount int) *nume
 		hasValue[colId] = make([]bool, rowCount)
 	}
 
-	return &numericStorageResult[T]{
+	return &numericStoreResult[T]{
 		matrix,
 		hasValue,
 	}
@@ -220,11 +220,11 @@ func newNumericStorageResult[T OrderedNumeric](rowCount int, colCount int) *nume
  * The order of the rows is retained; it's the same as the order in the storage.
  * The order of the cols is also retained; it's the same as the order in the resultCtx.
  */
-func (ns *numericStorage[T]) get(
+func (ns *numericStore[T]) get(
 	ctx *getCtx,
 	recordValue bool,
-) (*numericStorageResult[T], map[T]bool) {
-	result := newNumericStorageResult[T](ctx.bitmap.Count(), len(ctx.columns))
+) (*numericStoreResult[T], map[T]bool) {
+	result := newNumericStoreResult[T](ctx.bitmap.Count(), len(ctx.columns))
 	resultValues := make(map[T]bool)
 
 	resultColIdx := 0
@@ -265,8 +265,8 @@ func (ns *numericStorage[T]) get(
 }
 
 // Returns true if the invariants hold
-// @see numericStorage struct comment for details
-func (ns *numericStorage[T]) debugInvariantCheck() error {
+// @see numericStore struct comment for details
+func (ns *numericStore[T]) debugInvariantCheck() error {
 	if len(ns.columnIds) <= 0 || len(ns.columnIds) != len(ns.matrix) || len(ns.matrix) != len(ns.values) {
 		// invariants #7
 		return errors.New("columnIds, matrix, and values do not have the same positive length")

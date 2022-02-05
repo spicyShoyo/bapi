@@ -6,7 +6,7 @@ import (
 
 // --------------------------- intColumnsStorage ----------------------------
 type intColumnsStorage struct {
-	numericStorage[int64]
+	numericStore[int64]
 }
 
 func newIntColumnsStorage(
@@ -19,7 +19,7 @@ func newIntColumnsStorage(
 	}
 
 	intStorage := &intColumnsStorage{
-		numericStorage: *storage,
+		numericStore: *storage,
 	}
 
 	if rowCount != len(intStorage.matrix[0]) {
@@ -31,7 +31,7 @@ func newIntColumnsStorage(
 func (ics *intColumnsStorage) get(
 	ctx *getCtx,
 ) IntResult {
-	storageResult, _ := ics.numericStorage.get(ctx, false /*recordValues*/)
+	storageResult, _ := ics.numericStore.get(ctx, false /*recordValues*/)
 	return IntResult{matrix: storageResult.matrix, hasValue: storageResult.hasValue}
 }
 
@@ -46,7 +46,7 @@ func (ics *intColumnsStorage) filter(ctx *filterCtx, filters []IntFilter) {
 			}
 		}
 
-		ics.filterNumericStorage(
+		ics.filterNumericStore(
 			ctx,
 			numericFilter[int64]{
 				localColId: localColumnId,
@@ -59,7 +59,7 @@ func (ics *intColumnsStorage) filter(ctx *filterCtx, filters []IntFilter) {
 
 // --------------------------- strColumnsStorage ----------------------------
 type strColumnsStorage struct {
-	numericStorage[strId]
+	numericStore[strId]
 	strIdSet    map[strId]bool
 	strIdMap    map[strId]string
 	strValueMap map[string]strId
@@ -78,17 +78,17 @@ func newStrColumnsStorage(
 	}
 
 	return &strColumnsStorage{
-		strIdSet:       strIdSet,
-		strIdMap:       strIdMap,
-		strValueMap:    strValueMap,
-		numericStorage: *storage,
+		strIdSet:     strIdSet,
+		strIdMap:     strIdMap,
+		strValueMap:  strValueMap,
+		numericStore: *storage,
 	}, nil
 }
 
 func (scs *strColumnsStorage) get(
 	ctx *getCtx,
 ) StrResult {
-	storageResult, strIdInResult := scs.numericStorage.get(ctx, true /*recordValues*/)
+	storageResult, strIdInResult := scs.numericStore.get(ctx, true /*recordValues*/)
 	strIdMap := make(map[strId]string)
 	for strId := range strIdInResult {
 		strIdMap[strId] = scs.strIdMap[strId]
@@ -134,7 +134,7 @@ func (scs *strColumnsStorage) filter(ctx *filterCtx, filters []StrFilter) {
 			continue
 		}
 
-		scs.filterNumericStorage(
+		scs.filterNumericStore(
 			ctx,
 			numericFilter[strId]{
 				localColId: localColumnId,

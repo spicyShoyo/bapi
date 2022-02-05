@@ -339,9 +339,9 @@ func debugNewIntColumnsStorageFromRows(t *testing.T, rows debugRows[int64]) *int
 	)
 	assert.Nil(t, err)
 
-	ns := intStorage.numericStorage
+	ns := intStorage.numericStore
 	assert.Nil(t, ns.debugInvariantCheck(), "storage: %v", ns)
-	assertNumericStorageMatchRows(t, rows, &ns, totalRowCount)
+	assertNumericStoreMatchRows(t, rows, &ns, totalRowCount)
 	return intStorage
 }
 
@@ -449,9 +449,9 @@ func debugNewStrColumnsStorageFromRows(t *testing.T, rows debugRows[strId], tota
 		strIdMap,
 		strValueMap,
 	)
-	ns := strStorage.numericStorage
+	ns := strStorage.numericStore
 	assert.Nil(t, ns.debugInvariantCheck(), "storage: %v", ns)
-	assertNumericStorageMatchRows(t, rows, &ns, totalRowCount)
+	assertNumericStoreMatchRows(t, rows, &ns, totalRowCount)
 	return strStorage
 }
 

@@ -8,21 +8,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewNumericStorage(t *testing.T) {
-	_, ok := newNumericStorage[int64](2, 0)
+func TestNewNumericStore(t *testing.T) {
+	_, ok := newNumericStore[int64](2, 0)
 	assert.False(t, ok)
-	_, ok = newNumericStorage[int64](-1, 3)
+	_, ok = newNumericStore[int64](-1, 3)
 	assert.False(t, ok)
-	storage, _ := newNumericStorage[int64](2, 3)
+	storage, _ := newNumericStore[int64](2, 3)
 	assert.Equal(t, len(storage.matrix), 2)
 	assert.Equal(t, len(storage.matrix[0]), 3)
 	assert.Equal(t, len(storage.values), 2)
 }
 
-func assertNumericStorageMatchRows[V OrderedNumeric](
+func assertNumericStoreMatchRows[V OrderedNumeric](
 	t *testing.T,
 	rows debugRows[V],
-	ns *numericStorage[V],
+	ns *numericStore[V],
 	rowCount int,
 ) {
 	assert.Equal(t, rowCount, len(ns.matrix[0]))
@@ -85,7 +85,7 @@ func TestFromPartialColumns(t *testing.T) {
 	partialColumns := debugNewPartialColumns(rows)
 	ns, _ := fromPartialColumns(partialColumns, 10 /*rowCount*/)
 	assert.Nil(t, ns.debugInvariantCheck(), "storage: %v", ns)
-	assertNumericStorageMatchRows(t, rows, ns, 10)
+	assertNumericStoreMatchRows(t, rows, ns, 10)
 }
 
 type debugFilter[T comparable] struct {
@@ -120,7 +120,7 @@ func assertFilterHasResult[V OrderedNumeric](
 			op:         df.op,
 			value:      df.value,
 		}
-		ns.filterNumericStorage(ctx, filter)
+		ns.filterNumericStore(ctx, filter)
 	}
 
 	actualRows := make([]uint32, 0)
@@ -264,8 +264,8 @@ func TestFilterComparator(t *testing.T) {
 	})
 }
 
-func TestNewNumericStorageResult(t *testing.T) {
-	result := newNumericStorageResult[int](2 /* rowCnt */, 3 /* colCnt */)
+func TestNewNumericStoreResult(t *testing.T) {
+	result := newNumericStoreResult[int](2 /* rowCnt */, 3 /* colCnt */)
 	assert.Equal(t, 3, len(result.matrix))
 	assert.Equal(t, 3, len(result.hasValue))
 	for _, rows := range result.matrix {
@@ -281,7 +281,7 @@ type debugGetTestSetup[T OrderedNumeric] struct {
 	expectedRows    debugRows[T]
 }
 
-func assertGetResultNumericStorage[V OrderedNumeric](
+func assertGetResultNumericStore[V OrderedNumeric](
 	t *testing.T,
 	s debugGetTestSetup[V],
 ) {
@@ -399,7 +399,7 @@ func TestGet(t *testing.T) {
 		},
 	}
 
-	assertGetResultNumericStorage(t, debugGetTestSetup[int]{
+	assertGetResultNumericStore(t, debugGetTestSetup[int]{
 		colType:         IntColumnType,
 		rows:            rows,
 		colIds:          []columnId{columnId(22)},
