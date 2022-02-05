@@ -262,12 +262,9 @@ func assertBlockFilter(
 
 func debugBuildTableAndBlockFromIngester(rawRows []RawJson) (*Table, *Block) {
 	table := NewTable(common.NewBapiCtx(), "asd")
-	ingester := newIngester()
+	ingester := table.newIngester()
 	for _, rawRow := range rawRows {
-		ingester.ingestRawJson(
-			table,
-			rawRow,
-		)
+		ingester.ingestRawJson(rawRow)
 	}
 
 	pb, _ := ingester.buildPartialBlock()

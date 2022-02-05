@@ -12,18 +12,29 @@ import (
 // strValueMap: new strValue to be added to the table's mao
 // rows: the rows to be injected
 type ingester struct {
+	ctx         ingesterCtx
 	strIdSet    map[strId]bool
 	strIdMap    map[strId]string
 	strValueMap map[string]strId
 	rows        []*row
 }
 
-type ingesterCtx struct {
-	readOnlyStrStore
+type ingesterCtx interface {
+	strStore
+	getOrRegisterColumnId(colName string, colType ColumnType) (columnId, error)
 }
 
-func newIngester() *ingester {
+type tableIngesterCtx struct {
+	strStore
+	columnInfoMap
+}
+
+func (t *Table) newIngester() *ingester {
 	return &ingester{
+		ctx: &tableIngesterCtx{
+			t.strStore,
+			t.colInfoMap,
+		},
 		strIdSet:    make(map[strId]bool),
 		strIdMap:    make(map[strId]string),
 		strValueMap: make(map[string]strId),
@@ -80,8 +91,7 @@ func (ingester *ingester) buildPartialBlock() (*partialBlock, error) {
 	}, nil
 }
 
-func (ingester *ingester) ingestRawJson(
-	table *Table, rawJson RawJson) error {
+func (ingester *ingester) ingestRawJson(rawJson RawJson) error {
 	row := newRow()
 
 	ts, hasTsCol := rawJson.Int[TS_COLUMN_NAME]
@@ -91,7 +101,7 @@ func (ingester *ingester) ingestRawJson(
 	row.addInt(columnId(TS_COLUMN_ID), ts) // making sure the first value is ts
 
 	for columnName, value := range rawJson.Int {
-		colId, err := table.colInfoMap.getOrRegisterColumnId(columnName, IntColumnType)
+		colId, err := ingester.ctx.getOrRegisterColumnId(columnName, IntColumnType)
 		if err != nil {
 			return err
 		}
@@ -103,7 +113,7 @@ func (ingester *ingester) ingestRawJson(
 	}
 
 	for columnName, value := range rawJson.Str {
-		colId, err := table.colInfoMap.getOrRegisterColumnId(columnName, StrColumnType)
+		colId, err := ingester.ctx.getOrRegisterColumnId(columnName, StrColumnType)
 		if err != nil {
 			return err
 		}

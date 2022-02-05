@@ -30,6 +30,8 @@ type Table struct {
 	pbChan       chan pbMessage
 	pbQueue      []*partialBlock
 
+	strStore strStore
+
 	blocksLock *sync.RWMutex
 	blocks     []*Block
 }
@@ -314,12 +316,15 @@ func NewTable(ctx *common.BapiCtx, name string) *Table {
 			maxTs:    atomic.NewInt64(0),
 		},
 
-		blocksLock:   &sync.RWMutex{},
-		blocks:       make([]*Block, 0),
-		ingesterPool: &sync.Pool{New: func() interface{} { return newIngester() }},
-		pbChan:       make(chan pbMessage, ctx.GetMaxPartialBlocks()),
-		pbQueue:      make([]*partialBlock, 0),
+		strStore: newBasicStrStore(),
+
+		blocksLock: &sync.RWMutex{},
+		blocks:     make([]*Block, 0),
+		pbChan:     make(chan pbMessage, ctx.GetMaxPartialBlocks()),
+		pbQueue:    make([]*partialBlock, 0),
 	}
+
+	table.ingesterPool = &sync.Pool{New: func() interface{} { return table.newIngester() }}
 
 	table.colInfoMap.getOrRegisterColumnId(TS_COLUMN_NAME, IntColumnType)
 	_, inColNameMap := table.colInfoMap.getColumnInfo(TS_COLUMN_NAME)
@@ -477,7 +482,7 @@ func (table *Table) ingestBufOneBlock(ingester *ingester, scanner *bufio.Scanner
 			table.ctx.Logger.Errorf("failed to parse json: %v", err)
 			continue
 		}
-		if err := ingester.ingestRawJson(table, rawJson); err == nil {
+		if err := ingester.ingestRawJson(rawJson); err == nil {
 			cnt_success += 1
 		} else {
 			table.ctx.Logger.Errorf("failed to ingest json: %v", err)
@@ -525,7 +530,7 @@ func (table *Table) IngestJsonRows(rows []*pb.RawRow, useServerTs bool) int {
 				row.Int[TS_COLUMN_NAME] = serverReceviedTs
 			}
 
-			if err := ingester.ingestRawJson(table, RawJson{
+			if err := ingester.ingestRawJson(RawJson{
 				Int: row.Int,
 				Str: row.Str,
 			}); err != nil {

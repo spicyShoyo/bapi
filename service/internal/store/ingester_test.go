@@ -9,7 +9,7 @@ import (
 
 func TestBuildBlock(t *testing.T) {
 	table := NewTable(common.NewBapiCtx(), "asd")
-	ingester := newIngester()
+	ingester := table.newIngester()
 	_, err := ingester.buildPartialBlock()
 	assert.NotNilf(t, err, "should not build block when empty")
 
@@ -28,10 +28,7 @@ func TestBuildBlock(t *testing.T) {
 		},
 	}
 	for _, rawRow := range rawRows {
-		ingester.ingestRawJson(
-			table,
-			rawRow,
-		)
+		ingester.ingestRawJson(rawRow)
 	}
 	assert.Equal(t, table.colInfoMap.colCount.Load(), uint32(4))
 

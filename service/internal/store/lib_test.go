@@ -92,10 +92,7 @@ func debugNewPrefilledTable(rawRows []RawJson) *Table {
 	table := NewTable(common.NewBapiCtx(), "asd")
 	ingester := table.ingesterPool.Get().(*ingester)
 	for _, rawRow := range rawRows {
-		ingester.ingestRawJson(
-			table,
-			rawRow,
-		)
+		ingester.ingestRawJson(rawRow)
 	}
 
 	pb, _ := ingester.buildPartialBlock()
