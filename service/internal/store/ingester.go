@@ -3,12 +3,16 @@ package store
 import (
 	"errors"
 	"fmt"
-	"sort"
 )
 
 // A data structure for processing a set of rows and building the block for inserting into
-// the table. NOT threadsafe
+// the table.
+// stdIdSet: strIds used in the rows
+// strIdMap: new strIds to be added to the table's mao
+// strValueMap: new strValue to be added to the table's mao
+// rows: the rows to be injected
 type ingester struct {
+	strIdSet    map[strId]bool
 	strIdMap    map[strId]string
 	strValueMap map[string]strId
 	rows        []*row
@@ -16,6 +20,7 @@ type ingester struct {
 
 func newIngester() *ingester {
 	return &ingester{
+		strIdSet:    make(map[strId]bool),
 		strIdMap:    make(map[strId]string),
 		strValueMap: make(map[string]strId),
 		rows:        make([]*row, 0),
@@ -23,24 +28,19 @@ func newIngester() *ingester {
 }
 
 // Zeros out so can be reused.
-// Note: *Always* call this before using the ingester.
+// *Always* call this before using the ingester.
 func (ingester *ingester) zeroOut() {
 	ingester.strIdMap = make(map[strId]string)
 	ingester.strValueMap = make(map[string]strId)
 	ingester.rows = ingester.rows[:0]
 }
 
-// returns intPartialColumns, strPartialColumns, minTs, maxTs
+// Returns intPartialColumns, strPartialColumns, minTs, maxTs
 // should only be called by buildBlock or unit tests
 func (ingester *ingester) buildPartialBlock() (*partialBlock, error) {
 	if len(ingester.rows) == 0 {
 		return nil, errors.New("ingester is emptry")
 	}
-
-	sort.Slice(ingester.rows, func(i, j int) bool {
-		left, right := ingester.rows[i], ingester.rows[j]
-		return left.getTs() < right.getTs()
-	})
 
 	intPartialColumns := newPartialColumns[int64]()
 	strPartialColumns := newPartialColumns[strId]()
@@ -65,6 +65,7 @@ func (ingester *ingester) buildPartialBlock() (*partialBlock, error) {
 		intPartialColumns: intPartialColumns,
 		strPartialColumns: strPartialColumns,
 
+		strIdSet:    ingester.strIdSet,
 		strIdMap:    ingester.strIdMap,
 		strValueMap: ingester.strValueMap,
 
@@ -113,16 +114,16 @@ func (ingester *ingester) ingestRawJson(
 // Inserts or gets the id for the string value.
 // Note: the size of the string value store is unbounded.
 func (ingester *ingester) getOrInsertStrId(strValue string) strId {
-	if strId, ok := ingester.strValueMap[strValue]; ok {
-		return strId
+	id, ok := ingester.strValueMap[strValue]
+	if !ok {
+		id = strId(len(ingester.strIdMap))
+
+		ingester.strIdMap[id] = strValue
+		ingester.strValueMap[strValue] = id
 	}
 
-	strId := strId(len(ingester.strIdMap))
-
-	ingester.strIdMap[strId] = strValue
-	ingester.strValueMap[strValue] = strId
-
-	return strId
+	ingester.strIdSet[id] = true
+	return id
 }
 
 // --------------------------- row ----------------------------
@@ -187,6 +188,7 @@ type partialBlock struct {
 	intPartialColumns partialColumns[int64]
 	strPartialColumns partialColumns[strId]
 
+	strIdSet    map[strId]bool
 	strIdMap    map[strId]string
 	strValueMap map[string]strId
 

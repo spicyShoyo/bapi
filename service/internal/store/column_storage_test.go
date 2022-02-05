@@ -430,6 +430,7 @@ func assertGetResultIntStorage(
 }
 
 func debugNewStrColumnsStorageFromRows(t *testing.T, rows debugRows[strId], totalRowCount int) *strColumnsStorage {
+	strIdSet := make(map[strId]bool)
 	strIdMap := make(map[strId]string)
 	strValueMap := make(map[string]strId)
 
@@ -444,6 +445,7 @@ func debugNewStrColumnsStorageFromRows(t *testing.T, rows debugRows[strId], tota
 	strStorage, _ := newStrColumnsStorage(
 		debugNewPartialColumns(rows),
 		totalRowCount,
+		strIdSet,
 		strIdMap,
 		strValueMap,
 	)

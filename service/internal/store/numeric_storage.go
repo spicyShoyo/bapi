@@ -12,23 +12,23 @@ type valueIndex = uint16
 const nullValueIndex = valueIndex(0)
 
 /**
- * A data structure for storing numerical values
- * 		of the same data type for an ordered list of rows
+ * An immutable data structure for storing numerical values of the same data type
  *
  * Concepts:
  * 	- "row" refers to a record being stored in Bapi (same as the rest of the codebase),
  * 		not a row in a matrix, unless specified.
- * 	- Under the context of numericStorage, an "id" are basically an "idx" into some slice.
+ * 	- Under the context of numericStorage, an "id" is used as index into some slice.
  * 	- Given a row looks like {"count": 3}, we say this row has value 3 in the column "count".
  *
  * matrix:
  * 	- A 2d matrix of size (colCount, rowCount).
- * 	- `matrix[localColId][rowIdx]` is the `valueIdx` for getting the value of the row for this column.
+ * 	- `matrix[localColId][rowIdx]` is the `valueIdx` for getting the value of the row in this column.
  * 	- Null value is represented by having `valueIdx` of `nullValueIndex``.
  * values:
- * 	- A 2d slice of size (colCount, count distinct values).
+ * 	- A 2d slice of size (colCount, valueCount).
  * 	- `values[localColId][valueIdx]` is a value in this column.
- *  - `values[localColId]` is allowed to have duplication (which makes merging easier).
+ *  - `values[localColId]` is allowed to have duplicated values.
+ * 			This is to support merging numeric storage without having to de-duplicate the values.
  * columnIds:
  * 	- For mapping a table-level column id to the local column id.
  *
@@ -37,13 +37,13 @@ const nullValueIndex = valueIndex(0)
  * 		i.e. `some(matrix[localColId], valueIdx => valueIdx != nullValueIndex)` for all columnId
  * 		since we do not store a column if no row has value in it.
  * 	2. A value is in `values[localColId]` iff there is at least one row has this value in the column.
- * 	4. `every(matrix[localColId], valueIdx => valueIdx < len(values[localColId]))` since they are used as index.
- * 	5. `every(columnIds[colId], localColId => localColId < len(values) && localColId < len(matrix))` since they are used as index.
- * 	6. Null value is represented by having `valueIdx` of nullValueIndex;
+ * 	3. `every(matrix[localColId], valueIdx => valueIdx < len(values[localColId]))` since they are used as index.
+ * 	4. `every(columnIds[colId], localColId => localColId < len(values) && localColId < len(matrix))` since they are used as index.
+ * 	5. Null value is represented by having `valueIdx` of nullValueIndex;
  * 		`values[localColId][nullValueIndex]` is a zero initialized placeholder, representing null,
  * 		thus `len(values[localColId]) > 0` for all localColId.
- * 	7. All matrix[localColId] have the same length and len(matrix[localColId]) > 0
- *  8. len(matrix) > 0 and len(matrix) == len(values) == len(columnIds)
+ * 	6. All matrix[localColId] have the same length and len(matrix[localColId]) > 0
+ *  7. len(matrix) > 0 and len(matrix) == len(values) == len(columnIds)
  *
  * Example: to get the value in column with `columnId` for the row of `rowIdx`:
  * 	1. localColId := columnIds[columnId]
@@ -268,7 +268,7 @@ func (ns *numericStorage[T]) get(
 // @see numericStorage struct comment for details
 func (ns *numericStorage[T]) debugInvariantCheck() error {
 	if len(ns.columnIds) <= 0 || len(ns.columnIds) != len(ns.matrix) || len(ns.matrix) != len(ns.values) {
-		// invariants #8
+		// invariants #7
 		return errors.New("columnIds, matrix, and values do not have the same positive length")
 	}
 
@@ -277,19 +277,19 @@ func (ns *numericStorage[T]) debugInvariantCheck() error {
 		return len(matrixRow) == rowCount
 	})
 	if rowCount == 0 || !isValidMatrix {
-		// invariant #7
+		// invariant #6
 		return errors.New("matrix rows have zero or different length")
 	}
 
 	for columnId := range ns.columnIds {
 		localColId := ns.columnIds[columnId]
 		if int(localColId) >= len(ns.values) || int(localColId) >= len(ns.matrix) {
-			// invariant #5
+			// invariant #4
 			return errors.New("invalid localColId")
 		}
 
 		if len(ns.values[localColId]) == 0 {
-			// invariant #6
+			// invariant #5
 			return errors.New("values[localColId] has no null element")
 		}
 
@@ -317,7 +317,7 @@ func (ns *numericStorage[T]) debugInvariantCheck() error {
 		)
 
 		if badValueIdx {
-			// invariant #4
+			// invariant #3
 			return errors.New("invalid valueIdx")
 		}
 

@@ -60,6 +60,7 @@ func (ics *intColumnsStorage) filter(ctx *filterCtx, filters []IntFilter) {
 // --------------------------- strColumnsStorage ----------------------------
 type strColumnsStorage struct {
 	numericStorage[strId]
+	strIdSet    map[strId]bool
 	strIdMap    map[strId]string
 	strValueMap map[string]strId
 }
@@ -67,6 +68,7 @@ type strColumnsStorage struct {
 func newStrColumnsStorage(
 	partialColumns partialColumns[strId],
 	rowCount int,
+	strIdSet map[strId]bool,
 	strIdMap map[strId]string,
 	strValueMap map[string]strId,
 ) (*strColumnsStorage, error) {
@@ -76,6 +78,7 @@ func newStrColumnsStorage(
 	}
 
 	return &strColumnsStorage{
+		strIdSet:       strIdSet,
 		strIdMap:       strIdMap,
 		strValueMap:    strValueMap,
 		numericStorage: *storage,
