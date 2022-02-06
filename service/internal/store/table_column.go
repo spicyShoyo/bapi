@@ -4,21 +4,21 @@ import (
 	"bapi/internal/common"
 	"fmt"
 	"sync"
-
-	"go.uber.org/atomic"
 )
 
 type columnInfoMap struct {
-	ctx      *common.BapiCtx
-	colMap   *sync.Map
-	colCount *atomic.Uint32
+	ctx       *common.BapiCtx
+	colMap    sync.Map
+	m         sync.Mutex
+	nextColId columnId
 }
 
-func newColumnInfoMap(ctx *common.BapiCtx) columnInfoMap {
-	return columnInfoMap{
-		ctx:      ctx,
-		colMap:   &sync.Map{},
-		colCount: atomic.NewUint32(0),
+func newColumnInfoMap(ctx *common.BapiCtx) *columnInfoMap {
+	return &columnInfoMap{
+		ctx:       ctx,
+		colMap:    sync.Map{},
+		m:         sync.Mutex{},
+		nextColId: columnId(0),
 	}
 }
 
@@ -74,31 +74,32 @@ func (m *columnInfoMap) getColumnInfoAndAssertType(colName string, colType Colum
 
 // --------------------------- internal ----------------------------
 func (m *columnInfoMap) registerNewColumn(colName string, colType ColumnType) (columnId, error) {
-	var colCount uint32
-	for {
-		colCount = m.colCount.Load()
-		if colCount == uint32(m.ctx.GetMaxColumn()) {
-			return 0, fmt.Errorf("too many columns, max: %d", m.ctx.GetMaxColumn())
-		}
-		// atomically increase the columnCount and make sure we are the only one reserved the
-		// colCount, which will be used as the columnId. The colId still can be wasted if the
-		// later insertion fails.
-		if swapped := m.colCount.CAS(colCount, colCount+1); swapped {
-			break
-		}
+	if uint16(m.nextColId) == m.ctx.GetMaxColumn() {
+		return 0, fmt.Errorf("too many columns, max: %d", m.ctx.GetMaxColumn())
+	}
+	// we need this lock to make sure colId is not wasted or reused and no double insertion
+	// of the same column.
+	m.m.Lock()
+	defer func() {
+		m.m.Unlock()
+	}()
+
+	// need to check again since another thread may just inserted a column
+	if uint16(m.nextColId) == m.ctx.GetMaxColumn() {
+		return 0, fmt.Errorf("too many columns, max: %d", m.ctx.GetMaxColumn())
 	}
 
-	colId := columnId(colCount)
-	columnInfo := &ColumnInfo{
-		id:         colId,
+	colInfo, loaded := m.colMap.LoadOrStore(colName, &ColumnInfo{
+		id:         m.nextColId,
 		Name:       colName,
 		ColumnType: colType,
-	}
+	})
 
 	// another thread tried to insert the same colName and won the race.
-	if _, loaded := m.colMap.LoadOrStore(colName, columnInfo); loaded {
+	if loaded {
 		return 0, fmt.Errorf("column already exists")
 	}
 
-	return colId, nil
+	m.nextColId++
+	return colInfo.(*ColumnInfo).id, nil
 }

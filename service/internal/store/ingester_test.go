@@ -30,7 +30,7 @@ func TestBuildBlock(t *testing.T) {
 	for _, rawRow := range rawRows {
 		ingester.ingestRawJson(rawRow)
 	}
-	assert.Equal(t, table.colInfoMap.colCount.Load(), uint32(4))
+	assert.Equal(t, table.colInfoMap.nextColId, columnId(4))
 
 	pb, _ := ingester.buildPartialBlock()
 	assert.Equal(t, int64(1643175607), pb.minTs)

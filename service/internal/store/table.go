@@ -25,7 +25,7 @@ import (
 type Table struct {
 	ctx        *common.BapiCtx
 	tableInfo  tableInfo
-	colInfoMap columnInfoMap
+	colInfoMap *columnInfoMap
 
 	ingesterPool *sync.Pool
 	pbChan       chan pbMessage
