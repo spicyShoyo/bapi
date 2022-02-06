@@ -9,6 +9,7 @@ import (
 type BapiCfg struct {
 	// The upper limit for the number of columns in a table
 	maxColumn                  uint16
+	maxStrCount                uint32
 	maxRowsPerBlock            uint16
 	maxParitialBlocks          uint16
 	partialBlocksFlushInterval time.Duration
@@ -16,9 +17,10 @@ type BapiCfg struct {
 
 func NewDefaultCfg() *BapiCfg {
 	return &BapiCfg{
-		maxColumn:                  512,   // should be enough for common product use cases
-		maxRowsPerBlock:            0xFFF, // an arbitrary number...
-		maxParitialBlocks:          0xF,   // max number of partial blocks in partialBlockQueue
+		maxColumn:                  512,     // should be enough for common product use cases
+		maxStrCount:                0xFFFFF, //1048575
+		maxRowsPerBlock:            0xFFF,   // an arbitrary number...
+		maxParitialBlocks:          0xF,     // max number of partial blocks in partialBlockQueue
 		partialBlocksFlushInterval: 5 * time.Second,
 	}
 }
@@ -40,6 +42,10 @@ func NewBapiCtx() *BapiCtx {
 
 func (ctx *BapiCtx) GetMaxColumn() int {
 	return int(ctx.cfg.maxColumn)
+}
+
+func (ctx *BapiCtx) GetMaxStrCount() uint32 {
+	return ctx.cfg.maxStrCount
 }
 
 func (ctx *BapiCtx) GetMaxRowsPerBlock() int {

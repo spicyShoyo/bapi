@@ -62,6 +62,7 @@ func assertBlockQuery(
 		assert.False(t, hasValue)
 		return
 	}
+	assert.True(t, hasValue)
 
 	assert.EqualValues(t, debugToRawJson(table, blockQuery, result), expectedJsons)
 }

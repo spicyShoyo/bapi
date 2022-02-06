@@ -2,7 +2,6 @@ package store
 
 import (
 	"bapi/internal/common"
-	"fmt"
 	"strconv"
 	"testing"
 
@@ -540,8 +539,6 @@ func assertGetResultStrStorage(
 	strStorage, tableStrStore := debugNewStrColumnsStorageFromRows(t, s.rows, storageRowCount)
 	strResult := strStorage.get(ctx)
 	actualResultValues := make(map[strId]bool)
-
-	fmt.Println(strResult.strIdSet, tableStrStore)
 
 	// assert that the strings are included in the result
 	for strId := range strResult.strIdSet {

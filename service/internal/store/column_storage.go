@@ -2,7 +2,6 @@ package store
 
 import (
 	"errors"
-	"fmt"
 )
 
 // --------------------------- intColumnsStorage ----------------------------
@@ -104,7 +103,6 @@ func (scs *strColumnsStorage) filter(ctx *filterCtx, filters []StrFilter) {
 		}
 
 		_, containsStr := scs.strIdSet[filter.Value]
-		fmt.Println("$$$", containsStr, scs.strIdSet, filter.Value)
 		switch filter.FilterOp {
 		case FilterNull, FilterNonnull:
 			{

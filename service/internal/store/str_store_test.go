@@ -1,24 +1,28 @@
 package store
 
 import (
+	"bapi/internal/common"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestStrStore(t *testing.T) {
-	s := newBasicStrStore()
-	id, loaded := s.getOrInsertStrId("hi")
+	s := newBasicStrStore(common.NewBapiCtx())
+	id, loaded, ok := s.getOrInsertStrId("hi")
+	assert.True(t, ok)
 	assert.False(t, loaded)
 	assert.Equal(t, strId(0), id)
-	id, loaded = s.getOrInsertStrId("hello")
+	id, loaded, ok = s.getOrInsertStrId("hello")
+	assert.True(t, ok)
 	assert.False(t, loaded)
 	assert.Equal(t, strId(1), id)
-	id, loaded = s.getOrInsertStrId("hello")
+	id, loaded, ok = s.getOrInsertStrId("hello")
+	assert.True(t, ok)
 	assert.True(t, loaded)
 	assert.Equal(t, strId(1), id)
 
-	id, ok := s.getStrId("hello")
+	id, ok = s.getStrId("hello")
 	assert.True(t, ok)
 	assert.Equal(t, strId(1), id)
 	_, ok = s.getStrId("world")

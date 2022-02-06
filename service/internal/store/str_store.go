@@ -1,7 +1,10 @@
 package store
 
 import (
+	"bapi/internal/common"
 	"sync"
+
+	"go.uber.org/atomic"
 )
 
 const nonexistentStr = strId(0xFFFFFFFF)
@@ -13,48 +16,55 @@ type readOnlyStrStore interface {
 
 type strStore interface {
 	readOnlyStrStore
-	getOrInsertStrId(str string) (strId, bool)
+	getOrInsertStrId(str string) (strId, bool, bool)
 }
 
 type basicStrStore struct {
+	ctx         *common.BapiCtx
 	strIdMap    sync.Map // map[strId]string
 	strValueMap sync.Map // map[string]strId
-	m           sync.Mutex
-	nextStrId   strId
+	strCount    *atomic.Uint32
 }
 
-func newBasicStrStore() *basicStrStore {
+func newBasicStrStore(ctx *common.BapiCtx) *basicStrStore {
 	return &basicStrStore{
+		ctx:         ctx,
 		strIdMap:    sync.Map{},
 		strValueMap: sync.Map{},
-		m:           sync.Mutex{},
-		nextStrId:   strId(0),
+		strCount:    atomic.NewUint32(0),
 	}
 }
 
-func (s *basicStrStore) getOrInsertStrId(str string) (strId, bool) {
+func (s *basicStrStore) getOrInsertStrId(str string) (strId, bool, bool) {
 	if id, loaded := s.strValueMap.Load(str); loaded {
 		// happy path: string is already in the store
-		return id.(strId), true
+		return id.(strId), true, true
 	}
 
-	// TODO: remove locking
-	// While Map is threadsafe, we need this lock to make sure strId is not reused and no double
-	// insertion of the same string.
-	s.m.Lock()
-	defer func() {
-		s.m.Unlock()
-	}()
+	var strCount uint32
+	for {
+		strCount = s.strCount.Load()
+		if strCount == s.ctx.GetMaxStrCount() {
+			return nonexistentStr, false, false
+		}
 
+		// atomically increase the strCount and make sure we are the only one reserved the
+		// strCount, which will be used as the strId. The strId still can be wasted if the
+		// later insertion fails, which is fine.
+		if swapped := s.strCount.CAS(strCount, strCount+1); swapped {
+			break
+		}
+	}
+
+	reservedStrId := strId(strCount)
 	// we still need to load in case it's stored before we get the lock
-	id, loaded := s.strValueMap.LoadOrStore(str, s.nextStrId)
+	id, loaded := s.strValueMap.LoadOrStore(str, reservedStrId)
 	if !loaded {
 		// stored: also need to insert to strIdMap and update nextStrId
 		s.strIdMap.Store(id, str)
-		s.nextStrId++
 	}
 
-	return id.(strId), loaded
+	return id.(strId), loaded, true
 }
 
 func (s *basicStrStore) getStrId(str string) (strId, bool) {

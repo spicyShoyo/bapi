@@ -311,7 +311,7 @@ func NewTable(ctx *common.BapiCtx, name string) *Table {
 			maxTs:    atomic.NewInt64(0),
 		},
 
-		strStore: newBasicStrStore(),
+		strStore: newBasicStrStore(ctx),
 
 		blocksLock: &sync.RWMutex{},
 		blocks:     make([]*Block, 0),
