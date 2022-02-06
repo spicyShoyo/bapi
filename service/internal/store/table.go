@@ -9,6 +9,7 @@ import (
 	"sort"
 	"sync"
 	"time"
+	"unsafe"
 
 	"go.uber.org/atomic"
 )
@@ -141,19 +142,7 @@ func (t *Table) toPbQueryResult(query *pb.RowsQuery, blockResults []*BlockQueryR
 		}
 	}
 
-	// TODO: strId at table level so we don't need this?
 	strIdMap := make(map[uint32]string)
-	strValueMap := make(map[string]uint32)
-	for _, result := range blockResults {
-		for _, str := range result.StrResult.strIdMap {
-			if _, ok := strValueMap[str]; ok {
-				continue
-			}
-			strId := uint32(len(strIdMap))
-			strIdMap[strId] = str
-			strValueMap[str] = strId
-		}
-	}
 
 	strResultLen := rowCount * len(query.StrColumnNames)
 	strResult := make([]uint32, strResultLen)
@@ -163,16 +152,21 @@ func (t *Table) toPbQueryResult(query *pb.RowsQuery, blockResults []*BlockQueryR
 		copied := 0
 
 		for _, result := range blockResults {
-			blockStartIdx := rowStartIdx + copied
-
-			for rowIdx := range result.StrResult.matrix[colIdx] {
-				if result.StrResult.hasValue[colIdx][rowIdx] {
-					str := result.StrResult.strIdMap[result.StrResult.matrix[colIdx][rowIdx]]
-					strResult[blockStartIdx+rowIdx] = strValueMap[str]
-				}
+			for sid := range result.StrResult.strIdSet {
+				str, _ := t.strStore.getStr(sid)
+				strIdMap[uint32(sid)] = str
 			}
 
-			count := copy(strHasValue, result.StrResult.hasValue[colIdx])
+			blockStartIdx := rowStartIdx + copied
+			// *Note* casting strId to its underline type uint32
+			castedStrResult := (*[]uint32)(unsafe.Pointer(&result.StrResult.matrix[colIdx]))
+			count := copy(strResult[blockStartIdx:], *castedStrResult)
+			if count != result.Count {
+				t.ctx.Logger.DPanic("invalid result")
+				return nil, false
+			}
+
+			count = copy(strHasValue, result.StrResult.hasValue[colIdx])
 			if count != result.Count {
 				t.ctx.Logger.DPanic("invalid result")
 				return nil, false

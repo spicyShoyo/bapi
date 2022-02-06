@@ -2,6 +2,7 @@ package store
 
 import (
 	"bapi/internal/common"
+	"fmt"
 	"strconv"
 	"testing"
 
@@ -439,6 +440,7 @@ func debugNewStrColumnsStorageFromRows(t *testing.T, rows debugRows[strId], tota
 			if _, ok := strIdMap[pair.value]; !ok {
 				strIdMap[pair.value] = strconv.Itoa(int(pair.value))
 				strValueMap[strIdMap[pair.value]] = pair.value
+				strIdSet[pair.value] = true
 			}
 		}
 	}
@@ -447,8 +449,6 @@ func debugNewStrColumnsStorageFromRows(t *testing.T, rows debugRows[strId], tota
 		debugNewPartialColumns(rows),
 		totalRowCount,
 		strIdSet,
-		strIdMap,
-		strValueMap,
 	)
 	ns := strStorage.numericStore
 	assert.Nil(t, ns.debugInvariantCheck(), "storage: %v", ns)
@@ -537,12 +537,15 @@ func assertGetResultStrStorage(
 		idx++
 	})
 
-	strStorage, _ := debugNewStrColumnsStorageFromRows(t, s.rows, storageRowCount)
+	strStorage, tableStrStore := debugNewStrColumnsStorageFromRows(t, s.rows, storageRowCount)
 	strResult := strStorage.get(ctx)
 	actualResultValues := make(map[strId]bool)
 
+	fmt.Println(strResult.strIdSet, tableStrStore)
+
 	// assert that the strings are included in the result
-	for strId, str := range strResult.strIdMap {
+	for strId := range strResult.strIdSet {
+		str, _ := tableStrStore.getStr(strId)
 		assert.Equal(t, strconv.Itoa(int(strId)), str)
 		actualResultValues[strId] = true
 	}

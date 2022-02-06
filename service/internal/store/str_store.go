@@ -38,6 +38,7 @@ func (s *basicStrStore) getOrInsertStrId(str string) (strId, bool) {
 		return id.(strId), true
 	}
 
+	// TODO: remove locking
 	// While Map is threadsafe, we need this lock to make sure strId is not reused and no double
 	// insertion of the same string.
 	s.m.Lock()

@@ -41,7 +41,7 @@ func newBasicBlockStorage(pb *partialBlock) (*basicBlockStorage, error) {
 		return nil, err
 	}
 
-	strColStorage, err := newStrColumnsStorage(pb.strPartialColumns, pb.rowCount, pb.strIdSet, pb.strIdMap, pb.strValueMap)
+	strColStorage, err := newStrColumnsStorage(pb.strPartialColumns, pb.rowCount, pb.strIdSet)
 	if err != nil {
 		return nil, err
 	}

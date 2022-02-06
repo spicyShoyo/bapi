@@ -2,6 +2,7 @@ package store
 
 import (
 	"errors"
+	"fmt"
 )
 
 // --------------------------- intColumnsStorage ----------------------------
@@ -60,17 +61,13 @@ func (ics *intColumnsStorage) filter(ctx *filterCtx, filters []IntFilter) {
 // --------------------------- strColumnsStorage ----------------------------
 type strColumnsStorage struct {
 	numericStore[strId]
-	strIdSet    map[strId]bool
-	strIdMap    map[strId]string
-	strValueMap map[string]strId
+	strIdSet map[strId]bool
 }
 
 func newStrColumnsStorage(
 	partialColumns partialColumns[strId],
 	rowCount int,
 	strIdSet map[strId]bool,
-	strIdMap map[strId]string,
-	strValueMap map[string]strId,
 ) (*strColumnsStorage, error) {
 	storage, err := fromPartialColumns(partialColumns, rowCount)
 	if err != nil {
@@ -79,8 +76,6 @@ func newStrColumnsStorage(
 
 	return &strColumnsStorage{
 		strIdSet:     strIdSet,
-		strIdMap:     strIdMap,
-		strValueMap:  strValueMap,
 		numericStore: *storage,
 	}, nil
 }
@@ -89,13 +84,9 @@ func (scs *strColumnsStorage) get(
 	ctx *getCtx,
 ) StrResult {
 	storageResult, strIdInResult := scs.numericStore.get(ctx, true /*recordValues*/)
-	strIdMap := make(map[strId]string)
-	for strId := range strIdInResult {
-		strIdMap[strId] = scs.strIdMap[strId]
-	}
 
 	return StrResult{
-		strIdMap: strIdMap,
+		strIdSet: strIdInResult,
 		matrix:   storageResult.matrix,
 		hasValue: storageResult.hasValue,
 	}
@@ -113,6 +104,7 @@ func (scs *strColumnsStorage) filter(ctx *filterCtx, filters []StrFilter) {
 		}
 
 		_, containsStr := scs.strIdSet[filter.Value]
+		fmt.Println("$$$", containsStr, scs.strIdSet, filter.Value)
 		switch filter.FilterOp {
 		case FilterNull, FilterNonnull:
 			{

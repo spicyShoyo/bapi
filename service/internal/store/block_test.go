@@ -109,7 +109,8 @@ func debugToRawJson(table *Table, query *blockQuery, result *BlockQueryResult) [
 		for rowIdx := 0; rowIdx < result.Count; rowIdx++ {
 			if result.StrResult.hasValue[colIdx][rowIdx] {
 				strId := result.StrResult.matrix[colIdx][rowIdx]
-				rawJsons[rowIdx].Str[colInfo.Name] = result.StrResult.strIdMap[strId]
+				str, _ := table.strStore.getStr(strId)
+				rawJsons[rowIdx].Str[colInfo.Name] = str
 			}
 		}
 	}

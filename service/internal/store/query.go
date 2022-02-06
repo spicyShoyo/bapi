@@ -103,7 +103,7 @@ type IntResult struct {
 }
 
 type StrResult struct {
-	strIdMap map[strId]string
+	strIdSet map[strId]bool
 	matrix   [][]strId
 	hasValue [][]bool
 }

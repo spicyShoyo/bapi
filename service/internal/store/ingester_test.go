@@ -73,7 +73,8 @@ func assertStrPartialColData(
 	t *testing.T, colName string, expected partialColumnData[string], table *Table, ingester *ingester, strCol partialColumns[strId]) {
 	expectedStrIdCol := make(partialColumnData[strId])
 	for s, rows := range expected {
-		expectedStrIdCol[ingester.strValueMap[s]] = rows
+		sid, _ := table.strStore.getStrId(s)
+		expectedStrIdCol[sid] = rows
 	}
 
 	colId, found := table.colInfoMap.getOrRegisterColumnId(colName, StrColumnType)

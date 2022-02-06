@@ -12,11 +12,9 @@ import (
 // strValueMap: new strValue to be added to the table's mao
 // rows: the rows to be injected
 type ingester struct {
-	ctx         ingesterCtx
-	strIdSet    map[strId]bool
-	strIdMap    map[strId]string
-	strValueMap map[string]strId
-	rows        []*row
+	ctx      ingesterCtx
+	strIdSet map[strId]bool
+	rows     []*row
 }
 
 type ingesterCtx interface {
@@ -35,10 +33,8 @@ func (t *Table) newIngester() *ingester {
 			t.strStore,
 			t.colInfoMap,
 		},
-		strIdSet:    make(map[strId]bool),
-		strIdMap:    make(map[strId]string),
-		strValueMap: make(map[string]strId),
-		rows:        make([]*row, 0),
+		strIdSet: make(map[strId]bool),
+		rows:     make([]*row, 0),
 	}
 }
 
@@ -46,8 +42,6 @@ func (t *Table) newIngester() *ingester {
 // *Always* call this before using the ingester.
 func (ingester *ingester) zeroOut() {
 	ingester.strIdSet = make(map[strId]bool)
-	ingester.strIdMap = make(map[strId]string)
-	ingester.strValueMap = make(map[string]strId)
 	ingester.rows = ingester.rows[:0]
 }
 
@@ -81,9 +75,7 @@ func (ingester *ingester) buildPartialBlock() (*partialBlock, error) {
 		intPartialColumns: intPartialColumns,
 		strPartialColumns: strPartialColumns,
 
-		strIdSet:    ingester.strIdSet,
-		strIdMap:    ingester.strIdMap,
-		strValueMap: ingester.strValueMap,
+		strIdSet: ingester.strIdSet,
 
 		rowCount: len(ingester.rows),
 		minTs:    minTs,
@@ -196,9 +188,7 @@ type partialBlock struct {
 	intPartialColumns partialColumns[int64]
 	strPartialColumns partialColumns[strId]
 
-	strIdSet    map[strId]bool
-	strIdMap    map[strId]string
-	strValueMap map[string]strId
+	strIdSet map[strId]bool
 
 	rowCount int
 	minTs    int64
