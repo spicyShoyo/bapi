@@ -112,20 +112,20 @@ func (scs *strColumnsStorage) filter(ctx *filterCtx, filters []StrFilter) {
 			}
 		}
 
-		stringId, ok := scs.strValueMap[filter.Value]
+		_, containsStr := scs.strIdSet[filter.Value]
 		switch filter.FilterOp {
 		case FilterNull, FilterNonnull:
 			{
 				// do nothing, don't care about missing value
 			}
 		case FilterEq:
-			if !ok {
+			if !containsStr {
 				// string does not exist, clear all bits
 				ctx.bitmap.Clear()
 				return
 			}
 		case FilterNe:
-			if !ok {
+			if !containsStr {
 				// string does not exist, continue to process the next filter
 				continue
 			}
@@ -139,7 +139,7 @@ func (scs *strColumnsStorage) filter(ctx *filterCtx, filters []StrFilter) {
 			numericFilter[strId]{
 				localColId: localColumnId,
 				op:         filter.FilterOp,
-				value:      stringId,
+				value:      filter.Value,
 			},
 		)
 	}

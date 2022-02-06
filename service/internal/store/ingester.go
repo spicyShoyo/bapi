@@ -129,16 +129,9 @@ func (ingester *ingester) ingestRawJson(rawJson RawJson) error {
 // Inserts or gets the id for the string value.
 // Note: the size of the string value store is unbounded.
 func (ingester *ingester) getOrInsertStrId(strValue string) strId {
-	id, ok := ingester.strValueMap[strValue]
-	if !ok {
-		id = strId(len(ingester.strIdMap))
-
-		ingester.strIdMap[id] = strValue
-		ingester.strValueMap[strValue] = id
-	}
-
-	ingester.strIdSet[id] = true
-	return id
+	strId, _ := ingester.ctx.getOrInsertStrId(strValue)
+	ingester.strIdSet[strId] = true
+	return strId
 }
 
 // --------------------------- row ----------------------------

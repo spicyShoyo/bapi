@@ -53,7 +53,7 @@ type IntFilter struct {
 type StrFilter struct {
 	ColumnInfo *ColumnInfo
 	FilterOp   FilterOp
-	Value      string
+	Value      strId
 }
 
 type blockFilter struct {

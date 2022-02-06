@@ -429,7 +429,7 @@ func assertGetResultIntStorage(
 		matrix, hasValue, make(map[int64]bool), false /* we do not record distinct result value for intStorage */)
 }
 
-func debugNewStrColumnsStorageFromRows(t *testing.T, rows debugRows[strId], totalRowCount int) *strColumnsStorage {
+func debugNewStrColumnsStorageFromRows(t *testing.T, rows debugRows[strId], totalRowCount int) (*strColumnsStorage, readOnlyStrStore) {
 	strIdSet := make(map[strId]bool)
 	strIdMap := make(map[strId]string)
 	strValueMap := make(map[string]strId)
@@ -442,6 +442,7 @@ func debugNewStrColumnsStorageFromRows(t *testing.T, rows debugRows[strId], tota
 			}
 		}
 	}
+
 	strStorage, _ := newStrColumnsStorage(
 		debugNewPartialColumns(rows),
 		totalRowCount,
@@ -452,7 +453,10 @@ func debugNewStrColumnsStorageFromRows(t *testing.T, rows debugRows[strId], tota
 	ns := strStorage.numericStore
 	assert.Nil(t, ns.debugInvariantCheck(), "storage: %v", ns)
 	assertNumericStoreMatchRows(t, rows, &ns, totalRowCount)
-	return strStorage
+	return strStorage, &testReadOnlyStrStore{
+		strIdMap,
+		strValueMap,
+	}
 }
 
 func assertStrFilterHasResult(
@@ -465,17 +469,18 @@ func assertStrFilterHasResult(
 		bitmap: bitmap,
 	}
 
-	strStorage := debugNewStrColumnsStorageFromRows(t, s.rows, s.rowCount)
+	strStorage, tableStrStore := debugNewStrColumnsStorageFromRows(t, s.rows, s.rowCount)
 
 	filters := make([]StrFilter, 0)
 	for _, df := range s.filters {
+		sid, _ := tableStrStore.getStrId(df.value)
 		filter := StrFilter{
 			ColumnInfo: &ColumnInfo{
 				Name:       strconv.Itoa(int(df.colId)),
 				ColumnType: StrColumnType,
 				id:         df.colId},
 			FilterOp: df.op,
-			Value:    df.value,
+			Value:    sid,
 		}
 		filters = append(filters, filter)
 	}
@@ -532,7 +537,7 @@ func assertGetResultStrStorage(
 		idx++
 	})
 
-	strStorage := debugNewStrColumnsStorageFromRows(t, s.rows, storageRowCount)
+	strStorage, _ := debugNewStrColumnsStorageFromRows(t, s.rows, storageRowCount)
 	strResult := strStorage.get(ctx)
 	actualResultValues := make(map[strId]bool)
 
@@ -547,4 +552,23 @@ func assertGetResultStrStorage(
 
 	// assert that the result matches the expected
 	assertGetResult(t, s, colIdxLookup, rowIdxLookup, matrix, hasValue, actualResultValues, true /* recordValues */)
+}
+
+type testReadOnlyStrStore struct {
+	strIdMap    map[strId]string
+	strValueMap map[string]strId
+}
+
+func (s *testReadOnlyStrStore) getStrId(str string) (strId, bool) {
+	if id, loaded := s.strValueMap[str]; loaded {
+		return id, true
+	}
+	return nonexistentStr, false
+}
+
+func (s *testReadOnlyStrStore) getStr(id strId) (string, bool) {
+	if str, loaded := s.strIdMap[id]; loaded {
+		return str, true
+	}
+	return "", false
 }

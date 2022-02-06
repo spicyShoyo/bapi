@@ -4,6 +4,8 @@ import (
 	"sync"
 )
 
+const nonexistentStr = strId(0xFFFFFFFF)
+
 type readOnlyStrStore interface {
 	getStrId(str string) (strId, bool)
 	getStr(id strId) (string, bool)
@@ -59,7 +61,7 @@ func (s *basicStrStore) getStrId(str string) (strId, bool) {
 		return id.(strId), true
 	}
 
-	return strId(0), false
+	return nonexistentStr, false
 }
 
 func (s *basicStrStore) getStr(id strId) (string, bool) {

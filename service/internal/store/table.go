@@ -268,14 +268,15 @@ func (t *Table) newBlockfilter(query *pb.RowsQuery) (blockFilter, bool) {
 
 		strVal, ok := strFilter.GetValue().(*pb.Filter_StrVal)
 		if !ok {
-			t.ctx.Logger.Warnf("fail to build filter. str value missing for int filter: %s", strFilter.ColumnName)
+			t.ctx.Logger.Warnf("fail to build filter. str value missing for str filter: %s", strFilter.ColumnName)
 			return blockFilter{}, false
 		}
+		sid, _ := t.strStore.getStrId(strVal.StrVal)
 
 		strFilters = append(strFilters, StrFilter{
 			ColumnInfo: colInfo,
 			FilterOp:   fromPbFilter(strFilter.FilterOp),
-			Value:      strVal.StrVal,
+			Value:      sid,
 		})
 	}
 

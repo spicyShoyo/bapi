@@ -221,10 +221,11 @@ func debugNewBlockFilter(
 		colInfo, ok := table.colInfoMap.getColumnInfo(filter.colName)
 		assert.True(t, ok)
 
+		sid, _ := table.strStore.getStrId(filter.value)
 		strFilters = append(strFilters, StrFilter{
 			ColumnInfo: colInfo,
 			FilterOp:   filter.op,
-			Value:      filter.value,
+			Value:      sid,
 		})
 	}
 	tsColInfo, _ := table.colInfoMap.getColumnInfo(TS_COLUMN_NAME)
