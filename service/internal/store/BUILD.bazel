@@ -4,6 +4,7 @@ go_library(
     name = "store",
     srcs = [
         "block.go",
+        "col_info_store.go",
         "column_storage.go",
         "ingester.go",
         "lib.go",
@@ -12,7 +13,6 @@ go_library(
         "query.go",
         "str_store.go",
         "table.go",
-        "table_column.go",
     ],
     importpath = "bapi/internal/store",
     visibility = ["//:__subpackages__"],
@@ -28,6 +28,7 @@ go_test(
     name = "store_test",
     srcs = [
         "block_test.go",
+        "col_info_store_test.go",
         "column_storage_test.go",
         "ingester_test.go",
         "lib_test.go",

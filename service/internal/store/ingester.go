@@ -24,7 +24,7 @@ type ingesterCtx interface {
 
 type tableIngesterCtx struct {
 	strStore
-	*columnInfoMap
+	*colInfoStore
 }
 
 func (t *Table) newIngester() *ingester {

@@ -25,7 +25,7 @@ import (
 type Table struct {
 	ctx        *common.BapiCtx
 	tableInfo  tableInfo
-	colInfoMap *columnInfoMap
+	colInfoMap *colInfoStore
 
 	ingesterPool *sync.Pool
 	pbChan       chan pbMessage
@@ -303,7 +303,7 @@ type pbMessage struct {
 func NewTable(ctx *common.BapiCtx, name string) *Table {
 	table := &Table{
 		ctx:        ctx,
-		colInfoMap: newColumnInfoMap(ctx),
+		colInfoMap: newColInfoStore(ctx),
 		tableInfo: tableInfo{
 			name:     name,
 			rowCount: atomic.NewUint32(0),
