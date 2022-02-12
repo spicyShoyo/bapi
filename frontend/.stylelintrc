@@ -1,0 +1,17 @@
+{
+  "processors": ["stylelint-processor-styled-components"],
+  "extends": [
+    "stylelint-config-recommended",
+    "stylelint-config-styled-components"
+  ],
+  "plugins": [
+    "stylelint-order"
+  ],
+  "customSyntax": "postcss",
+  "rules": {
+    "order/properties-alphabetical-order": true,
+    "declaration-block-trailing-semicolon": null,
+    "declaration-colon-newline-after": null,
+    "declaration-empty-line-before": null
+  }
+}
