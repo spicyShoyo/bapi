@@ -51,11 +51,9 @@ function App() {
                 .get("/v1/queryRows", {
                   params: {
                     q: {
-                      query: {
-                        min_ts: 1641672504,
-                        int_column_names: ["ts"],
-                        str_column_names: ["event"],
-                      },
+                      min_ts: 1641672504,
+                      int_column_names: ["ts"],
+                      str_column_names: ["event"],
                     },
                   },
                 })

@@ -62,7 +62,7 @@ message RowsQueryResult {
 service Bapi {
   rpc Ping(PingRequest) returns (PingReply) {}
   rpc IngestRawRows(IngestRawRowsRequset) returns (IngestRawRowsReply) {}
-  rpc QueryRows(QueryRowsRequest) returns (QueryRowsReply) {}
+  rpc QueryRows(RowsQuery) returns (QueryRowsReply) {}
   rpc InitiateShutdown(InitiateShutdownRequest) returns (InitiateShutdownReply) {}
 }
 
@@ -76,7 +76,6 @@ message IngestRawRowsReply {
   optional string message = 2; 
 }
 
-message QueryRowsRequest { RowsQuery query = 1; }
 message QueryRowsReply { 
   Status status = 1; 
   optional string message = 2; 

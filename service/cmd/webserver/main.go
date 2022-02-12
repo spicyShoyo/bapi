@@ -88,16 +88,17 @@ func postIngest(c *gin.Context) {
 	c.JSON(http.StatusAccepted, &reply)
 }
 
-// This is to walkaround frontend can't send get request with Json body but instead it's
-// in the format of `?q=<QueryRowsRequest>`
-type queryRowsWebQuery struct {
-	Q pb.QueryRowsRequest `form:"q"`
+// This is to workaround that frontend can't send get request with Json body and
+// protobuf doesn't paly well with deserializing url param (for not having `form` tag).
+// So we just put the query behind a query param `q`, like `?q=<RowsQuery>`.
+type getQueryRowsQuery struct {
+	Q pb.RowsQuery `form:"q"`
 }
 
 func getQueryRows(c *gin.Context) {
-	request := queryRowsWebQuery{}
+	request := getQueryRowsQuery{}
 	//	allow passing as Json body (for testing locally) or url params
-	if err := c.ShouldBindJSON(&request.Q); err != nil {
+	if err := c.ShouldBindJSON(&request); err != nil {
 		if err := c.ShouldBindQuery(&request); err != nil {
 			c.AbortWithError(http.StatusBadRequest, err)
 			return

@@ -55,9 +55,9 @@ func (s *server) IngestRawRows(ctx context.Context, in *pb.IngestRawRowsRequset)
 	}, nil
 }
 
-func (s *server) QueryRows(ctx context.Context, in *pb.QueryRowsRequest) (*pb.QueryRowsReply, error) {
-	s.ctx.Logger.Info(in.Query)
-	result, hasValue := s.table.RowsQuery(in.Query)
+func (s *server) QueryRows(ctx context.Context, in *pb.RowsQuery) (*pb.QueryRowsReply, error) {
+	s.ctx.Logger.Info(in)
+	result, hasValue := s.table.RowsQuery(in)
 	if !hasValue {
 		return &pb.QueryRowsReply{
 			Status:  pb.Status_NO_CONTENT,
