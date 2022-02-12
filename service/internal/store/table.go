@@ -233,7 +233,7 @@ func (t *Table) newRowsQuery(query *pb.RowsQuery) (*blockQuery, bool) {
 }
 
 func (t *Table) newBlockfilter(query *pb.RowsQuery) (blockFilter, bool) {
-	intFilters := make([]IntFilter, 0)
+	intFilters := make([]singularFilter[int64], 0)
 	for _, intFilter := range query.IntFilters {
 		colInfo, ok := t.colInfoMap.getColumnInfoAndAssertType(intFilter.ColumnName, IntColumnType)
 		if !ok {
@@ -246,14 +246,14 @@ func (t *Table) newBlockfilter(query *pb.RowsQuery) (blockFilter, bool) {
 			return blockFilter{}, false
 		}
 
-		intFilters = append(intFilters, IntFilter{
-			ColumnInfo: colInfo,
-			FilterOp:   intFilter.FilterOp,
-			Value:      intVal.IntVal,
+		intFilters = append(intFilters, singularFilter[int64]{
+			col:   colInfo,
+			op:    intFilter.FilterOp,
+			value: intVal.IntVal,
 		})
 	}
 
-	strFilters := make([]StrFilter, 0)
+	strFilters := make([]singularFilter[strId], 0)
 	for _, strFilter := range query.StrFilters {
 		colInfo, ok := t.colInfoMap.getColumnInfoAndAssertType(strFilter.ColumnName, StrColumnType)
 		if !ok {
@@ -265,12 +265,14 @@ func (t *Table) newBlockfilter(query *pb.RowsQuery) (blockFilter, bool) {
 			t.ctx.Logger.Warnf("fail to build filter. str value missing for str filter: %s", strFilter.ColumnName)
 			return blockFilter{}, false
 		}
+		// If the string does not exist in the store, sid will be `nonexistentStr`. The strColStore
+		// is responsible to handle this.
 		sid, _ := t.strStore.getStrId(strVal.StrVal)
 
-		strFilters = append(strFilters, StrFilter{
-			ColumnInfo: colInfo,
-			FilterOp:   strFilter.FilterOp,
-			Value:      sid,
+		strFilters = append(strFilters, singularFilter[strId]{
+			col:   colInfo,
+			op:    strFilter.FilterOp,
+			value: sid,
 		})
 	}
 

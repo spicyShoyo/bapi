@@ -207,28 +207,28 @@ func debugNewBlockFilter(
 	minTs int64, maxTs int64,
 	intDebugFilters []debugBlockFilter[int], strDebugFilters []debugBlockFilter[string],
 ) blockFilter {
-	intFilters := make([]IntFilter, 0)
+	intFilters := make([]singularFilter[int64], 0)
 	for _, filter := range intDebugFilters {
 		colInfo, ok := table.colInfoMap.getColumnInfo(filter.colName)
 		assert.True(t, ok)
 
-		intFilters = append(intFilters, IntFilter{
-			ColumnInfo: colInfo,
-			FilterOp:   filter.op,
-			Value:      int64(filter.value),
+		intFilters = append(intFilters, singularFilter[int64]{
+			col:   colInfo,
+			op:    filter.op,
+			value: int64(filter.value),
 		})
 	}
 
-	strFilters := make([]StrFilter, 0)
+	strFilters := make([]singularFilter[strId], 0)
 	for _, filter := range strDebugFilters {
 		colInfo, ok := table.colInfoMap.getColumnInfo(filter.colName)
 		assert.True(t, ok)
 
 		sid, _ := table.strStore.getStrId(filter.value)
-		strFilters = append(strFilters, StrFilter{
-			ColumnInfo: colInfo,
-			FilterOp:   filter.op,
-			Value:      sid,
+		strFilters = append(strFilters, singularFilter[strId]{
+			col:   colInfo,
+			op:    filter.op,
+			value: sid,
 		})
 	}
 	tsColInfo, _ := table.colInfoMap.getColumnInfo(TS_COLUMN_NAME)

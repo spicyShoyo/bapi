@@ -358,15 +358,15 @@ func assertIntFilterHasResult(
 
 	intStorage := debugNewIntColumnsStorageFromRows(t, s.rows)
 
-	filters := make([]IntFilter, 0)
+	filters := make([]singularFilter[int64], 0)
 	for _, df := range s.filters {
-		filter := IntFilter{
-			ColumnInfo: &ColumnInfo{
+		filter := singularFilter[int64]{
+			col: &ColumnInfo{
 				Name:       strconv.Itoa(int(df.colId)),
 				ColumnType: IntColumnType,
 				id:         df.colId},
-			FilterOp: df.op,
-			Value:    df.value,
+			op:    df.op,
+			value: df.value,
 		}
 		filters = append(filters, filter)
 	}
@@ -471,16 +471,16 @@ func assertStrFilterHasResult(
 
 	strStorage, tableStrStore := debugNewStrColumnsStorageFromRows(t, s.rows, s.rowCount)
 
-	filters := make([]StrFilter, 0)
+	filters := make([]singularFilter[strId], 0)
 	for _, df := range s.filters {
 		sid, _ := tableStrStore.getStrId(df.value)
-		filter := StrFilter{
-			ColumnInfo: &ColumnInfo{
+		filter := singularFilter[strId]{
+			col: &ColumnInfo{
 				Name:       strconv.Itoa(int(df.colId)),
 				ColumnType: StrColumnType,
 				id:         df.colId},
-			FilterOp: df.op,
-			Value:    sid,
+			op:    df.op,
+			value: sid,
 		}
 		filters = append(filters, filter)
 	}

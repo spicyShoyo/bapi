@@ -36,11 +36,11 @@ func (ics *intColumnsStorage) get(
 	return IntResult{matrix: storageResult.matrix, hasValue: storageResult.hasValue}
 }
 
-func (ics *intColumnsStorage) filter(ctx *filterCtx, filters []IntFilter) {
+func (ics *intColumnsStorage) filter(ctx *filterCtx, filters []singularFilter[int64]) {
 	for _, filter := range filters {
-		localColumnId, ok := ics.getLocalColumnId(filter.ColumnInfo)
+		localColumnId, ok := ics.getLocalColumnId(filter.col)
 		if !ok {
-			if canContinueElseStopForColNotExist(ctx, filter.FilterOp) {
+			if canContinueElseStopForColNotExist(ctx, filter.op) {
 				continue
 			} else {
 				return
@@ -51,8 +51,8 @@ func (ics *intColumnsStorage) filter(ctx *filterCtx, filters []IntFilter) {
 			ctx,
 			numericFilter[int64]{
 				localColId: localColumnId,
-				op:         filter.FilterOp,
-				value:      filter.Value,
+				op:         filter.op,
+				value:      filter.value,
 			},
 		)
 	}
@@ -92,19 +92,19 @@ func (scs *strColumnsStorage) get(
 	}
 }
 
-func (scs *strColumnsStorage) filter(ctx *filterCtx, filters []StrFilter) {
+func (scs *strColumnsStorage) filter(ctx *filterCtx, filters []singularFilter[strId]) {
 	for _, filter := range filters {
-		localColumnId, ok := scs.getLocalColumnId(filter.ColumnInfo)
+		localColumnId, ok := scs.getLocalColumnId(filter.col)
 		if !ok {
-			if canContinueElseStopForColNotExist(ctx, filter.FilterOp) {
+			if canContinueElseStopForColNotExist(ctx, filter.op) {
 				continue
 			} else {
 				return
 			}
 		}
 
-		_, containsStr := scs.strIdSet[filter.Value]
-		switch filter.FilterOp {
+		_, containsStr := scs.strIdSet[filter.value]
+		switch filter.op {
 		case pb.FilterOp_NULL, pb.FilterOp_NONNULL:
 			{
 				// do nothing, don't care about missing value
@@ -121,7 +121,7 @@ func (scs *strColumnsStorage) filter(ctx *filterCtx, filters []StrFilter) {
 				continue
 			}
 		default:
-			ctx.ctx.Logger.DPanicf("unexpected str filter op: %d", filter.FilterOp)
+			ctx.ctx.Logger.DPanicf("unexpected str filter op: %d", filter.op)
 			continue
 		}
 
@@ -129,8 +129,8 @@ func (scs *strColumnsStorage) filter(ctx *filterCtx, filters []StrFilter) {
 			ctx,
 			numericFilter[strId]{
 				localColId: localColumnId,
-				op:         filter.FilterOp,
-				value:      filter.Value,
+				op:         filter.op,
+				value:      filter.value,
 			},
 		)
 	}

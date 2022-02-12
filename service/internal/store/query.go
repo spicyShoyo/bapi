@@ -7,46 +7,40 @@ import (
 	"github.com/kelindar/bitmap"
 )
 
-type IntFilter struct {
-	ColumnInfo *ColumnInfo
-	FilterOp   pb.FilterOp
-	Value      int64
-}
-
-type StrFilter struct {
-	ColumnInfo *ColumnInfo
-	FilterOp   pb.FilterOp
-	Value      strId
+type singularFilter[T comparable] struct {
+	col   *ColumnInfo
+	op    pb.FilterOp
+	value T
 }
 
 type blockFilter struct {
 	minTs      int64
 	maxTs      int64
-	tsFilters  []IntFilter
-	intFilters []IntFilter
-	strFilters []StrFilter
+	tsFilters  []singularFilter[int64]
+	intFilters []singularFilter[int64]
+	strFilters []singularFilter[strId]
 }
 
 func newBlockFilter(
 	minTs int64,
 	maxTs int64,
 	tsColInfo *ColumnInfo,
-	intFilters []IntFilter,
-	strFilters []StrFilter,
+	intFilters []singularFilter[int64],
+	strFilters []singularFilter[strId],
 ) blockFilter {
 	return blockFilter{
 		minTs: minTs,
 		maxTs: maxTs,
-		tsFilters: []IntFilter{
+		tsFilters: []singularFilter[int64]{
 			{
-				ColumnInfo: tsColInfo,
-				FilterOp:   pb.FilterOp_GE,
-				Value:      minTs,
+				col:   tsColInfo,
+				op:    pb.FilterOp_GE,
+				value: minTs,
 			},
 			{
-				ColumnInfo: tsColInfo,
-				FilterOp:   pb.FilterOp_LE,
-				Value:      maxTs,
+				col:   tsColInfo,
+				op:    pb.FilterOp_LE,
+				value: maxTs,
 			},
 		},
 		intFilters: intFilters,
