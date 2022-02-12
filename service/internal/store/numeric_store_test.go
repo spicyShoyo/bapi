@@ -2,6 +2,7 @@ package store
 
 import (
 	"bapi/internal/common"
+	"bapi/internal/pb"
 	"strconv"
 	"testing"
 
@@ -90,7 +91,7 @@ func TestFromPartialColumns(t *testing.T) {
 
 type debugFilter[T comparable] struct {
 	colId columnId
-	op    FilterOp
+	op    pb.FilterOp
 	value T
 }
 type debugFilterTestSetup[T, U comparable] struct {
@@ -148,7 +149,7 @@ func TestFilterBasic(t *testing.T) {
 		rows: rows, rowCount: 10,
 		filters: []debugFilter[strId]{{
 			colId: columnId(22),
-			op:    FilterEq,
+			op:    pb.FilterOp_EQ,
 			value: strId(15),
 		}},
 		expectedRows: []uint32{0, 6},
@@ -160,12 +161,12 @@ func TestFilterBasic(t *testing.T) {
 		filters: []debugFilter[strId]{
 			{
 				colId: columnId(22),
-				op:    FilterNe,
+				op:    pb.FilterOp_NE,
 				value: strId(15),
 			},
 			{
 				colId: columnId(22),
-				op:    FilterNonnull,
+				op:    pb.FilterOp_NONNULL,
 				value: strId(0),
 			}},
 		expectedRows: []uint32{5},
@@ -177,7 +178,7 @@ func TestFilterBasic(t *testing.T) {
 		filters: []debugFilter[strId]{
 			{
 				colId: columnId(22),
-				op:    FilterNull,
+				op:    pb.FilterOp_NULL,
 				value: strId(0),
 			}},
 		expectedRows: []uint32{1, 2, 3, 4, 7, 8, 9},
@@ -206,7 +207,7 @@ func TestFilterComparator(t *testing.T) {
 		filters: []debugFilter[int]{
 			{
 				colId: columnId(28),
-				op:    FilterLt,
+				op:    pb.FilterOp_LT,
 				value: 21,
 			},
 		},
@@ -218,7 +219,7 @@ func TestFilterComparator(t *testing.T) {
 		filters: []debugFilter[int]{
 			{
 				colId: columnId(28),
-				op:    FilterGt,
+				op:    pb.FilterOp_GT,
 				value: 19,
 			},
 		},
@@ -231,11 +232,11 @@ func TestFilterComparator(t *testing.T) {
 		filters: []debugFilter[int]{
 			{
 				colId: columnId(22),
-				op:    FilterLt,
+				op:    pb.FilterOp_LT,
 				value: 19,
 			},
 			{colId: columnId(23),
-				op:    FilterGt,
+				op:    pb.FilterOp_GT,
 				value: 16,
 			},
 		},
@@ -248,15 +249,15 @@ func TestFilterComparator(t *testing.T) {
 		filters: []debugFilter[int]{
 			{
 				colId: columnId(22),
-				op:    FilterLe,
+				op:    pb.FilterOp_LE,
 				value: 19,
 			},
 			{colId: columnId(23),
-				op:    FilterGe,
+				op:    pb.FilterOp_GE,
 				value: 16,
 			},
 			{colId: columnId(28),
-				op:    FilterNull,
+				op:    pb.FilterOp_NULL,
 				value: 0,
 			},
 		},

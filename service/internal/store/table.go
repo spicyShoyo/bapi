@@ -248,7 +248,7 @@ func (t *Table) newBlockfilter(query *pb.RowsQuery) (blockFilter, bool) {
 
 		intFilters = append(intFilters, IntFilter{
 			ColumnInfo: colInfo,
-			FilterOp:   fromPbFilter(intFilter.FilterOp),
+			FilterOp:   intFilter.FilterOp,
 			Value:      intVal.IntVal,
 		})
 	}
@@ -269,7 +269,7 @@ func (t *Table) newBlockfilter(query *pb.RowsQuery) (blockFilter, bool) {
 
 		strFilters = append(strFilters, StrFilter{
 			ColumnInfo: colInfo,
-			FilterOp:   fromPbFilter(strFilter.FilterOp),
+			FilterOp:   strFilter.FilterOp,
 			Value:      sid,
 		})
 	}

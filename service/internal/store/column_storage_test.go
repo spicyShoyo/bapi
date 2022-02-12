@@ -2,6 +2,7 @@ package store
 
 import (
 	"bapi/internal/common"
+	"bapi/internal/pb"
 	"strconv"
 	"testing"
 
@@ -55,12 +56,12 @@ func TestFilterIntColumnsStorage(t *testing.T) {
 		filters: []debugFilter[int64]{
 			{
 				colId: columnId(28),
-				op:    FilterLt,
+				op:    pb.FilterOp_LT,
 				value: 21,
 			},
 			{
 				colId: columnId(22),
-				op:    FilterLe,
+				op:    pb.FilterOp_LE,
 				value: 19,
 			},
 		},
@@ -72,7 +73,7 @@ func TestFilterIntColumnsStorage(t *testing.T) {
 		rows: rows, rowCount: 3,
 		filters: []debugFilter[int64]{{
 			colId: columnId(22),
-			op:    FilterEq,
+			op:    pb.FilterOp_EQ,
 			value: 15,
 		}},
 		expectedRows: []uint32{0, 2},
@@ -84,17 +85,17 @@ func TestFilterIntColumnsStorage(t *testing.T) {
 		filters: []debugFilter[int64]{
 			{
 				colId: columnId(22),
-				op:    FilterEq,
+				op:    pb.FilterOp_EQ,
 				value: 15,
 			},
 			{
 				colId: columnId(23),
-				op:    FilterNonnull,
+				op:    pb.FilterOp_NONNULL,
 				value: 0,
 			},
 			{
 				colId: columnId(28),
-				op:    FilterNull,
+				op:    pb.FilterOp_NULL,
 				value: 0,
 			},
 		},
@@ -107,17 +108,17 @@ func TestFilterIntColumnsStorage(t *testing.T) {
 		filters: []debugFilter[int64]{
 			{
 				colId: columnId(22),
-				op:    FilterNe,
+				op:    pb.FilterOp_NE,
 				value: 15,
 			},
 			{
 				colId: columnId(22),
-				op:    FilterNonnull,
+				op:    pb.FilterOp_NONNULL,
 				value: 0,
 			},
 			{
 				colId: columnId(28),
-				op:    FilterNonnull,
+				op:    pb.FilterOp_NONNULL,
 				value: 0,
 			},
 		},
@@ -130,12 +131,12 @@ func TestFilterIntColumnsStorage(t *testing.T) {
 		filters: []debugFilter[int64]{
 			{
 				colId: columnId(29),
-				op:    FilterNull,
+				op:    pb.FilterOp_NULL,
 				value: 0,
 			},
 			{
 				colId: columnId(30),
-				op:    FilterNe,
+				op:    pb.FilterOp_NE,
 				value: 32,
 			},
 		},
@@ -226,7 +227,7 @@ func TestFilterStrColumnsStorage(t *testing.T) {
 		rows: rows, rowCount: 10,
 		filters: []debugFilter[string]{{
 			colId: columnId(22),
-			op:    FilterEq,
+			op:    pb.FilterOp_EQ,
 			value: "15",
 		}},
 		expectedRows: []uint32{0, 6},
@@ -238,17 +239,17 @@ func TestFilterStrColumnsStorage(t *testing.T) {
 		filters: []debugFilter[string]{
 			{
 				colId: columnId(22),
-				op:    FilterEq,
+				op:    pb.FilterOp_EQ,
 				value: "15",
 			},
 			{
 				colId: columnId(23),
-				op:    FilterNonnull,
+				op:    pb.FilterOp_NONNULL,
 				value: "",
 			},
 			{
 				colId: columnId(28),
-				op:    FilterNull,
+				op:    pb.FilterOp_NULL,
 				value: "",
 			},
 		},
@@ -261,12 +262,12 @@ func TestFilterStrColumnsStorage(t *testing.T) {
 		filters: []debugFilter[string]{
 			{
 				colId: columnId(22),
-				op:    FilterNe,
+				op:    pb.FilterOp_NE,
 				value: "15",
 			},
 			{
 				colId: columnId(28),
-				op:    FilterNonnull,
+				op:    pb.FilterOp_NONNULL,
 				value: "",
 			},
 		},
@@ -279,12 +280,12 @@ func TestFilterStrColumnsStorage(t *testing.T) {
 		filters: []debugFilter[string]{
 			{
 				colId: columnId(29),
-				op:    FilterNull,
+				op:    pb.FilterOp_NULL,
 				value: "",
 			},
 			{
 				colId: columnId(30),
-				op:    FilterNe,
+				op:    pb.FilterOp_NE,
 				value: "test",
 			},
 		},

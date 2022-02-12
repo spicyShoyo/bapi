@@ -3,56 +3,19 @@ package store
 import (
 	"bapi/internal/common"
 	"bapi/internal/pb"
-	"fmt"
 
 	"github.com/kelindar/bitmap"
 )
 
-type FilterOp = uint8
-
-const (
-	FilterEq      FilterOp = iota
-	FilterNe      FilterOp = iota
-	FilterLt      FilterOp = iota
-	FilterGt      FilterOp = iota
-	FilterLe      FilterOp = iota
-	FilterGe      FilterOp = iota
-	FilterNonnull FilterOp = iota
-	FilterNull    FilterOp = iota
-)
-
-func fromPbFilter(pbFilterOp pb.FilterOp) FilterOp {
-	switch pbFilterOp {
-	case pb.FilterOp_EQ:
-		return FilterEq
-	case pb.FilterOp_NE:
-		return FilterNe
-	case pb.FilterOp_LT:
-		return FilterLt
-	case pb.FilterOp_GT:
-		return FilterGt
-	case pb.FilterOp_LE:
-		return FilterLe
-	case pb.FilterOp_GE:
-		return FilterGe
-	case pb.FilterOp_NONNULL:
-		return FilterNonnull
-	case pb.FilterOp_NULL:
-		return FilterNull
-	default:
-		panic(fmt.Sprintf("unknown filter type: %d", pbFilterOp))
-	}
-}
-
 type IntFilter struct {
 	ColumnInfo *ColumnInfo
-	FilterOp   FilterOp
+	FilterOp   pb.FilterOp
 	Value      int64
 }
 
 type StrFilter struct {
 	ColumnInfo *ColumnInfo
-	FilterOp   FilterOp
+	FilterOp   pb.FilterOp
 	Value      strId
 }
 
@@ -77,12 +40,12 @@ func newBlockFilter(
 		tsFilters: []IntFilter{
 			{
 				ColumnInfo: tsColInfo,
-				FilterOp:   FilterGe,
+				FilterOp:   pb.FilterOp_GE,
 				Value:      minTs,
 			},
 			{
 				ColumnInfo: tsColInfo,
-				FilterOp:   FilterLe,
+				FilterOp:   pb.FilterOp_LE,
 				Value:      maxTs,
 			},
 		},
@@ -117,7 +80,7 @@ type BlockQueryResult struct {
 // --------------------------- internal ----------------------------
 type numericFilter[T OrderedNumeric] struct {
 	localColId localColumnId
-	op         FilterOp
+	op         pb.FilterOp
 	value      T
 }
 
@@ -142,7 +105,7 @@ func filterByNullable[T OrderedNumeric](
 ) {
 	// FilterNonnull: check != nullValueIndex
 	predicate := predicateNe[valueIndex]
-	if filter.op == FilterNull {
+	if filter.op == pb.FilterOp_NULL {
 		// check == nullValueIndex
 		predicate = predicateEq[valueIndex]
 	}
@@ -161,17 +124,17 @@ func filterByNullable[T OrderedNumeric](
 func getTargetValueAndPredicate[T OrderedNumeric](
 	filter *numericFilter[T]) (T, func(T, T) bool, bool) {
 	switch filter.op {
-	case FilterEq:
+	case pb.FilterOp_EQ:
 		return filter.value, predicateEq[T], true
-	case FilterNe:
+	case pb.FilterOp_NE:
 		return filter.value, predicateNe[T], true
-	case FilterLt:
+	case pb.FilterOp_LT:
 		return filter.value, predicateLt[T], true
-	case FilterGt:
+	case pb.FilterOp_GT:
 		return filter.value, predicateGt[T], true
-	case FilterLe:
+	case pb.FilterOp_LE:
 		return filter.value, predicateLe[T], true
-	case FilterGe:
+	case pb.FilterOp_GE:
 		return filter.value, predicateGe[T], true
 	default:
 		return filter.value, nil, false

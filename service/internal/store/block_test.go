@@ -2,6 +2,7 @@ package store
 
 import (
 	"bapi/internal/common"
+	"bapi/internal/pb"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -304,38 +305,38 @@ func TestBitmapMutation(t *testing.T) {
 // --------------------------- util ----------------------------
 type debugBlockFilter[T comparable] struct {
 	colName string
-	op      FilterOp
+	op      pb.FilterOp
 	value   T
 }
 
 func debugEq[T comparable](colName string, value T) debugBlockFilter[T] {
-	return newDebugBlockFilter(colName, FilterEq, value)
+	return newDebugBlockFilter(colName, pb.FilterOp_EQ, value)
 }
 func debugNe[T comparable](colName string, value T) debugBlockFilter[T] {
-	return newDebugBlockFilter(colName, FilterNe, value)
+	return newDebugBlockFilter(colName, pb.FilterOp_NE, value)
 }
 func debugLt[T comparable](colName string, value T) debugBlockFilter[T] {
-	return newDebugBlockFilter(colName, FilterLt, value)
+	return newDebugBlockFilter(colName, pb.FilterOp_LT, value)
 }
 func debugGt[T comparable](colName string, value T) debugBlockFilter[T] {
-	return newDebugBlockFilter(colName, FilterGt, value)
+	return newDebugBlockFilter(colName, pb.FilterOp_GT, value)
 }
 func debugLe[T comparable](colName string, value T) debugBlockFilter[T] {
-	return newDebugBlockFilter(colName, FilterLe, value)
+	return newDebugBlockFilter(colName, pb.FilterOp_LE, value)
 }
 func debugGe[T comparable](colName string, value T) debugBlockFilter[T] {
-	return newDebugBlockFilter(colName, FilterGe, value)
+	return newDebugBlockFilter(colName, pb.FilterOp_GE, value)
 }
 func debugNonnull[T comparable](colName string) debugBlockFilter[T] {
 	var zeroed T
-	return newDebugBlockFilter(colName, FilterNonnull, zeroed)
+	return newDebugBlockFilter(colName, pb.FilterOp_NONNULL, zeroed)
 }
 func debugNull[T comparable](colName string) debugBlockFilter[T] {
 	var zeroed T
-	return newDebugBlockFilter(colName, FilterNull, zeroed)
+	return newDebugBlockFilter(colName, pb.FilterOp_NULL, zeroed)
 }
 
-func newDebugBlockFilter[T comparable](colName string, op FilterOp, value T) debugBlockFilter[T] {
+func newDebugBlockFilter[T comparable](colName string, op pb.FilterOp, value T) debugBlockFilter[T] {
 	return debugBlockFilter[T]{
 		colName, op, value,
 	}

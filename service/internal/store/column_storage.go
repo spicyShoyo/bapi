@@ -1,6 +1,7 @@
 package store
 
 import (
+	"bapi/internal/pb"
 	"errors"
 )
 
@@ -104,17 +105,17 @@ func (scs *strColumnsStorage) filter(ctx *filterCtx, filters []StrFilter) {
 
 		_, containsStr := scs.strIdSet[filter.Value]
 		switch filter.FilterOp {
-		case FilterNull, FilterNonnull:
+		case pb.FilterOp_NULL, pb.FilterOp_NONNULL:
 			{
 				// do nothing, don't care about missing value
 			}
-		case FilterEq:
+		case pb.FilterOp_EQ:
 			if !containsStr {
 				// string does not exist, clear all bits
 				ctx.bitmap.Clear()
 				return
 			}
-		case FilterNe:
+		case pb.FilterOp_NE:
 			if !containsStr {
 				// string does not exist, continue to process the next filter
 				continue

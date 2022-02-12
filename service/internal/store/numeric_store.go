@@ -1,6 +1,7 @@
 package store
 
 import (
+	"bapi/internal/pb"
 	"errors"
 
 	"github.com/kelindar/bitmap"
@@ -134,7 +135,7 @@ func (ns *numericStore[T]) filterNumericStore(
 	filter numericFilter[T],
 ) {
 	rows := ns.matrix[filter.localColId]
-	if filter.op == FilterNonnull || filter.op == FilterNull {
+	if filter.op == pb.FilterOp_NONNULL || filter.op == pb.FilterOp_NULL {
 		filterByNullable(ctx, &filter, rows)
 		return
 	}
@@ -152,7 +153,7 @@ func (ns *numericStore[T]) filterNumericStore(
 		}
 		if valueIdx == nullValueIndex {
 			switch filter.op {
-			case FilterNull, FilterNe:
+			case pb.FilterOp_NULL, pb.FilterOp_NE:
 				continue
 			default:
 				ctx.bitmap.Remove(uint32(rowIdx))
@@ -169,9 +170,9 @@ func (ns *numericStore[T]) filterNumericStore(
 // Called when the column for filtering does not exist
 // If filtering for "is null" or "!= value", all rows must be true, thus can
 // continue process the next filter. Otherwise, clears the bits and returns false.
-func canContinueElseStopForColNotExist(ctx *filterCtx, op FilterOp) bool {
+func canContinueElseStopForColNotExist(ctx *filterCtx, op pb.FilterOp) bool {
 	switch op {
-	case FilterNull, FilterNe:
+	case pb.FilterOp_NULL, pb.FilterOp_NE:
 		return true
 	default:
 		ctx.bitmap.Clear()
@@ -215,8 +216,6 @@ func newNumericStoreResult[T OrderedNumeric](rowCount int, colCount int) *numeri
 
 /**
  * Gets the columns for the rows specified in the given ctx
- * If recordValue is true, records which values are present in the result. This is used for
- * 	building string ids map for query on string columns.
  * The order of the rows is retained; it's the same as the order in the storage.
  * The order of the cols is also retained; it's the same as the order in the resultCtx.
  */

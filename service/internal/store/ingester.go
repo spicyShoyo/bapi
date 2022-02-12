@@ -3,6 +3,7 @@ package store
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 // A data structure for processing a set of rows and building the block for inserting into
@@ -110,7 +111,7 @@ func (ingester *ingester) ingestRawJson(rawJson RawJson) error {
 			return err
 		}
 
-		strId, err := ingester.getOrInsertStrId(value)
+		strId, err := ingester.getOrInsertStrId(strings.TrimSpace(value))
 		if err != nil {
 			return err
 		}
