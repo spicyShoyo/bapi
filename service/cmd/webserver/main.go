@@ -19,6 +19,11 @@ func main() {
 	logger = zapLogger.Sugar()
 
 	r := gin.Default()
+
+	// serve the frontend
+	r.Static("/assets", "./cmd/webserver/static/assets")
+	r.StaticFile("/", "./cmd/webserver/static/index.html")
+
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "pong",

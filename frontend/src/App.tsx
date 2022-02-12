@@ -2,8 +2,6 @@ import axios from "axios";
 import { Immutable, produce } from "immer";
 import { useState } from "react";
 
-import logo from "@/logo.svg";
-
 import "@/App.css";
 
 type Todo = Immutable<{
@@ -37,7 +35,6 @@ function App() {
   return (
     <div className="App font-bold underline">
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
         <p>Bapi</p>
         <p>
           <button type="button" onClick={() => setCount((count) => count + 1)}>

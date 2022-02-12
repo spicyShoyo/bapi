@@ -16,6 +16,8 @@ go_library(
 
 go_binary(
     name = "webserver",
+    # The user is responsible to make sure this exists, otherwise will get 404.
+    data = glob(["static/**"]),
     embed = [":webserver_lib"],
     visibility = ["//visibility:public"],
 )
