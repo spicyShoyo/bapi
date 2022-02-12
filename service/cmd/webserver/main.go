@@ -88,12 +88,22 @@ func postIngest(c *gin.Context) {
 	c.JSON(http.StatusAccepted, &reply)
 }
 
+// This is to walkaround frontend can't send get request with Json body but instead it's
+// in the format of `?q=<QueryRowsRequest>`
+type queryRowsWebQuery struct {
+	Q pb.QueryRowsRequest `form:"q"`
+}
+
 func getQueryRows(c *gin.Context) {
-	request := pb.QueryRowsRequest{}
-	if err := c.BindJSON(&request); err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
-		return
+	request := queryRowsWebQuery{}
+	//	allow passing as Json body (for testing locally) or url params
+	if err := c.ShouldBindJSON(&request.Q); err != nil {
+		if err := c.ShouldBindQuery(&request); err != nil {
+			c.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
 	}
+
 	conn, ok := getServiceConnection()
 	if !ok {
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -102,7 +112,7 @@ func getQueryRows(c *gin.Context) {
 	defer conn.Close()
 	client := pb.NewBapiClient(conn)
 
-	reply, e := client.QueryRows(context.Background(), &request)
+	reply, e := client.QueryRows(context.Background(), &request.Q)
 	if e != nil {
 		logger.Warnf("fail to get service reply: %v", e)
 		c.AbortWithStatus(http.StatusInternalServerError)

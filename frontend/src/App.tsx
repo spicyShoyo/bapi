@@ -1,43 +1,75 @@
+import axios from "axios";
+import { Immutable, produce } from "immer";
 import { useState } from "react";
 
 import logo from "@/logo.svg";
+
 import "@/App.css";
+
+type Todo = Immutable<{
+  title: Immutable<{
+    title: string;
+    done: boolean;
+  }>;
+  done: boolean;
+}>;
+
+const state0: Todo = {
+  title: {
+    title: "test",
+    done: false,
+  },
+  done: false,
+};
+
+produce((draft) => {
+  draft.done = !draft.done;
+}, state0);
+
+const k = produce<Todo, [boolean, string]>((draft, newState, newState2) => {
+  draft.done = newState;
+  draft.title.title = newState2;
+});
+k(state0, true, "str");
 
 function App() {
   const [count, setCount] = useState(0);
   return (
     <div className="App font-bold underline">
-      <h1 className="text-3xl font-bold underline">Hello world!</h1>
       <header className="App-header">
-	<img src={logo} className="App-logo" alt="logo" />
-	<p>Hello Vite + asjiddAReact!</p>
-	<p>
-	  <button type="button" onClick={() => setCount((count) => count + 1)}>
-	    count is: {count}
-	  </button>
-	</p>
-	<p>
-	  Edit <code>App.tsx</code> and save to test HMR updates.
-	</p>
-	<p>
-	  <a
-	    className="App-link"
-	    href="https://reactjs.org"
-	    target="_blank"
-	    rel="noopener noreferrer"
-	  >
-	    Learn React
-	  </a>
-	  {" | "}
-	  <a
-	    className="App-link"
-	    href="https://vitejs.dev/guide/features.html"
-	    target="_blank"
-	    rel="noopener noreferrer"
-	  >
-	    Vite Docs
-	  </a>
-	</p>
+        <img src={logo} className="App-logo" alt="logo" />
+        <p>Bapi</p>
+        <p>
+          <button type="button" onClick={() => setCount((count) => count + 1)}>
+            count is: {count}
+          </button>
+          <br />
+          <button
+            className="btn btn-blue"
+            onClick={() => {
+              axios
+                .get("/v1/queryRows", {
+                  params: {
+                    q: {
+                      query: {
+                        min_ts: 1641672504,
+                        int_column_names: ["ts"],
+                        str_column_names: ["event"],
+                      },
+                    },
+                  },
+                })
+                .then((v) => {
+                  // eslint-disable-next-line
+                  console.log(v);
+                })
+                // eslint-disable-next-line
+                .catch((e) => console.log(e));
+            }}
+          >
+            Load
+          </button>
+        </p>
       </header>
     </div>
   );
