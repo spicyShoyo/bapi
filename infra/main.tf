@@ -112,27 +112,34 @@ resource "tls_cert_request" "cert_request" {
 }
 resource "cloudflare_origin_ca_certificate" "my_ca_cert" {
   csr                = tls_cert_request.cert_request.cert_request_pem
-  hostnames          = [var.domain_name, var.api_domain_name]
+  hostnames          = [var.domain_name]
   request_type       = "origin-rsa"
   requested_validity = 365
 }
 
-# Api server Dns --------------------------------
+# Dns and Ssl --------------------------------
 resource "heroku_ssl" "my_ssl" {
   app_id            = heroku_app.my_app.uuid
   certificate_chain = cloudflare_origin_ca_certificate.my_ca_cert.certificate
   private_key       = tls_private_key.private_key.private_key_pem
   depends_on        = [heroku_formation.my_app_web]
 }
-resource "heroku_domain" "my_api_domain" {
+resource "heroku_domain" "my_domain" {
   app             = heroku_app.my_app.name
-  hostname        = var.api_domain_name
+  hostname        = var.domain_name
   sni_endpoint_id = heroku_ssl.my_ssl.id
 }
 resource "cloudflare_record" "my_cname" {
   zone_id = cloudflare_zone.my_zone.id
-  name    = var.api_domain_name
-  value   = heroku_domain.my_api_domain.cname
+  name    = var.domain_name
+  value   = heroku_domain.my_domain.cname
+  type    = "CNAME"
+  proxied = true
+}
+resource "cloudflare_record" "my_cname_www" {
+  zone_id = cloudflare_zone.my_zone.id
+  name    = "www"
+  value   = var.domain_name
   type    = "CNAME"
   proxied = true
 }
