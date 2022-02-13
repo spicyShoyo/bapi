@@ -1,40 +1,14 @@
 import axios from "axios";
-import { Immutable, produce } from "immer";
 import { useState } from "react";
-
-import "@/App.css";
-
-type Todo = Immutable<{
-  title: Immutable<{
-    title: string;
-    done: boolean;
-  }>;
-  done: boolean;
-}>;
-
-const state0: Todo = {
-  title: {
-    title: "test",
-    done: false,
-  },
-  done: false,
-};
-
-produce((draft) => {
-  draft.done = !draft.done;
-}, state0);
-
-const k = produce<Todo, [boolean, string]>((draft, newState, newState2) => {
-  draft.done = newState;
-  draft.title.title = newState2;
-});
-k(state0, true, "str");
 
 function App() {
   const [count, setCount] = useState(0);
   return (
-    <div className="App font-bold underline">
-      <header className="App-header">
+    <div className="text-center">
+      <header
+        className="
+      bg-sky-900	min-h-screen flex items-center justify-center flex-col text-white text-lg"
+      >
         <p>Bapi</p>
         <p>
           <button type="button" onClick={() => setCount((count) => count + 1)}>
@@ -42,7 +16,7 @@ function App() {
           </button>
           <br />
           <button
-            className="btn btn-blue"
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded"
             onClick={() => {
               const useProd = new URL(
                 document.location.toString(),
