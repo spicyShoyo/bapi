@@ -6,6 +6,14 @@ variable "app_name" {
   type     = string
   nullable = false
 }
+variable "domain_name" {
+  type     = string
+  nullable = false
+}
+variable "api_domain_name" {
+  type     = string
+  nullable = false
+}
 
 
 variable "github_token" {
