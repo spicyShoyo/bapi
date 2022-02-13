@@ -44,8 +44,12 @@ function App() {
           <button
             className="btn btn-blue"
             onClick={() => {
+              const useProd = new URL(
+                document.location.toString(),
+              ).searchParams.has("prod");
+              const path = useProd ? "https://bapi.io" : "";
               axios
-                .get("/v1/queryRows", {
+                .get(`${path}/v1/queryRows`, {
                   params: {
                     q: {
                       min_ts: 1641672504,

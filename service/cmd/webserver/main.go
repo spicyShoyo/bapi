@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	cors "github.com/rs/cors/wrapper/gin"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -23,6 +24,7 @@ func main() {
 	logger = zapLogger.Sugar()
 
 	r := gin.Default()
+	r.Use(cors.AllowAll())
 
 	staticResource := os.Getenv("STATIC_RESOURCE")
 	if len(staticResource) == 0 {
