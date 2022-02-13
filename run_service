@@ -1,3 +1,3 @@
 #!/bin/sh
 ./bapiserver &
-./webserver
+STATIC_RESOURCE=./static ./webserver

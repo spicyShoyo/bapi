@@ -4,6 +4,8 @@ import (
 	"bapi/internal/pb"
 	"context"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 
@@ -22,9 +24,22 @@ func main() {
 
 	r := gin.Default()
 
+	staticResource := os.Getenv("STATIC_RESOURCE")
+	if len(staticResource) == 0 {
+		staticResource = "./cmd/webserver/static"
+	}
 	// serve the frontend
-	r.Static("/assets", "./cmd/webserver/static/assets")
-	r.StaticFile("/", "./cmd/webserver/static/index.html")
+	r.Static("/assets", fmt.Sprintf("%s/assets", staticResource))
+	r.StaticFile("/", fmt.Sprintf("%s/index.html", staticResource))
+	fmt.Printf("%s/assets", staticResource)
+	files, err := ioutil.ReadDir(staticResource)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, f := range files {
+		fmt.Println(f.Name())
+	}
 
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
