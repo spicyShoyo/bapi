@@ -3,7 +3,9 @@ package main
 import (
 	"bapi/internal/pb"
 	"context"
+	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -37,7 +39,11 @@ func main() {
 		g.GET("/queryRows", getQueryRows)
 	}
 
-	r.Run(":8080")
+	port := os.Getenv("PORT")
+	if len(port) == 0 {
+		port = "8080"
+	}
+	r.Run(fmt.Sprintf(":%s", port))
 }
 
 func getServiceConnection() (*grpc.ClientConn, bool) {

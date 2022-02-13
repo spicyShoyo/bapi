@@ -1,4 +1,5 @@
 load("@bazel_gazelle//:def.bzl", "gazelle")
+load("@rules_pkg//pkg:mappings.bzl", "pkg_files")
 
 # gazelle:prefix bapi
 gazelle(name = "gazelle")
@@ -31,4 +32,12 @@ alias(
 alias(
     name = "deps",
     actual = ":gazelle-update-repos",
+)
+
+pkg_files(
+    name = "binary",
+    srcs = [
+        ":bapiserver",
+        ":webserver",
+    ],
 )
