@@ -3,6 +3,22 @@ name: CI
 on: [push, pull_request]
 
 jobs:
+  infrastructure-ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: hashicorp/setup-terraform@v1
+
+      - name: Format and validate
+        run: |
+          terraform init
+          terraform fmt --check=true
+          terraform validate
+
   service-ci:
     runs-on: ubuntu-latest
     defaults:
@@ -24,3 +40,25 @@ jobs:
         run: bazel build //...
       - name: Test
         run: bazel test --test_output=all //...
+
+  heroku-cd:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+    
+      - name: Login
+        env: 
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: heroku container:login 
+
+      - name: Build
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: heroku container:push -a ${{ secrets.HEROKU_APP_NAME }} web 
+          
+      - name: Release
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: heroku container:release -a ${{ secrets.HEROKU_APP_NAME }} web 
+
