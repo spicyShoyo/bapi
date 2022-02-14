@@ -61,7 +61,7 @@ resource "heroku_formation" "my_app_web" {
   app      = heroku_app.my_app.name
   type     = "web"
   quantity = 1
-  size     = "Hobby"
+  size     = "Free"
 }
 
 # Namecheap and Cloudlare --------------------------------
@@ -118,16 +118,16 @@ resource "cloudflare_origin_ca_certificate" "my_ca_cert" {
 }
 
 # Dns and Ssl --------------------------------
-resource "heroku_ssl" "my_ssl" {
-  app_id            = heroku_app.my_app.uuid
-  certificate_chain = cloudflare_origin_ca_certificate.my_ca_cert.certificate
-  private_key       = tls_private_key.private_key.private_key_pem
-  depends_on        = [heroku_formation.my_app_web]
-}
+# resource "heroku_ssl" "my_ssl" {
+#   app_id            = heroku_app.my_app.uuid
+#   certificate_chain = cloudflare_origin_ca_certificate.my_ca_cert.certificate
+#   private_key       = tls_private_key.private_key.private_key_pem
+#   depends_on        = [heroku_formation.my_app_web]
+# }
 resource "heroku_domain" "my_domain" {
-  app             = heroku_app.my_app.name
-  hostname        = var.domain_name
-  sni_endpoint_id = heroku_ssl.my_ssl.id
+  app      = heroku_app.my_app.name
+  hostname = var.domain_name
+  # sni_endpoint_id = heroku_ssl.my_ssl.id
 }
 resource "cloudflare_record" "my_cname" {
   zone_id = cloudflare_zone.my_zone.id
