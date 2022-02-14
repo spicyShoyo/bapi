@@ -1,14 +1,14 @@
 import axios from "axios";
-import tw from "tailwind-styled-components";
+import tw from "twin.macro";
 
 const Header = tw.div`
 h-[32px] text-white text-lg text-left pl-4 font-logo
 `;
 const SidePane = tw.div`
-w-[324px]  bg-sky-500 min-h-full
+w-[324px]  bg-blue-600 min-h-full
 `;
 const ResultView = tw.div`
- bg-sky-300 grow min-h-full
+ bg-blue-300 flex-grow min-h-full
 `;
 
 function App() {

@@ -20,6 +20,7 @@
     "sourceType": "module"
   },
   "plugins": ["react", "react-hooks", "@typescript-eslint"],
+  "ignorePatterns": ["**/*.d.ts"],
   "rules": {
     "react/react-in-jsx-scope": "off",
     "no-shadow": "off",
