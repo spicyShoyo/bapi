@@ -1,14 +1,16 @@
 import axios from "axios";
 import { useState } from "react";
+import tw from "tailwind-styled-components";
+
+const Header = tw.div`
+ bg-sky-900	min-h-screen flex items-center justify-center flex-col text-white text-lg
+`;
 
 function App() {
   const [count, setCount] = useState(0);
   return (
     <div className="text-center">
-      <header
-        className="
-      bg-sky-900	min-h-screen flex items-center justify-center flex-col text-white text-lg"
-      >
+      <Header>
         <p>Bapi</p>
         <p>
           <button type="button" onClick={() => setCount((count) => count + 1)}>
@@ -43,7 +45,7 @@ function App() {
             Load
           </button>
         </p>
-      </header>
+      </Header>
     </div>
   );
 }
