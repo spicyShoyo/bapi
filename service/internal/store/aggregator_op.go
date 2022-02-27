@@ -34,18 +34,30 @@ type aggOp[T OrderedNumeric] interface {
 	finalize() aggOpResult[T]
 }
 
-func getAggOp[T OrderedNumeric](op pb.AggOp) (bool, aggOp[T]) {
+func getAggOpSlice[T OrderedNumeric](op pb.AggOp, colCount int) ([]aggOp[T], bool) {
+	s := make([]aggOp[T], colCount)
+	for i := 0; i < colCount; i++ {
+		aggOp, ok := getAggOp[T](op)
+		if !ok {
+			return nil, false
+		}
+		s[i] = aggOp
+	}
+	return s, true
+}
+
+func getAggOp[T OrderedNumeric](op pb.AggOp) (aggOp[T], bool) {
 	switch op {
 	case pb.AggOp_COUNT:
-		return true, newAggOpCount[T]()
+		return newAggOpCount[T](), true
 	case pb.AggOp_COUNT_DISTINCT:
-		return true, newAggOpCountDistinct[T]()
+		return newAggOpCountDistinct[T](), true
 	case pb.AggOp_SUM:
-		return true, newAggOpSum[T]()
+		return newAggOpSum[T](), true
 	case pb.AggOp_AVG:
-		return true, newAggOpAvg[T]()
+		return newAggOpAvg[T](), true
 	default:
-		return false, nil
+		return nil, false
 	}
 }
 

@@ -1,87 +1,116 @@
 package store
 
-import "bapi/internal/pb"
-
 type aggBucket struct {
-	ints     []int64
-	strIds   []strId
-	tsBucket int
-	aggInts  []int64
+	intVals   []int64
+	intHasVal []bool
+	strVals   []strId
+	strHasVal []bool
+	tsBucket  int
 }
 
-type aggregationResult struct {
-	ints     [][]int64
-	hasValue [][]bool
+type hasher struct {
+	c            *aggCtx
+	r            *BlockQueryResult
+	hashes       []uint64
+	hashToRowIdx map[uint64]int
 }
 
-func aggregateForTableQuery(r *BlockQueryResult, firstAggIntCol int) {
-	hasher := newNumericHasher(r.Count)
-	for colIdx := 0; colIdx < firstAggIntCol; colIdx++ {
-		hasher.processIntCol(r.IntResult, colIdx)
-	}
-	// we do not support aggregation on str so all str cols are for group by
-	for colIdx := 0; colIdx < len(r.StrResult.matrix); colIdx++ {
-		hasher.processStrCol(r.StrResult, colIdx)
-	}
-
-	hashes := hasher.finalize()
-	uniqueHashes := make(map[uint64]bool, 0)
-	for _, hash := range hashes {
-		uniqueHashes[hash] = true
+func buildHasherForBlock(ctx *aggCtx, blockResult *BlockQueryResult) *hasher {
+	h := &hasher{
+		c:            ctx,
+		r:            blockResult,
+		hashes:       make([]uint64, blockResult.Count),
+		hashToRowIdx: make(map[uint64]int),
 	}
 
-}
-
-type hasher interface {
-	processIntCol(r IntResult, colIdx int)
-	processStrCol(r StrResult, colIdx int)
-	processTsBucket(values []int64, startTs int64, gran pb.TimeGran)
-	finalized() []uint64
-}
-
-type numericHasher struct {
-	count  int
-	hashes []uint64
-}
-
-func newNumericHasher(count int) *numericHasher {
-	return &numericHasher{
-		count:  count,
-		hashes: make([]uint64, count),
+	h.maybeProcessTsBucket()
+	for colIdx := 0; colIdx < h.c.firstAggIntCol; colIdx++ {
+		h.processIntCol(h.r.IntResult, colIdx)
 	}
-}
-
-func (h *numericHasher) processIntCol(r IntResult, colIdx int) {
-	values := r.matrix[colIdx]
-	hasValue := r.hasValue[colIdx]
-	for i, v := range values {
-		h.hashes[i] = hash128To64(h.hashes[i], uint64(v))
-		if !hasValue[i] {
-			h.hashes[i] = hash128To64(h.hashes[i], uint64(v))
-		}
+	// aggregation on str not supported so can assume all str cols are for group by
+	for colIdx := 0; colIdx < len(h.r.StrResult.matrix); colIdx++ {
+		h.processStrCol(h.r.StrResult, colIdx)
 	}
-}
 
-func (h *numericHasher) processStrCol(r StrResult, colIdx int) {
-	values := r.matrix[colIdx]
-	hasValue := r.hasValue[colIdx]
-	for i, v := range values {
-		h.hashes[i] = hash128To64(h.hashes[i], uint64(v))
-		if !hasValue[i] {
-			h.hashes[i] = hash128To64(h.hashes[i], uint64(v))
-		}
+	for rowIdx, hash := range h.hashes {
+		h.hashToRowIdx[hash] = rowIdx
 	}
+
+	return h
 }
 
-func (h *numericHasher) processTsBucket(values []int64, startTs int64, gran uint64) {
-	for i, v := range values {
-		bucket := uint64(v-startTs) / gran
-		h.hashes[i] = hash128To64(h.hashes[i], bucket)
-	}
-}
-
-func (h *numericHasher) finalize() []uint64 {
+func (h *hasher) getHashes() []uint64 {
 	return h.hashes
+}
+
+func (h *hasher) getAggBucket(hash uint64) (*aggBucket, bool) {
+	rowIdx, ok := h.hashToRowIdx[hash]
+	if !ok {
+		return nil, false
+	}
+
+	bucket := &aggBucket{
+		intVals:   make([]int64, h.c.firstAggIntCol),
+		intHasVal: make([]bool, h.c.firstAggIntCol),
+		strVals:   make([]strId, len(h.r.StrResult.matrix)),
+		strHasVal: make([]bool, len(h.r.StrResult.matrix)),
+		tsBucket:  0,
+	}
+
+	if h.c.isTimelineQuery {
+		rowTs := h.r.IntResult.matrix[h.c.tsCol][rowIdx]
+		bucket.tsBucket = int(rowTs-h.c.startTs) / int(h.c.gran)
+	}
+
+	for colIdx := 0; colIdx < h.c.firstAggIntCol; colIdx++ {
+		bucket.intVals[colIdx] = h.r.IntResult.matrix[colIdx][rowIdx]
+		bucket.intHasVal[colIdx] = h.r.IntResult.hasValue[colIdx][rowIdx]
+	}
+
+	for colIdx := 0; colIdx < len(h.r.StrResult.matrix); colIdx++ {
+		bucket.strVals[colIdx] = h.r.StrResult.matrix[colIdx][rowIdx]
+		bucket.strHasVal[colIdx] = h.r.StrResult.hasValue[colIdx][rowIdx]
+	}
+
+	return bucket, true
+}
+
+// --------------------------- internal ----------------------------
+func (h *hasher) processIntCol(r IntResult, colIdx int) {
+	values := r.matrix[colIdx]
+	hasValue := r.hasValue[colIdx]
+	for i, v := range values {
+		h.hashes[i] = hash128To64(h.hashes[i], uint64(v))
+		if !hasValue[i] {
+			h.hashes[i] = hash128To64(h.hashes[i], uint64(v))
+		}
+	}
+}
+
+func (h *hasher) processStrCol(r StrResult, colIdx int) {
+	values := r.matrix[colIdx]
+	hasValue := r.hasValue[colIdx]
+	for i, v := range values {
+		h.hashes[i] = hash128To64(h.hashes[i], uint64(v))
+		if !hasValue[i] {
+			h.hashes[i] = hash128To64(h.hashes[i], uint64(v))
+		}
+	}
+}
+
+func (h *hasher) getTsBucket(rowIdx int) int {
+	rowTs := h.r.IntResult.matrix[h.c.tsCol][rowIdx]
+	return int(rowTs-h.c.startTs) / int(h.c.gran)
+}
+
+func (h *hasher) maybeProcessTsBucket() {
+	if !h.c.isTimelineQuery {
+		return
+	}
+	for rowIdx := 0; rowIdx < h.r.Count; rowIdx++ {
+		bucket := uint64(h.getTsBucket(rowIdx))
+		h.hashes[rowIdx] = hash128To64(h.hashes[rowIdx], bucket)
+	}
 }
 
 // https://github.com/facebook/folly/blob/main/folly/hash/Hash.h#L65
