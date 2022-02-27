@@ -3,9 +3,11 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "store",
     srcs = [
+        "aggregator.go",
         "block.go",
         "col_info_store.go",
         "column_storage.go",
+        "hasher.go",
         "ingester.go",
         "lib.go",
         "math_util.go",
@@ -27,6 +29,7 @@ go_library(
 go_test(
     name = "store_test",
     srcs = [
+        "aggregator_test.go",
         "block_test.go",
         "col_info_store_test.go",
         "column_storage_test.go",

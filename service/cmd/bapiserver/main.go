@@ -14,13 +14,15 @@ import (
 )
 
 func main() {
+	var (
+		flagFile = flag.String("backfill_file", "", "file with rows to backfill")
+	)
+	flag.Parse()
+
 	ctx := common.NewBapiCtx()
 	port := 50051
 
 	var backfillFile *string = nil
-	flagFile := flag.String("backfill_file", "", "file with rows to backfill")
-	flag.Parse()
-
 	if *flagFile != "" {
 		if _, err := os.Stat(*flagFile); err != nil {
 			ctx.Logger.Fatalf("backfill_file does not exist: %s, %v", *flagFile, err)

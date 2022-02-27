@@ -12,6 +12,21 @@ enum Status {
   SERVER_ERROR = 500;
 }
 
+enum AggOp {
+  COUNT = 0;
+  COUNT_DISTINCT = 1;
+  SUM = 2;
+  AVG  = 3;
+}
+
+enum TimeGran {
+  INVALID = 0;
+  MIN_5 = 300;
+  MIN_15 = 900;
+  MIN_30 = 1800;
+  HOUR_1 = 3600;
+}
+
 enum FilterOp {
   EQ = 0;
   NE = 1;
@@ -44,6 +59,28 @@ message RowsQuery {
   repeated Filter str_filters = 4;
   repeated string int_column_names = 5;
   repeated string str_column_names = 6;
+}
+
+message TableQuery {
+  int64 min_ts = 1;
+  optional int64 max_ts = 2;
+  repeated Filter int_filters = 3;
+  repeated Filter str_filters = 4;
+  repeated string group_by_int_column_names = 5;
+  repeated string group_by_str_column_names = 6;
+  AggOp agg_op = 7;
+  repeated string agg_int_column_names = 8;
+}
+
+message TimelineQuery {
+  int64 min_ts = 1;
+  optional int64 max_ts = 2;
+  repeated Filter int_filters = 3;
+  repeated Filter str_filters = 4;
+  repeated string group_by_int_column_names = 5;
+  repeated string group_by_str_column_names = 6;
+  AggOp agg_op = 7;
+  repeated string agg_int_column_names = 8;
 }
 
 message RowsQueryResult {
