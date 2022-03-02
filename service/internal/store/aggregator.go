@@ -5,10 +5,6 @@ import (
 	"sync"
 )
 
-type aggregator interface {
-	aggregate(ctx *aggCtx, filterResults []*BlockQueryResult)
-}
-
 type aggCtx struct {
 	op             pb.AggOp
 	firstAggIntCol int
@@ -21,20 +17,22 @@ type aggCtx struct {
 }
 
 type basicAggregator struct {
+	ctx        *aggCtx
 	aggBuckets sync.Map // map[uint64]*aggBucket
 }
 
-func newBasicAggregator() *basicAggregator {
+func newBasicAggregator(c *aggCtx) *basicAggregator {
 	return &basicAggregator{
+		ctx:        c,
 		aggBuckets: sync.Map{},
 	}
 }
 
-func (a *basicAggregator) aggregate(ctx *aggCtx, filterResults []*BlockQueryResult) map[uint64][]aggOpResult[int64] {
+func (a *basicAggregator) aggregate(filterResults []*BlockQueryResult) map[uint64][]aggOpResult[int64] {
 	tableIntAggPartialRes := make(map[uint64][]aggOp[int64])
 
 	for _, result := range filterResults {
-		blockIntAggPartialRes := a.aggregateBlock(ctx, result)
+		blockIntAggPartialRes := a.aggregateBlock(result)
 
 		for hash, blockResForCol := range blockIntAggPartialRes {
 			tableResForCol, ok := tableIntAggPartialRes[hash]
@@ -63,8 +61,8 @@ func (a *basicAggregator) aggregate(ctx *aggCtx, filterResults []*BlockQueryResu
 	return intAggResults
 }
 
-func (a *basicAggregator) aggregateBlock(c *aggCtx, r *BlockQueryResult) map[uint64][]aggOp[int64] {
-	hasher := buildHasherForBlock(c, r)
+func (a *basicAggregator) aggregateBlock(r *BlockQueryResult) map[uint64][]aggOp[int64] {
+	hasher := buildHasherForBlock(a.ctx, r)
 	hashes := hasher.getHashes()
 
 	intAggResult := make(map[uint64][]aggOp[int64], 0)
@@ -75,7 +73,7 @@ func (a *basicAggregator) aggregateBlock(c *aggCtx, r *BlockQueryResult) map[uin
 			continue
 		}
 		// First time seeting this hash in this block, so initialize the aggResult for it.
-		intAggResult[hash], _ = getAggOpSlice[int64](c.op, c.intColCnt-c.firstAggIntCol)
+		intAggResult[hash], _ = getAggOpSlice[int64](a.ctx.op, a.ctx.intColCnt-a.ctx.firstAggIntCol)
 
 		// Also initialize the global aggbucket for it if needed. we do this here instead of
 		// when all blocks are aggregated since the hasher knows the row of the hash.
@@ -85,7 +83,7 @@ func (a *basicAggregator) aggregateBlock(c *aggCtx, r *BlockQueryResult) map[uin
 		}
 	}
 
-	for colIdx := c.firstAggIntCol; colIdx < c.intColCnt; colIdx++ {
+	for colIdx := a.ctx.firstAggIntCol; colIdx < a.ctx.intColCnt; colIdx++ {
 		intHasVal := r.IntResult.hasValue[colIdx]
 		intVals := r.IntResult.matrix[colIdx]
 
@@ -93,7 +91,7 @@ func (a *basicAggregator) aggregateBlock(c *aggCtx, r *BlockQueryResult) map[uin
 			if !intHasVal[rowIdx] {
 				continue
 			}
-			intAggResult[hash][colIdx-c.firstAggIntCol].addValue(intVals[rowIdx])
+			intAggResult[hash][colIdx-a.ctx.firstAggIntCol].addValue(intVals[rowIdx])
 		}
 	}
 

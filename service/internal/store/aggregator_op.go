@@ -3,6 +3,7 @@ package store
 import "bapi/internal/pb"
 
 const (
+	aggOpNullRes    = iota
 	aggOpIntRes     = iota
 	aggOpFloatRes   = iota
 	aggOpGenericRes = iota
@@ -26,6 +27,10 @@ func newAggOpFloatResult[T OrderedNumeric](floatVal float64) aggOpResult[T] {
 
 func newAggOpGenericResult[T OrderedNumeric](genericVal T) aggOpResult[T] {
 	return aggOpResult[T]{genericVal: genericVal, valType: aggOpGenericRes}
+}
+
+func newAggOpNullResult[T OrderedNumeric]() aggOpResult[T] {
+	return aggOpResult[T]{valType: aggOpNullRes}
 }
 
 type aggOp[T OrderedNumeric] interface {
@@ -67,7 +72,7 @@ type aggOpCount[T OrderedNumeric] struct {
 }
 
 func newAggOpCount[T OrderedNumeric]() *aggOpCount[T] {
-	return &aggOpCount[T]{}
+	return &aggOpCount[T]{count: 0}
 }
 
 func (op *aggOpCount[T]) addValue(T) {
@@ -107,23 +112,29 @@ func (op *aggOpCountDistinct[T]) finalize() aggOpResult[T] {
 
 // --------------------------- aggOpSum ---------------------------
 type aggOpSum[T OrderedNumeric] struct {
-	sum T
+	sum      T
+	hasValue bool
 }
 
 func newAggOpSum[T OrderedNumeric]() *aggOpSum[T] {
-	return &aggOpSum[T]{sum: T(0)}
+	return &aggOpSum[T]{sum: T(0), hasValue: false}
 }
 
 func (op *aggOpSum[T]) addValue(v T) {
 	// ! overflow is not handled, but fine for now
 	op.sum += v
+	op.hasValue = true
 }
 
 func (op *aggOpSum[T]) consume(other aggOp[T]) {
 	op.sum += other.(*aggOpSum[T]).sum
+	op.hasValue = op.hasValue || other.(*aggOpSum[T]).hasValue
 }
 
 func (op *aggOpSum[T]) finalize() aggOpResult[T] {
+	if !op.hasValue {
+		return newAggOpNullResult[T]()
+	}
 	return newAggOpGenericResult(op.sum)
 }
 
@@ -149,5 +160,8 @@ func (op *aggOpAvg[T]) consume(other aggOp[T]) {
 }
 
 func (op *aggOpAvg[T]) finalize() aggOpResult[T] {
+	if op.count == 0 {
+		return newAggOpNullResult[T]()
+	}
 	return newAggOpFloatResult[T](float64(op.sum) / float64(op.count))
 }

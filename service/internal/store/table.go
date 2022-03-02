@@ -44,25 +44,61 @@ type tableInfo struct {
 	maxTs    *atomic.Int64
 }
 
-func (t *Table) RowsQuery(query *pb.RowsQuery) (*pb.RowsQueryResult, bool) {
-	if len(query.IntColumnNames) == 0 && len(query.StrColumnNames) == 0 {
+func (t *Table) TableQuery(query *pb.TableQuery) (*pb.RowsQueryResult, bool) {
+	if len(query.AggIntColumnNames) == 0 {
 		return nil, false
 	}
 
-	rowsQuery, ok := t.newRowsQuery(query)
+	blocksQuery, ok := t.newBlockQuery(queryWithFilter{query})
 	if !ok {
 		t.ctx.Logger.Warn("failed to build query")
 		return nil, false
 	}
 
-	blocksToQuery, ok := t.getBlocksToQuery(query)
+	blocksToQuery, ok := t.getBlocksToQuery(queryWithFilter{query})
 	if !ok {
 		return nil, false
 	}
 
 	blockResults := make([]*BlockQueryResult, 0)
 	for _, block := range blocksToQuery {
-		result, ok := block.query(t.ctx, rowsQuery)
+		result, ok := block.query(t.ctx, blocksQuery)
+		if !ok {
+			continue
+		}
+		blockResults = append(blockResults, result)
+	}
+
+	aggregator := newBasicAggregator(&aggCtx{
+		op:             query.AggOp,
+		firstAggIntCol: len(query.GroupByIntColumnNames), // aggIntCols are after groupByIntCols
+		intColCnt:      len(query.GroupByIntColumnNames) + len(query.AggIntColumnNames),
+	})
+	aggregator.aggregate(blockResults)
+	// TODO: implement
+	return nil, false
+	// return t.toPbQueryResult(query, blockResults)
+}
+
+func (t *Table) RowsQuery(query *pb.RowsQuery) (*pb.RowsQueryResult, bool) {
+	if len(query.IntColumnNames) == 0 && len(query.StrColumnNames) == 0 {
+		return nil, false
+	}
+
+	blocksQuery, ok := t.newBlockQuery(queryWithFilter{query})
+	if !ok {
+		t.ctx.Logger.Warn("failed to build query")
+		return nil, false
+	}
+
+	blocksToQuery, ok := t.getBlocksToQuery(queryWithFilter{query})
+	if !ok {
+		return nil, false
+	}
+
+	blockResults := make([]*BlockQueryResult, 0)
+	for _, block := range blocksToQuery {
+		result, ok := block.query(t.ctx, blocksQuery)
 		if !ok {
 			continue
 		}
@@ -72,7 +108,7 @@ func (t *Table) RowsQuery(query *pb.RowsQuery) (*pb.RowsQueryResult, bool) {
 	return t.toPbQueryResult(query, blockResults)
 }
 
-func (t *Table) getBlocksToQuery(query *pb.RowsQuery) ([]*Block, bool) {
+func (t *Table) getBlocksToQuery(query queryWithFilter) ([]*Block, bool) {
 	t.blocksLock.RLock()
 	defer func() {
 		t.blocksLock.RUnlock()
@@ -80,15 +116,15 @@ func (t *Table) getBlocksToQuery(query *pb.RowsQuery) ([]*Block, bool) {
 	// first block whose minTs >= query.minTs
 	startBlock := sort.Search(len(t.blocks),
 		func(i int) bool {
-			return t.blocks[i].minTs >= query.MinTs
+			return t.blocks[i].minTs >= query.getMinTs()
 		})
 
 	endBlock := len(t.blocks) - 1
-	if query.MaxTs != nil {
+	if queryMaxTs, queryHasMaxTs := query.getMaxTs(); queryHasMaxTs {
 		// first block whose minTs > query.maxTs
 		firstLarger := sort.Search(len(t.blocks),
 			func(i int) bool {
-				return t.blocks[i].minTs > *query.MaxTs
+				return t.blocks[i].minTs > queryMaxTs
 			})
 		endBlock = firstLarger - 1
 	}
@@ -189,15 +225,81 @@ func (t *Table) toPbQueryResult(query *pb.RowsQuery, blockResults []*BlockQueryR
 	}, true
 }
 
-func (t *Table) verifyRowsQuery(query *pb.RowsQuery) bool {
+// A wrapper around pb querys providing getters for filtering related fields
+type queryWithFilter struct {
+	q interface{} // *pb.RowsQuery | *pb.TableQuery
+}
+
+func (q *queryWithFilter) getMinTs() int64 {
+	if query := q.q.(*pb.RowsQuery); query != nil {
+		return query.MinTs
+	}
+	if query := q.q.(*pb.TableQuery); query != nil {
+		return query.MinTs
+	}
+	return 0
+}
+
+func (q *queryWithFilter) getMaxTs() (int64, bool) {
+	if query := q.q.(*pb.RowsQuery); query != nil {
+		return query.GetMaxTs(), query != nil
+	}
+	if query := q.q.(*pb.TableQuery); query != nil {
+		return query.GetMaxTs(), query != nil
+	}
+	return 0, false
+}
+
+func (q *queryWithFilter) getIntFilters() []*pb.Filter {
+	if query := q.q.(*pb.RowsQuery); query != nil {
+		return query.IntFilters
+	}
+	if query := q.q.(*pb.TableQuery); query != nil {
+		return query.IntFilters
+	}
+	return make([]*pb.Filter, 0)
+}
+
+func (q *queryWithFilter) getStrFilters() []*pb.Filter {
+	if query := q.q.(*pb.RowsQuery); query != nil {
+		return query.StrFilters
+	}
+	if query := q.q.(*pb.TableQuery); query != nil {
+		return query.StrFilters
+	}
+	return make([]*pb.Filter, 0)
+}
+
+func (q *queryWithFilter) getIntColNames() []string {
+	if query := q.q.(*pb.RowsQuery); query != nil {
+		return query.IntColumnNames
+	}
+	if query := q.q.(*pb.TableQuery); query != nil {
+		return append(query.GroupByIntColumnNames, query.AggIntColumnNames...)
+	}
+	return make([]string, 0)
+}
+
+func (q *queryWithFilter) getStrColNames() []string {
+	if query := q.q.(*pb.RowsQuery); query != nil {
+		return query.StrColumnNames
+	}
+	if query := q.q.(*pb.TableQuery); query != nil {
+		return query.GroupByStrColumnNames
+	}
+	return make([]string, 0)
+}
+
+func (t *Table) verifyQueryFilter(query queryWithFilter) bool {
 	// has value and t.minTs <= query.minTs <= query.MaxTs < t.maxTs
-	if t.tableInfo.rowCount.Load() == 0 || t.tableInfo.maxTs.Load() < query.MinTs {
+	if t.tableInfo.rowCount.Load() == 0 || t.tableInfo.maxTs.Load() < query.getMinTs() {
 		return false
 	}
 
-	if query.MaxTs != nil {
-		maxTs := query.GetMaxTs()
-		if t.tableInfo.minTs.Load() > maxTs || query.MinTs > maxTs {
+	maxTs, hasMaxTs := query.getMaxTs()
+	if hasMaxTs {
+		maxTs := maxTs
+		if t.tableInfo.minTs.Load() > maxTs || query.getMinTs() > maxTs {
 			return false
 		}
 	}
@@ -205,8 +307,8 @@ func (t *Table) verifyRowsQuery(query *pb.RowsQuery) bool {
 	return true
 }
 
-func (t *Table) newRowsQuery(query *pb.RowsQuery) (*blockQuery, bool) {
-	if ok := t.verifyRowsQuery(query); !ok {
+func (t *Table) newBlockQuery(query queryWithFilter) (*blockQuery, bool) {
+	if ok := t.verifyQueryFilter(query); !ok {
 		return nil, false
 	}
 
@@ -215,12 +317,12 @@ func (t *Table) newRowsQuery(query *pb.RowsQuery) (*blockQuery, bool) {
 		return nil, false
 	}
 
-	intColumns, ok := t.colInfoMap.getColumnInfoSliceForType(query.IntColumnNames, IntColumnType)
+	intColumns, ok := t.colInfoMap.getColumnInfoSliceForType(query.getIntColNames(), IntColumnType)
 	if !ok {
 		return nil, false
 	}
 
-	strColumns, ok := t.colInfoMap.getColumnInfoSliceForType(query.StrColumnNames, StrColumnType)
+	strColumns, ok := t.colInfoMap.getColumnInfoSliceForType(query.getStrColNames(), StrColumnType)
 	if !ok {
 		return nil, false
 	}
@@ -232,9 +334,9 @@ func (t *Table) newRowsQuery(query *pb.RowsQuery) (*blockQuery, bool) {
 	}, true
 }
 
-func (t *Table) newBlockfilter(query *pb.RowsQuery) (blockFilter, bool) {
+func (t *Table) newBlockfilter(query queryWithFilter) (blockFilter, bool) {
 	intFilters := make([]singularFilter[int64], 0)
-	for _, intFilter := range query.IntFilters {
+	for _, intFilter := range query.getIntFilters() {
 		colInfo, ok := t.colInfoMap.getColumnInfoAndAssertType(intFilter.ColumnName, IntColumnType)
 		if !ok {
 			return blockFilter{}, false
@@ -254,7 +356,7 @@ func (t *Table) newBlockfilter(query *pb.RowsQuery) (blockFilter, bool) {
 	}
 
 	strFilters := make([]singularFilter[strId], 0)
-	for _, strFilter := range query.StrFilters {
+	for _, strFilter := range query.getStrFilters() {
 		colInfo, ok := t.colInfoMap.getColumnInfoAndAssertType(strFilter.ColumnName, StrColumnType)
 		if !ok {
 			return blockFilter{}, false
@@ -277,8 +379,8 @@ func (t *Table) newBlockfilter(query *pb.RowsQuery) (blockFilter, bool) {
 	}
 
 	maxTs := time.Now().Unix()
-	if query.MaxTs != nil {
-		maxTs = query.GetMaxTs()
+	if queryMaxTs, queryHasMaxTs := query.getMaxTs(); queryHasMaxTs {
+		maxTs = queryMaxTs
 	}
 
 	tsColInfo, ok := t.colInfoMap.getColumnInfoAndAssertType(TS_COLUMN_NAME, IntColumnType)
@@ -288,7 +390,7 @@ func (t *Table) newBlockfilter(query *pb.RowsQuery) (blockFilter, bool) {
 	}
 
 	return newBlockFilter(
-		query.MinTs,
+		query.getMinTs(),
 		maxTs,
 		tsColInfo,
 		intFilters,

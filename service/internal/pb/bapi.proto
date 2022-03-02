@@ -96,6 +96,23 @@ message RowsQueryResult {
   repeated bool str_has_value = 8;
 }
 
+message TableQueryResult {
+  int32 count = 1;
+
+  repeated string int_column_names = 2;
+  repeated int64 int_result = 3;
+  repeated bool int_has_value = 4;
+
+  repeated string str_column_names = 5;
+  map<uint32, string> str_id_map = 6;
+  repeated uint32 str_result = 7;
+  repeated bool str_has_value = 8;
+
+  repeated string agg_int_column_names = 9;
+  repeated int64 agg_int_result = 10;
+  repeated bool agg_int_has_value = 11;
+}
+
 service Bapi {
   rpc Ping(PingRequest) returns (PingReply) {}
   rpc IngestRawRows(IngestRawRowsRequset) returns (IngestRawRowsReply) {}
