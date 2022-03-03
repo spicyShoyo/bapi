@@ -116,7 +116,8 @@ message TableQueryResult {
 service Bapi {
   rpc Ping(PingRequest) returns (PingReply) {}
   rpc IngestRawRows(IngestRawRowsRequset) returns (IngestRawRowsReply) {}
-  rpc QueryRows(RowsQuery) returns (QueryRowsReply) {}
+  rpc RunRowsQuery(RowsQuery) returns (RowsQueryReply) {}
+  rpc RunTableQuery(TableQuery) returns (TableQueryReply) {}
   rpc InitiateShutdown(InitiateShutdownRequest) returns (InitiateShutdownReply) {}
 }
 
@@ -130,10 +131,16 @@ message IngestRawRowsReply {
   optional string message = 2; 
 }
 
-message QueryRowsReply { 
+message RowsQueryReply { 
   Status status = 1; 
   optional string message = 2; 
   optional RowsQueryResult result = 3; 
+}
+
+message TableQueryReply { 
+  Status status = 1; 
+  optional string message = 2; 
+  optional TableQueryResult result = 3; 
 }
 
 message PingRequest { string name = 1; }

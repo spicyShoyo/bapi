@@ -53,7 +53,8 @@ func main() {
 	{
 		g.GET("/ping", getPing)
 		g.POST("/ingest", postIngest)
-		g.GET("/queryRows", getQueryRows)
+		g.GET("/queryRows", runRowsQuery)
+		g.GET("/tableQuery", runTableQuery)
 	}
 
 	port := os.Getenv("PORT")
@@ -119,12 +120,16 @@ func postIngest(c *gin.Context) {
 // This is to workaround that frontend can't send get request with Json body and
 // protobuf doesn't paly well with deserializing url param (for not having `form` tag).
 // So we just put the query behind a query param `q`, like `?q=<RowsQuery>`.
-type getQueryRowsQuery struct {
+type rowsQueryWrapper struct {
 	Q pb.RowsQuery `form:"q"`
 }
 
-func getQueryRows(c *gin.Context) {
-	request := getQueryRowsQuery{}
+type tableQueryWrapper struct {
+	Q pb.TableQuery `form:"q"`
+}
+
+func runRowsQuery(c *gin.Context) {
+	request := rowsQueryWrapper{}
 	//	allow passing as Json body (for testing locally) or url params
 	if err := c.ShouldBindJSON(&request); err != nil {
 		if err := c.ShouldBindQuery(&request); err != nil {
@@ -141,7 +146,35 @@ func getQueryRows(c *gin.Context) {
 	defer conn.Close()
 	client := pb.NewBapiClient(conn)
 
-	reply, e := client.QueryRows(context.Background(), &request.Q)
+	reply, e := client.RunRowsQuery(context.Background(), &request.Q)
+	if e != nil {
+		logger.Warnf("fail to get service reply: %v", e)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, &reply)
+}
+
+func runTableQuery(c *gin.Context) {
+	request := tableQueryWrapper{}
+	//	allow passing as Json body (for testing locally) or url params
+	if err := c.ShouldBindJSON(&request); err != nil {
+		if err := c.ShouldBindQuery(&request); err != nil {
+			c.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
+	}
+
+	conn, ok := getServiceConnection()
+	if !ok {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
+	client := pb.NewBapiClient(conn)
+
+	reply, e := client.RunTableQuery(context.Background(), &request.Q)
 	if e != nil {
 		logger.Warnf("fail to get service reply: %v", e)
 		c.AbortWithStatus(http.StatusInternalServerError)

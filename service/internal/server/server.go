@@ -55,18 +55,36 @@ func (s *server) IngestRawRows(ctx context.Context, in *pb.IngestRawRowsRequset)
 	}, nil
 }
 
-func (s *server) QueryRows(ctx context.Context, in *pb.RowsQuery) (*pb.QueryRowsReply, error) {
+func (s *server) RunRowsQuery(ctx context.Context, in *pb.RowsQuery) (*pb.RowsQueryReply, error) {
 	s.ctx.Logger.Info(in)
 	result, hasValue := s.table.RowsQuery(in)
 	if !hasValue {
-		return &pb.QueryRowsReply{
+		return &pb.RowsQueryReply{
 			Status:  pb.Status_NO_CONTENT,
 			Message: nil,
 			Result:  nil,
 		}, nil
 	}
 
-	return &pb.QueryRowsReply{
+	return &pb.RowsQueryReply{
+		Status:  pb.Status_OK,
+		Message: nil,
+		Result:  result,
+	}, nil
+}
+
+func (s *server) RunTableQuery(ctx context.Context, in *pb.TableQuery) (*pb.TableQueryReply, error) {
+	s.ctx.Logger.Info(in)
+	result, hasValue := s.table.TableQuery(in)
+	if !hasValue {
+		return &pb.TableQueryReply{
+			Status:  pb.Status_NO_CONTENT,
+			Message: nil,
+			Result:  nil,
+		}, nil
+	}
+
+	return &pb.TableQueryReply{
 		Status:  pb.Status_OK,
 		Message: nil,
 		Result:  result,
