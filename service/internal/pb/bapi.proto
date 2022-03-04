@@ -111,6 +111,10 @@ message TableQueryResult {
   repeated string agg_int_column_names = 9;
   repeated int64 agg_int_result = 10;
   repeated bool agg_int_has_value = 11;
+
+  repeated string agg_float_column_names = 12;
+  repeated double agg_float_result = 13;
+  repeated bool agg_float_has_value = 14;
 }
 
 service Bapi {

@@ -2,6 +2,7 @@ package store
 
 import (
 	"bapi/internal/pb"
+	"sort"
 	"sync"
 )
 
@@ -59,6 +60,22 @@ func (a *basicAggregator) aggregate(filterResults []*BlockQueryResult) map[uint6
 	}
 
 	return intAggResults
+}
+
+func (a *basicAggregator) buildResult(intAggResult map[uint64][]aggOpResult[int64]) {
+	buckets := make([]*aggBucket, 0)
+	a.aggBuckets.Range(
+		func(k, bucket interface{}) bool {
+			buckets = append(buckets, bucket.(*aggBucket))
+			return true
+		})
+
+	if a.ctx.isTimelineQuery {
+		sort.Slice(buckets, func(i, j int) bool {
+			left, right := buckets[i], buckets[j]
+			return left.tsBucket <= right.tsBucket
+		})
+	}
 }
 
 func (a *basicAggregator) aggregateBlock(r *BlockQueryResult) map[uint64][]aggOp[int64] {

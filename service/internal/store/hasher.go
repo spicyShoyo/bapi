@@ -1,6 +1,7 @@
 package store
 
 type aggBucket struct {
+	hash      uint64
 	intVals   []int64
 	intHasVal []bool
 	strVals   []strId
@@ -50,6 +51,7 @@ func (h *hasher) getAggBucket(hash uint64) (*aggBucket, bool) {
 	}
 
 	bucket := &aggBucket{
+		hash:      uint64(hash),
 		intVals:   make([]int64, h.c.firstAggIntCol),
 		intHasVal: make([]bool, h.c.firstAggIntCol),
 		strVals:   make([]strId, len(h.r.StrResult.matrix)),

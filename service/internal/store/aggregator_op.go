@@ -66,6 +66,21 @@ func getAggOp[T OrderedNumeric](op pb.AggOp) (aggOp[T], bool) {
 	}
 }
 
+func getAggResultType[T OrderedNumeric](op pb.AggOp) (int, bool) {
+	switch op {
+	case pb.AggOp_COUNT:
+		return aggOpIntRes, true
+	case pb.AggOp_COUNT_DISTINCT:
+		return aggOpIntRes, true
+	case pb.AggOp_SUM:
+		return aggOpGenericRes, true
+	case pb.AggOp_AVG:
+		return aggOpFloatRes, true
+	default:
+		return aggOpNullRes, false
+	}
+}
+
 // --------------------------- aggOpCount ---------------------------
 type aggOpCount[T OrderedNumeric] struct {
 	count int64
