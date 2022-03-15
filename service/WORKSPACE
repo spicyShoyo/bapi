@@ -31,7 +31,7 @@ load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_depe
 # this needs to be before gazelle deps to prevent override breaking the build
 go_rules_dependencies()
 
-go_register_toolchains(version = "1.18beta1")
+go_register_toolchains(version = "1.18")
 
 load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
 
