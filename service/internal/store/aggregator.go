@@ -22,6 +22,39 @@ type basicAggregator struct {
 	aggBuckets sync.Map // map[uint64]*aggBucket
 }
 
+type aggResultMap[T OrderedNumeric] struct {
+	m            map[uint64][]aggOpResult[T]
+	intAggOp     []int
+	floatAggOp   []int
+	genericAggOp []int
+}
+
+func newAggResultMap[T OrderedNumeric]() aggResultMap[T] {
+	return aggResultMap[T]{
+		m:            make(map[uint64][]aggOpResult[T]),
+		intAggOp:     make([]int, 0),
+		floatAggOp:   make([]int, 0),
+		genericAggOp: make([]int, 0),
+	}
+}
+
+func (a aggResultMap[T]) addAggResForBucket(hash uint64, partialResForBucket []aggOp[T]) {
+	a.m[hash] = make([]aggOpResult[T], len(partialResForBucket))
+	for i, aggOp := range partialResForBucket {
+		a.m[hash][i] = aggOp.finalize()
+		switch a.m[hash][i].valType {
+		case aggOpIntRes:
+			a.intAggOp = append(a.intAggOp, i)
+		case aggOpFloatRes:
+			a.floatAggOp = append(a.floatAggOp, i)
+		case aggOpGenericRes:
+			a.genericAggOp = append(a.genericAggOp, i)
+		default:
+			continue
+		}
+	}
+}
+
 func newBasicAggregator(c *aggCtx) *basicAggregator {
 	return &basicAggregator{
 		ctx:        c,
@@ -29,7 +62,7 @@ func newBasicAggregator(c *aggCtx) *basicAggregator {
 	}
 }
 
-func (a *basicAggregator) aggregate(filterResults []*BlockQueryResult) map[uint64][]aggOpResult[int64] {
+func (a *basicAggregator) aggregate(filterResults []*BlockQueryResult) aggResultMap[int64] {
 	tableIntAggPartialRes := make(map[uint64][]aggOp[int64])
 
 	for _, result := range filterResults {
@@ -51,18 +84,15 @@ func (a *basicAggregator) aggregate(filterResults []*BlockQueryResult) map[uint6
 		}
 	}
 
-	intAggResults := make(map[uint64][]aggOpResult[int64])
+	intAggResults := newAggResultMap[int64]()
 	for hash, partialResForCol := range tableIntAggPartialRes {
-		intAggResults[hash] = make([]aggOpResult[int64], len(partialResForCol))
-		for i, aggOp := range partialResForCol {
-			intAggResults[hash][i] = aggOp.finalize()
-		}
+		intAggResults.addAggResForBucket(hash, partialResForCol)
 	}
 
 	return intAggResults
 }
 
-func (a *basicAggregator) buildResult(intAggResult map[uint64][]aggOpResult[int64]) {
+func (a *basicAggregator) buildResult(intAggResult aggResultMap[int64]) {
 	buckets := make([]*aggBucket, 0)
 	a.aggBuckets.Range(
 		func(k, bucket interface{}) bool {
@@ -76,6 +106,22 @@ func (a *basicAggregator) buildResult(intAggResult map[uint64][]aggOpResult[int6
 			return left.tsBucket <= right.tsBucket
 		})
 	}
+}
+
+func (a *basicAggregator) toPbTableQueryResult(buckets []*aggBucket, intAggResult aggResultMap[int64]) (*pb.TableQueryReply, bool) {
+	bucketCount := len(buckets)
+	intResultLen := bucketCount * a.ctx.firstAggIntCol
+	intResult := make([]int64, intResultLen)
+	intHasValue := make([]bool, intResultLen)
+	for colIdx := 0; colIdx < a.ctx.intColCnt; colIdx++ {
+		for i, bucket := range buckets {
+			idx := i*a.ctx.intColCnt + colIdx
+			intResult[idx] = bucket.intVals[colIdx]
+			intHasValue[idx] = bucket.intHasVal[colIdx]
+		}
+	}
+
+	return nil, false
 }
 
 func (a *basicAggregator) aggregateBlock(r *BlockQueryResult) map[uint64][]aggOp[int64] {

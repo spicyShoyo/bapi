@@ -3,7 +3,7 @@ package store
 import "bapi/internal/pb"
 
 const (
-	aggOpNullRes    = iota
+	aggOpInvalidRes = iota
 	aggOpIntRes     = iota
 	aggOpFloatRes   = iota
 	aggOpGenericRes = iota
@@ -15,22 +15,19 @@ type aggOpResult[T OrderedNumeric] struct {
 	floatVal   float64
 	genericVal T
 	valType    int
+	hasValue   bool
 }
 
-func newAggOpIntResult[T OrderedNumeric](intVal int64) aggOpResult[T] {
-	return aggOpResult[T]{intVal: intVal, valType: aggOpIntRes}
+func newAggOpIntResult[T OrderedNumeric](intVal int64, hasValue bool) aggOpResult[T] {
+	return aggOpResult[T]{intVal: intVal, valType: aggOpIntRes, hasValue: hasValue}
 }
 
-func newAggOpFloatResult[T OrderedNumeric](floatVal float64) aggOpResult[T] {
-	return aggOpResult[T]{floatVal: floatVal, valType: aggOpFloatRes}
+func newAggOpFloatResult[T OrderedNumeric](floatVal float64, hasValue bool) aggOpResult[T] {
+	return aggOpResult[T]{floatVal: floatVal, valType: aggOpFloatRes, hasValue: hasValue}
 }
 
-func newAggOpGenericResult[T OrderedNumeric](genericVal T) aggOpResult[T] {
-	return aggOpResult[T]{genericVal: genericVal, valType: aggOpGenericRes}
-}
-
-func newAggOpNullResult[T OrderedNumeric]() aggOpResult[T] {
-	return aggOpResult[T]{valType: aggOpNullRes}
+func newAggOpGenericResult[T OrderedNumeric](genericVal T, hasValue bool) aggOpResult[T] {
+	return aggOpResult[T]{genericVal: genericVal, valType: aggOpGenericRes, hasValue: hasValue}
 }
 
 type aggOp[T OrderedNumeric] interface {
@@ -77,7 +74,7 @@ func getAggResultType[T OrderedNumeric](op pb.AggOp) (int, bool) {
 	case pb.AggOp_AVG:
 		return aggOpFloatRes, true
 	default:
-		return aggOpNullRes, false
+		return aggOpInvalidRes, false
 	}
 }
 
@@ -99,7 +96,7 @@ func (op *aggOpCount[T]) consume(other aggOp[T]) {
 }
 
 func (op *aggOpCount[T]) finalize() aggOpResult[T] {
-	return newAggOpIntResult[T](op.count)
+	return newAggOpIntResult[T](op.count, true /*hasValue*/)
 }
 
 // --------------------------- aggOpCountDistinct ---------------------------
@@ -122,7 +119,7 @@ func (op *aggOpCountDistinct[T]) consume(other aggOp[T]) {
 }
 
 func (op *aggOpCountDistinct[T]) finalize() aggOpResult[T] {
-	return newAggOpIntResult[T](int64(len(op.m)))
+	return newAggOpIntResult[T](int64(len(op.m)), true /*hasValue*/)
 }
 
 // --------------------------- aggOpSum ---------------------------
@@ -147,10 +144,7 @@ func (op *aggOpSum[T]) consume(other aggOp[T]) {
 }
 
 func (op *aggOpSum[T]) finalize() aggOpResult[T] {
-	if !op.hasValue {
-		return newAggOpNullResult[T]()
-	}
-	return newAggOpGenericResult(op.sum)
+	return newAggOpGenericResult(op.sum, op.hasValue)
 }
 
 // --------------------------- aggOpAvg ---------------------------
@@ -176,7 +170,7 @@ func (op *aggOpAvg[T]) consume(other aggOp[T]) {
 
 func (op *aggOpAvg[T]) finalize() aggOpResult[T] {
 	if op.count == 0 {
-		return newAggOpNullResult[T]()
+		return newAggOpFloatResult[T](0, false /*hasValue*/)
 	}
-	return newAggOpFloatResult[T](float64(op.sum) / float64(op.count))
+	return newAggOpFloatResult[T](float64(op.sum)/float64(op.count), true /*hasValue*/)
 }
