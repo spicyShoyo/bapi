@@ -7,12 +7,16 @@ import (
 )
 
 type aggCtx struct {
-	query            *pb.TableQuery
 	op               pb.AggOp
 	groupbyIntColCnt int
 	intColCnt        int
 	groupbyStrColCnt int
 	strColCnt        int
+	// for assemble result
+	groupbyIntColumnNames []string
+	groupbyStrColumnNames []string
+	aggIntColumnNames     []string
+	strStore              strStore
 	// for timeline query
 	isTimelineQuery bool
 	tsCol           int
@@ -25,37 +29,42 @@ type aggregator struct {
 	aggBuckets sync.Map // map[uint64]*aggBucket
 }
 
-type aggResultMap[T OrderedNumeric] struct {
+type aggResult[T OrderedNumeric] struct {
 	m               map[uint64][]accResult[T]
 	intResIdxes     []int
 	floatResIdxes   []int
 	genericResIdxes []int
 }
 
-func newAggResultMap[T OrderedNumeric]() aggResultMap[T] {
-	return aggResultMap[T]{
+type accSliceMap[T OrderedNumeric] map[uint64][]accumulator[T]
+
+func (accMap accSliceMap[T]) finalize() (aggResult[T], bool) {
+	aggRes := aggResult[T]{
 		m:               make(map[uint64][]accResult[T]),
 		intResIdxes:     make([]int, 0),
 		floatResIdxes:   make([]int, 0),
 		genericResIdxes: make([]int, 0),
 	}
-}
 
-func (a aggResultMap[T]) addAggResForBucket(hash uint64, partialResForBucket []accumulator[T]) {
-	a.m[hash] = make([]accResult[T], len(partialResForBucket))
-	for i, accumulator := range partialResForBucket {
-		a.m[hash][i] = accumulator.finalize()
-		switch a.m[hash][i].valType {
-		case accIntRes:
-			a.intResIdxes = append(a.intResIdxes, i)
-		case accFloatRes:
-			a.floatResIdxes = append(a.floatResIdxes, i)
-		case accGenericRes:
-			a.genericResIdxes = append(a.genericResIdxes, i)
-		default:
-			continue
+	for hash, accSlice := range accMap {
+		aggRes.m[hash] = make([]accResult[T], len(accSlice))
+		for i, accumulator := range accSlice {
+			aggRes.m[hash][i] = accumulator.finalize()
+			switch aggRes.m[hash][i].valType {
+			case accIntRes:
+				aggRes.intResIdxes = append(aggRes.intResIdxes, i)
+			case accFloatRes:
+				aggRes.floatResIdxes = append(aggRes.floatResIdxes, i)
+			case accGenericRes:
+				aggRes.genericResIdxes = append(aggRes.genericResIdxes, i)
+			default:
+				// abort: invalid result type
+				return aggRes, false
+			}
 		}
 	}
+
+	return aggRes, true
 }
 
 func newAggregator(c *aggCtx) *aggregator {
@@ -66,36 +75,34 @@ func newAggregator(c *aggCtx) *aggregator {
 }
 
 func (a *aggregator) aggregate(filterResults []*BlockQueryResult) (*pb.TableQueryResult, bool) {
-	tableIntAggPartialRes := make(map[uint64][]accumulator[int64])
+	tableIntAccSliceMap := make(accSliceMap[int64])
 
 	for _, result := range filterResults {
-		blockIntAggPartialRes := a.aggregateBlock(result)
-
-		for hash, blockResForCol := range blockIntAggPartialRes {
-			tableResForCol, ok := tableIntAggPartialRes[hash]
+		blockIntAccSliceMap := a.aggregateBlock(result)
+		for hash, blockAccSlice := range blockIntAccSliceMap {
+			tableAccSlice, ok := tableIntAccSliceMap[hash]
 			if !ok {
 				// if this is the first time seeing this hash, we just initialize the table level
-				// results with the block level results
-				tableIntAggPartialRes[hash] = blockResForCol
+				// accumulator with the block level accumulator
+				tableIntAccSliceMap[hash] = blockAccSlice
 				continue
 			}
 
-			// merge block level results for each aggregated column for this hash
-			for i, tableaccumulator := range tableResForCol {
-				tableaccumulator.consume(blockResForCol[i])
+			// merge block level accumulators into table level's
+			for i, tableAccumulator := range tableAccSlice {
+				tableAccumulator.consume(blockAccSlice[i])
 			}
 		}
 	}
 
-	intAggResultMaps := newAggResultMap[int64]()
-	for hash, partialResForCol := range tableIntAggPartialRes {
-		intAggResultMaps.addAggResForBucket(hash, partialResForCol)
+	aggResult, ok := tableIntAccSliceMap.finalize()
+	if !ok {
+		return nil, false
 	}
-
-	return a.buildResult(intAggResultMaps)
+	return a.buildResult(aggResult)
 }
 
-func (a *aggregator) buildResult(intAggResultMap aggResultMap[int64]) (*pb.TableQueryResult, bool) {
+func (a *aggregator) buildResult(intAggResult aggResult[int64]) (*pb.TableQueryResult, bool) {
 	buckets := make([]*aggBucket, 0)
 	a.aggBuckets.Range(
 		func(k, bucket interface{}) bool {
@@ -110,69 +117,102 @@ func (a *aggregator) buildResult(intAggResultMap aggResultMap[int64]) (*pb.Table
 		})
 	}
 
-	return a.toPbTableQueryResult(buckets, intAggResultMap)
+	return a.toPbTableQueryResult(buckets, intAggResult)
 }
 
-func (a *aggregator) toPbTableQueryResult(buckets []*aggBucket, intAggResultMap aggResultMap[int64]) (*pb.TableQueryResult, bool) {
+func (a *aggregator) toPbTableQueryResult(buckets []*aggBucket, intAggResult aggResult[int64]) (*pb.TableQueryResult, bool) {
 	bucketCount := len(buckets)
+
 	intResultLen := bucketCount * a.ctx.groupbyIntColCnt
 	intResult := make([]int64, intResultLen)
 	intHasValue := make([]bool, intResultLen)
-	for colIdx := 0; colIdx < a.ctx.groupbyIntColCnt; colIdx++ {
-		for i, bucket := range buckets {
-			idx := i*a.ctx.groupbyIntColCnt + colIdx
+	strIdMap := make(map[uint32]string)
+	strResultLen := bucketCount * a.ctx.groupbyStrColCnt
+	strResult := make([]uint32, strResultLen)
+	strHasValue := make([]bool, strResultLen)
+
+	// fills values for groupby columns
+	for i, bucket := range buckets {
+		for colIdx := 0; colIdx < a.ctx.groupbyIntColCnt; colIdx++ {
+			idx := colIdx*bucketCount + i
 			intResult[idx] = bucket.intVals[colIdx]
 			intHasValue[idx] = bucket.intHasVal[colIdx]
 		}
+
+		for colIdx := 0; colIdx < a.ctx.groupbyStrColCnt; colIdx++ {
+			idx := colIdx*bucketCount + i
+			strHasValue[idx] = bucket.strHasVal[colIdx]
+			if strHasValue[idx] {
+				sid := uint32(bucket.strVals[colIdx])
+				str, _ := a.ctx.strStore.getStr(strId(sid))
+				strResult[idx] = sid
+				strIdMap[sid] = str
+			}
+		}
 	}
 
-	// TODO: add geneirc result
-	colCnt := len(intAggResultMap.intResIdxes)
+	// fills values for aggregated columns that have int results
+	colCnt := len(intAggResult.intResIdxes) + len(intAggResult.genericResIdxes)
 	aggIntColumnNames := make([]string, 0)
 	aggIntResultLen := bucketCount * colCnt
 	aggIntResult := make([]int64, aggIntResultLen)
 	aggIntHasValue := make([]bool, aggIntResultLen)
-	for colIdx, accumulatorIdx := range intAggResultMap.intResIdxes {
-		aggIntColumnNames = append(aggIntColumnNames, a.ctx.query.AggIntColumnNames[accumulatorIdx])
+
+	colIdxOffset := 0
+	for colIdx, accIdx := range intAggResult.intResIdxes {
+		aggIntColumnNames = append(aggIntColumnNames, a.ctx.aggIntColumnNames[accIdx])
 
 		for i, bucket := range buckets {
-			idx := i*colCnt + colIdx
-			accumulator := intAggResultMap.m[bucket.hash][accumulatorIdx]
-			aggIntResult[idx] = accumulator.intVal
-			aggIntHasValue[idx] = accumulator.hasValue
+			idx := (colIdxOffset+colIdx)*bucketCount + i
+			accRes := intAggResult.m[bucket.hash][accIdx]
+			aggIntResult[idx] = accRes.intVal
+			aggIntHasValue[idx] = accRes.hasValue
 		}
 	}
 
+	colIdxOffset += len(intAggResult.intResIdxes)
+	for colIdx, accIdx := range intAggResult.genericResIdxes {
+		aggIntColumnNames = append(aggIntColumnNames, a.ctx.aggIntColumnNames[accIdx])
+
+		for i, bucket := range buckets {
+			idx := (colIdxOffset+colIdx)*bucketCount + i
+			accRes := intAggResult.m[bucket.hash][accIdx]
+			aggIntResult[idx] = accRes.intVal
+			aggIntHasValue[idx] = accRes.hasValue
+		}
+	}
+
+	// TODO: support float
+
 	return &pb.TableQueryResult{
-		Count:             int32(bucketCount),
-		IntColumnNames:    a.ctx.query.AggIntColumnNames,
-		IntResult:         intResult,
-		IntHasValue:       intHasValue,
+		Count:          int32(bucketCount),
+		IntColumnNames: a.ctx.groupbyIntColumnNames,
+		IntResult:      intResult,
+		IntHasValue:    intHasValue,
+		StrColumnNames: a.ctx.groupbyStrColumnNames,
+		StrIdMap:       strIdMap,
+		StrResult:      strResult,
+		StrHasValue:    strHasValue,
+
 		AggIntColumnNames: aggIntColumnNames,
 		AggIntResult:      aggIntResult,
 		AggIntHasValue:    aggIntHasValue,
-
-		// TODO: support cols
-		StrColumnNames: make([]string, 0),
-		StrIdMap:       make(map[uint32]string),
-		StrResult:      make([]uint32, 0),
-		StrHasValue:    make([]bool, 0),
 	}, true
 }
 
-func (a *aggregator) aggregateBlock(r *BlockQueryResult) map[uint64][]accumulator[int64] {
+func (a *aggregator) aggregateBlock(r *BlockQueryResult) accSliceMap[int64] {
 	hasher := buildHasherForBlock(a.ctx, r)
 	hashes := hasher.getHashes()
 
-	intAggResultMap := make(map[uint64][]accumulator[int64], 0)
+	intAccSliceMap := make(accSliceMap[int64], 0)
 
 	for _, hash := range hashes {
-		_, ok := intAggResultMap[hash]
+		_, ok := intAccSliceMap[hash]
 		if ok {
 			continue
 		}
 		// First time seeting this hash in this block, so initialize the aggResult for it.
-		intAggResultMap[hash], _ = getAccumulatorSlice[int64](a.ctx.op, a.ctx.intColCnt-a.ctx.groupbyIntColCnt)
+		intAccSliceMap[hash], _ = getAccumulatorSlice[int64](a.ctx.op, a.ctx.intColCnt-a.ctx.groupbyIntColCnt)
 
 		// Also initialize the global aggbucket for it if needed. we do this here instead of
 		// when all blocks are aggregated since the hasher knows the row of the hash.
@@ -190,9 +230,9 @@ func (a *aggregator) aggregateBlock(r *BlockQueryResult) map[uint64][]accumulato
 			if !intHasVal[rowIdx] {
 				continue
 			}
-			intAggResultMap[hash][colIdx-a.ctx.groupbyIntColCnt].addValue(intVals[rowIdx])
+			intAccSliceMap[hash][colIdx-a.ctx.groupbyIntColCnt].addValue(intVals[rowIdx])
 		}
 	}
 
-	return intAggResultMap
+	return intAccSliceMap
 }

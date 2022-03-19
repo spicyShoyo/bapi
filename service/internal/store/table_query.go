@@ -16,13 +16,16 @@ func (t *Table) TableQuery(query *pb.TableQuery) (*pb.TableQueryResult, bool) {
 	}
 
 	aggregator := newAggregator(&aggCtx{
-		// TODO: wrap this behind some interface
-		query:            query,
 		op:               query.AggOp,
 		groupbyIntColCnt: len(query.GroupbyIntColumnNames), // aggIntCols are after groupByIntCols
 		intColCnt:        len(query.GroupbyIntColumnNames) + len(query.AggIntColumnNames),
 		groupbyStrColCnt: len(query.GroupbyStrColumnNames),
 		strColCnt:        len(query.GroupbyStrColumnNames), // aggby str not currently supported
+
+		groupbyIntColumnNames: query.GroupbyIntColumnNames,
+		groupbyStrColumnNames: query.GroupbyStrColumnNames,
+		aggIntColumnNames:     query.AggIntColumnNames,
+		strStore:              t.strStore,
 	})
 	return aggregator.aggregate(blockResults)
 }
