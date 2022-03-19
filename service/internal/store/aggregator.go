@@ -7,6 +7,7 @@ import (
 )
 
 type aggCtx struct {
+	query          *pb.TableQuery
 	op             pb.AggOp
 	firstAggIntCol int
 	intColCnt      int
@@ -92,7 +93,7 @@ func (a *basicAggregator) aggregate(filterResults []*BlockQueryResult) aggResult
 	return intAggResults
 }
 
-func (a *basicAggregator) buildResult(intAggResult aggResultMap[int64]) {
+func (a *basicAggregator) buildResult(intAggResult aggResultMap[int64]) (*pb.TableQueryResult, bool) {
 	buckets := make([]*aggBucket, 0)
 	a.aggBuckets.Range(
 		func(k, bucket interface{}) bool {
@@ -106,22 +107,55 @@ func (a *basicAggregator) buildResult(intAggResult aggResultMap[int64]) {
 			return left.tsBucket <= right.tsBucket
 		})
 	}
+
+	return a.toPbTableQueryResult(buckets, intAggResult)
 }
 
-func (a *basicAggregator) toPbTableQueryResult(buckets []*aggBucket, intAggResult aggResultMap[int64]) (*pb.TableQueryReply, bool) {
+func (a *basicAggregator) toPbTableQueryResult(buckets []*aggBucket, intAggResult aggResultMap[int64]) (*pb.TableQueryResult, bool) {
 	bucketCount := len(buckets)
 	intResultLen := bucketCount * a.ctx.firstAggIntCol
 	intResult := make([]int64, intResultLen)
 	intHasValue := make([]bool, intResultLen)
-	for colIdx := 0; colIdx < a.ctx.intColCnt; colIdx++ {
+	for colIdx := 0; colIdx < a.ctx.firstAggIntCol; colIdx++ {
 		for i, bucket := range buckets {
-			idx := i*a.ctx.intColCnt + colIdx
+			idx := i*a.ctx.firstAggIntCol + colIdx
 			intResult[idx] = bucket.intVals[colIdx]
 			intHasValue[idx] = bucket.intHasVal[colIdx]
 		}
 	}
 
-	return nil, false
+	// TODO: add geneirc result
+	colCnt := len(intAggResult.intAggOp)
+	aggIntColumnNames := make([]string, 0)
+	aggIntResultLen := bucketCount * colCnt
+	aggIntResult := make([]int64, aggIntResultLen)
+	aggIntHasValue := make([]bool, aggIntResultLen)
+	for colIdx, aggOpIdx := range intAggResult.intAggOp {
+		aggIntColumnNames = append(aggIntColumnNames, a.ctx.query.AggIntColumnNames[aggOpIdx])
+
+		for i, bucket := range buckets {
+			idx := i*colCnt + colIdx
+			aggOp := intAggResult.m[bucket.hash][aggOpIdx]
+			aggIntResult[idx] = aggOp.intVal
+			aggIntHasValue[idx] = aggOp.hasValue
+		}
+	}
+
+	return &pb.TableQueryResult{
+		Count:             int32(bucketCount),
+		IntColumnNames:    a.ctx.query.AggIntColumnNames,
+		IntResult:         intResult,
+		IntHasValue:       intHasValue,
+		AggIntColumnNames: aggIntColumnNames,
+		AggIntResult:      aggIntResult,
+		AggIntHasValue:    aggIntHasValue,
+
+		// TODO: support cols
+		StrColumnNames: make([]string, 0),
+		StrIdMap:       make(map[uint32]string),
+		StrResult:      make([]uint32, 0),
+		StrHasValue:    make([]bool, 0),
+	}, true
 }
 
 func (a *basicAggregator) aggregateBlock(r *BlockQueryResult) map[uint64][]aggOp[int64] {

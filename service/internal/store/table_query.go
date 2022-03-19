@@ -16,14 +16,14 @@ func (t *Table) TableQuery(query *pb.TableQuery) (*pb.TableQueryResult, bool) {
 	}
 
 	aggregator := newBasicAggregator(&aggCtx{
+		// TODO: wrap this behind some interface
+		query:          query,
 		op:             query.AggOp,
 		firstAggIntCol: len(query.GroupByIntColumnNames), // aggIntCols are after groupByIntCols
 		intColCnt:      len(query.GroupByIntColumnNames) + len(query.AggIntColumnNames),
 	})
-	aggregator.aggregate(blockResults)
-	// TODO: implement
-	return nil, false
-	// return t.toPbTableQueryResult(query, blockResults)
+	resultMap := aggregator.aggregate(blockResults)
+	return aggregator.buildResult(resultMap)
 }
 
 func (t *Table) RowsQuery(query *pb.RowsQuery) (*pb.RowsQueryResult, bool) {
