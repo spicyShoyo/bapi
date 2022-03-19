@@ -40,6 +40,10 @@ func NewBapiCtx() *BapiCtx {
 	}
 }
 
+func NewTestBapiCtx() *BapiCtx {
+	return NewBapiCtx()
+}
+
 func (ctx *BapiCtx) GetMaxColumn() uint16 {
 	return ctx.cfg.maxColumn
 }

@@ -36,6 +36,7 @@ go_test(
         "block_test.go",
         "col_info_store_test.go",
         "column_storage_test.go",
+        "hasher_test.go",
         "ingester_test.go",
         "lib_test.go",
         "math_util_test.go",
