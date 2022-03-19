@@ -15,7 +15,7 @@ func (t *Table) TableQuery(query *pb.TableQuery) (*pb.TableQueryResult, bool) {
 		return nil, false
 	}
 
-	aggregator := newBasicAggregator(&aggCtx{
+	aggregator := newAggregator(&aggCtx{
 		// TODO: wrap this behind some interface
 		query:            query,
 		op:               query.AggOp,
@@ -24,8 +24,7 @@ func (t *Table) TableQuery(query *pb.TableQuery) (*pb.TableQueryResult, bool) {
 		groupbyStrColCnt: len(query.GroupbyStrColumnNames),
 		strColCnt:        len(query.GroupbyStrColumnNames), // aggby str not currently supported
 	})
-	resultMap := aggregator.aggregate(blockResults)
-	return aggregator.buildResult(resultMap)
+	return aggregator.aggregate(blockResults)
 }
 
 func (t *Table) RowsQuery(query *pb.RowsQuery) (*pb.RowsQueryResult, bool) {

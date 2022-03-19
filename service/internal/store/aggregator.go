@@ -20,53 +20,53 @@ type aggCtx struct {
 	gran            uint64
 }
 
-type basicAggregator struct {
+type aggregator struct {
 	ctx        *aggCtx
 	aggBuckets sync.Map // map[uint64]*aggBucket
 }
 
 type aggResultMap[T OrderedNumeric] struct {
-	m            map[uint64][]aggOpResult[T]
-	intAggOp     []int
-	floatAggOp   []int
-	genericAggOp []int
+	m               map[uint64][]accResult[T]
+	intResIdxes     []int
+	floatResIdxes   []int
+	genericResIdxes []int
 }
 
 func newAggResultMap[T OrderedNumeric]() aggResultMap[T] {
 	return aggResultMap[T]{
-		m:            make(map[uint64][]aggOpResult[T]),
-		intAggOp:     make([]int, 0),
-		floatAggOp:   make([]int, 0),
-		genericAggOp: make([]int, 0),
+		m:               make(map[uint64][]accResult[T]),
+		intResIdxes:     make([]int, 0),
+		floatResIdxes:   make([]int, 0),
+		genericResIdxes: make([]int, 0),
 	}
 }
 
-func (a aggResultMap[T]) addAggResForBucket(hash uint64, partialResForBucket []aggOp[T]) {
-	a.m[hash] = make([]aggOpResult[T], len(partialResForBucket))
-	for i, aggOp := range partialResForBucket {
-		a.m[hash][i] = aggOp.finalize()
+func (a aggResultMap[T]) addAggResForBucket(hash uint64, partialResForBucket []accumulator[T]) {
+	a.m[hash] = make([]accResult[T], len(partialResForBucket))
+	for i, accumulator := range partialResForBucket {
+		a.m[hash][i] = accumulator.finalize()
 		switch a.m[hash][i].valType {
-		case aggOpIntRes:
-			a.intAggOp = append(a.intAggOp, i)
-		case aggOpFloatRes:
-			a.floatAggOp = append(a.floatAggOp, i)
-		case aggOpGenericRes:
-			a.genericAggOp = append(a.genericAggOp, i)
+		case accIntRes:
+			a.intResIdxes = append(a.intResIdxes, i)
+		case accFloatRes:
+			a.floatResIdxes = append(a.floatResIdxes, i)
+		case accGenericRes:
+			a.genericResIdxes = append(a.genericResIdxes, i)
 		default:
 			continue
 		}
 	}
 }
 
-func newBasicAggregator(c *aggCtx) *basicAggregator {
-	return &basicAggregator{
+func newAggregator(c *aggCtx) *aggregator {
+	return &aggregator{
 		ctx:        c,
 		aggBuckets: sync.Map{},
 	}
 }
 
-func (a *basicAggregator) aggregate(filterResults []*BlockQueryResult) aggResultMap[int64] {
-	tableIntAggPartialRes := make(map[uint64][]aggOp[int64])
+func (a *aggregator) aggregate(filterResults []*BlockQueryResult) (*pb.TableQueryResult, bool) {
+	tableIntAggPartialRes := make(map[uint64][]accumulator[int64])
 
 	for _, result := range filterResults {
 		blockIntAggPartialRes := a.aggregateBlock(result)
@@ -81,21 +81,21 @@ func (a *basicAggregator) aggregate(filterResults []*BlockQueryResult) aggResult
 			}
 
 			// merge block level results for each aggregated column for this hash
-			for i, tableAggOp := range tableResForCol {
-				tableAggOp.consume(blockResForCol[i])
+			for i, tableaccumulator := range tableResForCol {
+				tableaccumulator.consume(blockResForCol[i])
 			}
 		}
 	}
 
-	intAggResults := newAggResultMap[int64]()
+	intAggResultMaps := newAggResultMap[int64]()
 	for hash, partialResForCol := range tableIntAggPartialRes {
-		intAggResults.addAggResForBucket(hash, partialResForCol)
+		intAggResultMaps.addAggResForBucket(hash, partialResForCol)
 	}
 
-	return intAggResults
+	return a.buildResult(intAggResultMaps)
 }
 
-func (a *basicAggregator) buildResult(intAggResult aggResultMap[int64]) (*pb.TableQueryResult, bool) {
+func (a *aggregator) buildResult(intAggResultMap aggResultMap[int64]) (*pb.TableQueryResult, bool) {
 	buckets := make([]*aggBucket, 0)
 	a.aggBuckets.Range(
 		func(k, bucket interface{}) bool {
@@ -110,10 +110,10 @@ func (a *basicAggregator) buildResult(intAggResult aggResultMap[int64]) (*pb.Tab
 		})
 	}
 
-	return a.toPbTableQueryResult(buckets, intAggResult)
+	return a.toPbTableQueryResult(buckets, intAggResultMap)
 }
 
-func (a *basicAggregator) toPbTableQueryResult(buckets []*aggBucket, intAggResult aggResultMap[int64]) (*pb.TableQueryResult, bool) {
+func (a *aggregator) toPbTableQueryResult(buckets []*aggBucket, intAggResultMap aggResultMap[int64]) (*pb.TableQueryResult, bool) {
 	bucketCount := len(buckets)
 	intResultLen := bucketCount * a.ctx.groupbyIntColCnt
 	intResult := make([]int64, intResultLen)
@@ -127,19 +127,19 @@ func (a *basicAggregator) toPbTableQueryResult(buckets []*aggBucket, intAggResul
 	}
 
 	// TODO: add geneirc result
-	colCnt := len(intAggResult.intAggOp)
+	colCnt := len(intAggResultMap.intResIdxes)
 	aggIntColumnNames := make([]string, 0)
 	aggIntResultLen := bucketCount * colCnt
 	aggIntResult := make([]int64, aggIntResultLen)
 	aggIntHasValue := make([]bool, aggIntResultLen)
-	for colIdx, aggOpIdx := range intAggResult.intAggOp {
-		aggIntColumnNames = append(aggIntColumnNames, a.ctx.query.AggIntColumnNames[aggOpIdx])
+	for colIdx, accumulatorIdx := range intAggResultMap.intResIdxes {
+		aggIntColumnNames = append(aggIntColumnNames, a.ctx.query.AggIntColumnNames[accumulatorIdx])
 
 		for i, bucket := range buckets {
 			idx := i*colCnt + colIdx
-			aggOp := intAggResult.m[bucket.hash][aggOpIdx]
-			aggIntResult[idx] = aggOp.intVal
-			aggIntHasValue[idx] = aggOp.hasValue
+			accumulator := intAggResultMap.m[bucket.hash][accumulatorIdx]
+			aggIntResult[idx] = accumulator.intVal
+			aggIntHasValue[idx] = accumulator.hasValue
 		}
 	}
 
@@ -160,19 +160,19 @@ func (a *basicAggregator) toPbTableQueryResult(buckets []*aggBucket, intAggResul
 	}, true
 }
 
-func (a *basicAggregator) aggregateBlock(r *BlockQueryResult) map[uint64][]aggOp[int64] {
+func (a *aggregator) aggregateBlock(r *BlockQueryResult) map[uint64][]accumulator[int64] {
 	hasher := buildHasherForBlock(a.ctx, r)
 	hashes := hasher.getHashes()
 
-	intAggResult := make(map[uint64][]aggOp[int64], 0)
+	intAggResultMap := make(map[uint64][]accumulator[int64], 0)
 
 	for _, hash := range hashes {
-		_, ok := intAggResult[hash]
+		_, ok := intAggResultMap[hash]
 		if ok {
 			continue
 		}
 		// First time seeting this hash in this block, so initialize the aggResult for it.
-		intAggResult[hash], _ = getAggOpSlice[int64](a.ctx.op, a.ctx.intColCnt-a.ctx.groupbyIntColCnt)
+		intAggResultMap[hash], _ = getAccumulatorSlice[int64](a.ctx.op, a.ctx.intColCnt-a.ctx.groupbyIntColCnt)
 
 		// Also initialize the global aggbucket for it if needed. we do this here instead of
 		// when all blocks are aggregated since the hasher knows the row of the hash.
@@ -190,9 +190,9 @@ func (a *basicAggregator) aggregateBlock(r *BlockQueryResult) map[uint64][]aggOp
 			if !intHasVal[rowIdx] {
 				continue
 			}
-			intAggResult[hash][colIdx-a.ctx.groupbyIntColCnt].addValue(intVals[rowIdx])
+			intAggResultMap[hash][colIdx-a.ctx.groupbyIntColCnt].addValue(intVals[rowIdx])
 		}
 	}
 
-	return intAggResult
+	return intAggResultMap
 }

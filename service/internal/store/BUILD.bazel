@@ -3,8 +3,8 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "store",
     srcs = [
+        "accumulator.go",
         "aggregator.go",
-        "aggregator_op.go",
         "block.go",
         "col_info_store.go",
         "column_storage.go",
