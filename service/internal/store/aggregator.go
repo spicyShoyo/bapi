@@ -7,10 +7,12 @@ import (
 )
 
 type aggCtx struct {
-	query          *pb.TableQuery
-	op             pb.AggOp
-	firstAggIntCol int
-	intColCnt      int
+	query            *pb.TableQuery
+	op               pb.AggOp
+	groupbyIntColCnt int
+	intColCnt        int
+	groupbyStrColCnt int
+	strColCnt        int
 	// for timeline query
 	isTimelineQuery bool
 	tsCol           int
@@ -113,12 +115,12 @@ func (a *basicAggregator) buildResult(intAggResult aggResultMap[int64]) (*pb.Tab
 
 func (a *basicAggregator) toPbTableQueryResult(buckets []*aggBucket, intAggResult aggResultMap[int64]) (*pb.TableQueryResult, bool) {
 	bucketCount := len(buckets)
-	intResultLen := bucketCount * a.ctx.firstAggIntCol
+	intResultLen := bucketCount * a.ctx.groupbyIntColCnt
 	intResult := make([]int64, intResultLen)
 	intHasValue := make([]bool, intResultLen)
-	for colIdx := 0; colIdx < a.ctx.firstAggIntCol; colIdx++ {
+	for colIdx := 0; colIdx < a.ctx.groupbyIntColCnt; colIdx++ {
 		for i, bucket := range buckets {
-			idx := i*a.ctx.firstAggIntCol + colIdx
+			idx := i*a.ctx.groupbyIntColCnt + colIdx
 			intResult[idx] = bucket.intVals[colIdx]
 			intHasValue[idx] = bucket.intHasVal[colIdx]
 		}
@@ -170,7 +172,7 @@ func (a *basicAggregator) aggregateBlock(r *BlockQueryResult) map[uint64][]aggOp
 			continue
 		}
 		// First time seeting this hash in this block, so initialize the aggResult for it.
-		intAggResult[hash], _ = getAggOpSlice[int64](a.ctx.op, a.ctx.intColCnt-a.ctx.firstAggIntCol)
+		intAggResult[hash], _ = getAggOpSlice[int64](a.ctx.op, a.ctx.intColCnt-a.ctx.groupbyIntColCnt)
 
 		// Also initialize the global aggbucket for it if needed. we do this here instead of
 		// when all blocks are aggregated since the hasher knows the row of the hash.
@@ -180,7 +182,7 @@ func (a *basicAggregator) aggregateBlock(r *BlockQueryResult) map[uint64][]aggOp
 		}
 	}
 
-	for colIdx := a.ctx.firstAggIntCol; colIdx < a.ctx.intColCnt; colIdx++ {
+	for colIdx := a.ctx.groupbyIntColCnt; colIdx < a.ctx.intColCnt; colIdx++ {
 		intHasVal := r.IntResult.hasValue[colIdx]
 		intVals := r.IntResult.matrix[colIdx]
 
@@ -188,7 +190,7 @@ func (a *basicAggregator) aggregateBlock(r *BlockQueryResult) map[uint64][]aggOp
 			if !intHasVal[rowIdx] {
 				continue
 			}
-			intAggResult[hash][colIdx-a.ctx.firstAggIntCol].addValue(intVals[rowIdx])
+			intAggResult[hash][colIdx-a.ctx.groupbyIntColCnt].addValue(intVals[rowIdx])
 		}
 	}
 

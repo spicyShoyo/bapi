@@ -17,10 +17,12 @@ func (t *Table) TableQuery(query *pb.TableQuery) (*pb.TableQueryResult, bool) {
 
 	aggregator := newBasicAggregator(&aggCtx{
 		// TODO: wrap this behind some interface
-		query:          query,
-		op:             query.AggOp,
-		firstAggIntCol: len(query.GroupByIntColumnNames), // aggIntCols are after groupByIntCols
-		intColCnt:      len(query.GroupByIntColumnNames) + len(query.AggIntColumnNames),
+		query:            query,
+		op:               query.AggOp,
+		groupbyIntColCnt: len(query.GroupbyIntColumnNames), // aggIntCols are after groupByIntCols
+		intColCnt:        len(query.GroupbyIntColumnNames) + len(query.AggIntColumnNames),
+		groupbyStrColCnt: len(query.GroupbyStrColumnNames),
+		strColCnt:        len(query.GroupbyStrColumnNames), // aggby str not currently supported
 	})
 	resultMap := aggregator.aggregate(blockResults)
 	return aggregator.buildResult(resultMap)
@@ -49,12 +51,12 @@ func (t *Table) toPbTableQueryResult(query *pb.TableQuery, blockResults []*Block
 		rowCount += r.Count
 	}
 
-	intResult, intHasValue, ok := t.toPbIntColResult(rowCount, query.GroupByIntColumnNames, blockResults)
+	intResult, intHasValue, ok := t.toPbIntColResult(rowCount, query.GroupbyIntColumnNames, blockResults)
 	if !ok {
 		return nil, false
 	}
 
-	strResult, strHasValue, strIdMap, ok := t.toPbStrColResult(rowCount, query.GroupByStrColumnNames, blockResults)
+	strResult, strHasValue, strIdMap, ok := t.toPbStrColResult(rowCount, query.GroupbyStrColumnNames, blockResults)
 	if !ok {
 		return nil, false
 	}
@@ -67,11 +69,11 @@ func (t *Table) toPbTableQueryResult(query *pb.TableQuery, blockResults []*Block
 	return &pb.TableQueryResult{
 		Count: int32(rowCount),
 
-		IntColumnNames: query.GroupByIntColumnNames,
+		IntColumnNames: query.GroupbyIntColumnNames,
 		IntResult:      intResult,
 		IntHasValue:    intHasValue,
 
-		StrColumnNames: query.GroupByStrColumnNames,
+		StrColumnNames: query.GroupbyStrColumnNames,
 		StrIdMap:       strIdMap,
 		StrResult:      strResult,
 		StrHasValue:    strHasValue,

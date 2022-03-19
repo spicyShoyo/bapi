@@ -25,11 +25,11 @@ func buildHasherForBlock(ctx *aggCtx, blockResult *BlockQueryResult) *hasher {
 	}
 
 	h.maybeProcessTsBucket()
-	for colIdx := 0; colIdx < h.c.firstAggIntCol; colIdx++ {
+	for colIdx := 0; colIdx < h.c.groupbyIntColCnt; colIdx++ {
 		h.processIntCol(h.r.IntResult, colIdx)
 	}
 	// aggregation on str not supported so can assume all str cols are for group by
-	for colIdx := 0; colIdx < len(h.r.StrResult.matrix); colIdx++ {
+	for colIdx := 0; colIdx < h.c.groupbyStrColCnt; colIdx++ {
 		h.processStrCol(h.r.StrResult, colIdx)
 	}
 
@@ -52,10 +52,10 @@ func (h *hasher) getAggBucket(hash uint64) (*aggBucket, bool) {
 
 	bucket := &aggBucket{
 		hash:      uint64(hash),
-		intVals:   make([]int64, h.c.firstAggIntCol),
-		intHasVal: make([]bool, h.c.firstAggIntCol),
-		strVals:   make([]strId, len(h.r.StrResult.matrix)),
-		strHasVal: make([]bool, len(h.r.StrResult.matrix)),
+		intVals:   make([]int64, h.c.groupbyIntColCnt),
+		intHasVal: make([]bool, h.c.groupbyIntColCnt),
+		strVals:   make([]strId, h.c.groupbyStrColCnt),
+		strHasVal: make([]bool, h.c.groupbyStrColCnt),
 		tsBucket:  0,
 	}
 
@@ -64,12 +64,12 @@ func (h *hasher) getAggBucket(hash uint64) (*aggBucket, bool) {
 		bucket.tsBucket = int(rowTs-h.c.startTs) / int(h.c.gran)
 	}
 
-	for colIdx := 0; colIdx < h.c.firstAggIntCol; colIdx++ {
+	for colIdx := 0; colIdx < h.c.groupbyIntColCnt; colIdx++ {
 		bucket.intVals[colIdx] = h.r.IntResult.matrix[colIdx][rowIdx]
 		bucket.intHasVal[colIdx] = h.r.IntResult.hasValue[colIdx][rowIdx]
 	}
 
-	for colIdx := 0; colIdx < len(h.r.StrResult.matrix); colIdx++ {
+	for colIdx := 0; colIdx < h.c.groupbyStrColCnt; colIdx++ {
 		bucket.strVals[colIdx] = h.r.StrResult.matrix[colIdx][rowIdx]
 		bucket.strHasVal[colIdx] = h.r.StrResult.hasValue[colIdx][rowIdx]
 	}

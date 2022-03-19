@@ -85,7 +85,7 @@ func (q *queryWithFilter) getIntColNames() []string {
 		return query.IntColumnNames
 	}
 	if query, ok := q.q.(*pb.TableQuery); ok {
-		return append(query.GroupByIntColumnNames, query.AggIntColumnNames...)
+		return append(query.GroupbyIntColumnNames, query.AggIntColumnNames...)
 	}
 	return make([]string, 0)
 }
@@ -95,7 +95,7 @@ func (q *queryWithFilter) getStrColNames() []string {
 		return query.StrColumnNames
 	}
 	if query, ok := q.q.(*pb.TableQuery); ok {
-		return query.GroupByStrColumnNames
+		return query.GroupbyStrColumnNames
 	}
 	return make([]string, 0)
 }

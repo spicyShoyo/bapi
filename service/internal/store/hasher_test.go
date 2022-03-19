@@ -8,21 +8,55 @@ import (
 )
 
 func TestHasher(t *testing.T) {
-	assert.True(t, true)
+	hashGroups := debugGetHashGroups([][]interface{}{
+		{1, 3, 0, "ok", ""},
+		{2, 4, 0, "ads", ""},
+		{2, 4, 0, "ads", ""},
+	})
+	assert.Equal(t, hashGroups[0], []int{0})
+	assert.Equal(t, hashGroups[1], []int{1, 2})
 
-	blkRes, _ := debugNewBlockQueryResult([][]interface{}{
-		{1, 3, 0, "ok"},
-		{2, 4, 0, "ads"},
-		{2, 4, 0, "ads"}})
+	hashGroups = debugGetHashGroups([][]interface{}{
+		{2, 0, 9},
+		{2, 9, 0},
+		{2, 0, 9},
+	})
+	assert.Equal(t, hashGroups[0], []int{0, 2})
+	assert.Equal(t, hashGroups[1], []int{1})
 
+	hashGroups = debugGetHashGroups([][]interface{}{
+		{"", ""},
+		{"", ""},
+		{"", "ok"},
+		{"ok", ""},
+		{"ok", ""},
+	})
+	assert.Equal(t, hashGroups[0], []int{0, 1})
+	assert.Equal(t, hashGroups[1], []int{2})
+	assert.Equal(t, hashGroups[2], []int{3, 4})
+}
+
+func debugGetHashGroups(rows [][]interface{}) [][]int {
+	blkRes, _ := debugNewBlockQueryResult(rows)
 	aggCtx := &aggCtx{
-		firstAggIntCol: 2,
-		intColCnt:      3,
+		groupbyIntColCnt: len(blkRes.IntResult.matrix),
+		intColCnt:        len(blkRes.IntResult.matrix),
+		groupbyStrColCnt: len(blkRes.StrResult.matrix),
+		strColCnt:        len(blkRes.StrResult.matrix),
 	}
 	hashes := buildHasherForBlock(aggCtx, blkRes).getHashes()
 
-	assert.NotEqual(t, hashes[0], hashes[1])
-	assert.Equal(t, hashes[1], hashes[2])
+	hashMap := make(map[uint64]int)
+	hashGroups := make([][]int, 0)
+	for rowIdx, hash := range hashes {
+		if _, ok := hashMap[hash]; !ok {
+			hashMap[hash] = len(hashGroups)
+			hashGroups = append(hashGroups, make([]int, 0))
+		}
+		hashGroups[hashMap[hash]] = append(hashGroups[hashMap[hash]], rowIdx)
+	}
+
+	return hashGroups
 }
 
 // Creates a BlockQueryResult for testing. Returns nil if invalid.

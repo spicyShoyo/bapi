@@ -66,8 +66,8 @@ message TableQuery {
   optional int64 max_ts = 2;
   repeated Filter int_filters = 3;
   repeated Filter str_filters = 4;
-  repeated string group_by_int_column_names = 5;
-  repeated string group_by_str_column_names = 6;
+  repeated string groupby_int_column_names = 5;
+  repeated string groupby_str_column_names = 6;
   AggOp agg_op = 7;
   repeated string agg_int_column_names = 8;
 }
@@ -77,8 +77,8 @@ message TimelineQuery {
   optional int64 max_ts = 2;
   repeated Filter int_filters = 3;
   repeated Filter str_filters = 4;
-  repeated string group_by_int_column_names = 5;
-  repeated string group_by_str_column_names = 6;
+  repeated string groupby_int_column_names = 5;
+  repeated string groupby_str_column_names = 6;
   AggOp agg_op = 7;
   repeated string agg_int_column_names = 8;
 }
