@@ -14,19 +14,21 @@ type accumulator[T OrderedNumeric] interface {
 
 // The type of the accumulated value for a col.
 const (
-	accInvalidRes = iota
-	accIntRes     = iota
-	accFloatRes   = iota
-	accGenericRes = iota
+	accInvalidRes       = iota
+	accIntRes           = iota
+	accFloatRes         = iota
+	accTimelineCountRes = iota
+	accGenericRes       = iota
 )
 
 // Wraps the return value of a accumulator due to the generic appOp interface
 type accResult[T OrderedNumeric] struct {
-	intVal     int64
-	floatVal   float64
-	genericVal T
-	valType    int
-	hasValue   bool
+	intVal           int64
+	floatVal         float64
+	genericVal       T
+	timelintCountVal map[int64]int
+	valType          int
+	hasValue         bool
 }
 
 // Creates a slice of accumulator for the given pb.AggOp and the number of cols
@@ -41,6 +43,8 @@ func getAccumulatorSlice[T OrderedNumeric](op pb.AggOp, colCount int) ([]accumul
 		templteAccumulator = newAccumulatorSum[T]()
 	case pb.AggOp_AVG:
 		templteAccumulator = newAccumulatorAvg[T]()
+	case pb.AggOp_TIMELINE_COUNT:
+		templteAccumulator = newAccumulatorTimelineCount[T]()
 	default:
 		return nil, false
 	}
@@ -63,6 +67,10 @@ func newAccFloatResult[T OrderedNumeric](floatVal float64, hasValue bool) accRes
 
 func newAccGenericResult[T OrderedNumeric](genericVal T, hasValue bool) accResult[T] {
 	return accResult[T]{genericVal: genericVal, valType: accGenericRes, hasValue: hasValue}
+}
+
+func newAccTimelineCountResult[T OrderedNumeric](timelintCountVal map[int64]int, hasValue bool) accResult[T] {
+	return accResult[T]{timelintCountVal: timelintCountVal, valType: accTimelineCountRes, hasValue: hasValue}
 }
 
 // --------------------------- accumulatorCount ---------------------------
@@ -176,4 +184,40 @@ func (op *accumulatorAvg[T]) finalize() accResult[T] {
 		return newAccFloatResult[T](0, false /*hasValue*/)
 	}
 	return newAccFloatResult[T](float64(op.sum)/float64(op.count), true /*hasValue*/)
+}
+
+// --------------------------- accumulatorTimelineCount ---------------------------
+type accumulatorTimelineCount[T OrderedNumeric] struct {
+	m map[int64]int
+}
+
+func newAccumulatorTimelineCount[T OrderedNumeric]() *accumulatorTimelineCount[T] {
+	return &accumulatorTimelineCount[T]{m: make(map[int64]int)}
+}
+
+func (op *accumulatorTimelineCount[T]) new() accumulator[T] {
+	return newAccumulatorAvg[T]()
+}
+
+// The caller is responsible to make sure v is the ts bucket
+func (op *accumulatorTimelineCount[T]) addValue(v T) {
+	// https://github.com/golang/go/issues/49206
+	bucket := (interface{})(v).(int64)
+	if _, ok := op.m[bucket]; !ok {
+		op.m[bucket] = 0
+	}
+	op.m[bucket] += 1
+}
+
+func (op *accumulatorTimelineCount[T]) consume(other accumulator[T]) {
+	for bucket, count := range other.(*accumulatorTimelineCount[T]).m {
+		if _, ok := op.m[bucket]; !ok {
+			op.m[bucket] = 0
+		}
+		op.m[bucket] += count
+	}
+}
+
+func (op *accumulatorTimelineCount[T]) finalize() accResult[T] {
+	return newAccTimelineCountResult[T](op.m, len(op.m) != 0)
 }

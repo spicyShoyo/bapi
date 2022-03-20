@@ -39,6 +39,7 @@ func TestHasher(t *testing.T) {
 func debugGetHashGroups(rows [][]interface{}) [][]int {
 	blkRes, _ := debugNewBlockQueryResult(rows)
 	aggCtx := &aggCtx{
+		logger:           common.NewTestBapiCtx().Logger,
 		groupbyIntColCnt: len(blkRes.IntResult.matrix),
 		intColCnt:        len(blkRes.IntResult.matrix),
 		groupbyStrColCnt: len(blkRes.StrResult.matrix),

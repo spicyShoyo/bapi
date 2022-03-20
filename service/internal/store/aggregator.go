@@ -2,11 +2,13 @@ package store
 
 import (
 	"bapi/internal/pb"
-	"sort"
 	"sync"
+
+	"go.uber.org/zap"
 )
 
 type aggCtx struct {
+	logger           *zap.SugaredLogger
 	op               pb.AggOp
 	groupbyIntColCnt int
 	intColCnt        int
@@ -19,7 +21,6 @@ type aggCtx struct {
 	strStore              strStore
 	// for timeline query
 	isTimelineQuery bool
-	tsCol           int
 	startTs         int64
 	gran            uint64
 }
@@ -30,10 +31,11 @@ type aggregator struct {
 }
 
 type aggResult[T OrderedNumeric] struct {
-	m               map[uint64][]accResult[T]
-	intResIdxes     []int
-	floatResIdxes   []int
-	genericResIdxes []int
+	m                  map[uint64][]accResult[T]
+	intResIdxes        []int
+	floatResIdxes      []int
+	genericResIdxes    []int
+	timelineCountIdxes []int
 }
 
 type accSliceMap[T OrderedNumeric] map[uint64][]accumulator[T]
@@ -68,6 +70,8 @@ func (accMap accSliceMap[T]) finalize() (aggResult[T], bool) {
 					aggRes.floatResIdxes = append(aggRes.floatResIdxes, i)
 				case accGenericRes:
 					aggRes.genericResIdxes = append(aggRes.genericResIdxes, i)
+				case accTimelineCountRes:
+					aggRes.timelineCountIdxes = append(aggRes.timelineCountIdxes, i)
 				default:
 					// abort: invalid result type
 					return aggRes, false
@@ -86,15 +90,25 @@ func newAggregator(c *aggCtx) *aggregator {
 	}
 }
 
-func (a *aggregator) aggregate(filterResults []*BlockQueryResult) (*pb.TableQueryResult, bool) {
-	aggResult, ok := a.doAggregate(filterResults)
+func (a *aggregator) aggregateForTimeline(filterResults []*BlockQueryResult) (*pb.TimelineQueryResult, bool) {
+	buckets, intAggResult, ok := a.doAggregate(filterResults)
 	if !ok {
 		return nil, false
 	}
-	return a.buildResult(aggResult)
+
+	return a.toPbTimelineQueryResult(buckets, intAggResult), true
 }
 
-func (a *aggregator) doAggregate(filterResults []*BlockQueryResult) (aggResult[int64], bool) {
+func (a *aggregator) aggregateForTableQuery(filterResults []*BlockQueryResult) (*pb.TableQueryResult, bool) {
+	buckets, intAggResult, ok := a.doAggregate(filterResults)
+	if !ok {
+		return nil, false
+	}
+
+	return a.toPbTableQueryResult(buckets, intAggResult), true
+}
+
+func (a *aggregator) doAggregate(filterResults []*BlockQueryResult) ([]*aggBucket, aggResult[int64], bool) {
 	tableIntAccSliceMap := make(accSliceMap[int64])
 
 	for _, result := range filterResults {
@@ -115,10 +129,11 @@ func (a *aggregator) doAggregate(filterResults []*BlockQueryResult) (aggResult[i
 		}
 	}
 
-	return tableIntAccSliceMap.finalize()
-}
+	aggRes, ok := tableIntAccSliceMap.finalize()
+	if !ok {
+		return nil, aggRes, false
+	}
 
-func (a *aggregator) buildResult(intAggResult aggResult[int64]) (*pb.TableQueryResult, bool) {
 	buckets := make([]*aggBucket, 0)
 	a.aggBuckets.Range(
 		func(k, bucket interface{}) bool {
@@ -126,17 +141,34 @@ func (a *aggregator) buildResult(intAggResult aggResult[int64]) (*pb.TableQueryR
 			return true
 		})
 
-	if a.ctx.isTimelineQuery {
-		sort.Slice(buckets, func(i, j int) bool {
-			left, right := buckets[i], buckets[j]
-			return left.tsBucket <= right.tsBucket
-		})
-	}
-
-	return a.toPbTableQueryResult(buckets, intAggResult)
+	return buckets, aggRes, true
 }
 
-func (a *aggregator) toPbTableQueryResult(buckets []*aggBucket, intAggResult aggResult[int64]) (*pb.TableQueryResult, bool) {
+func (a *aggregator) toPbTimelineQueryResult(buckets []*aggBucket, intAggResult aggResult[int64]) *pb.TimelineQueryResult {
+	bucketCount := len(buckets)
+	groupbyRes := a.toPbGroupbyQueryResult(buckets, intAggResult)
+
+	return &pb.TimelineQueryResult{
+		Count:          int32(bucketCount),
+		IntColumnNames: a.ctx.groupbyIntColumnNames,
+		IntResult:      groupbyRes.intResult,
+		IntHasValue:    groupbyRes.intHasValue,
+		StrColumnNames: a.ctx.groupbyStrColumnNames,
+		StrIdMap:       groupbyRes.strIdMap,
+		StrResult:      groupbyRes.strResult,
+		StrHasValue:    groupbyRes.strHasValue,
+	}
+}
+
+type pbGroupbyQueryResult struct {
+	intResult   []int64
+	intHasValue []bool
+	strIdMap    map[uint32]string
+	strResult   []uint32
+	strHasValue []bool
+}
+
+func (a *aggregator) toPbGroupbyQueryResult(buckets []*aggBucket, intAggResult aggResult[int64]) pbGroupbyQueryResult {
 	bucketCount := len(buckets)
 
 	intResultLen := bucketCount * a.ctx.groupbyIntColCnt
@@ -166,6 +198,19 @@ func (a *aggregator) toPbTableQueryResult(buckets []*aggBucket, intAggResult agg
 			}
 		}
 	}
+
+	return pbGroupbyQueryResult{
+		intResult,
+		intHasValue,
+		strIdMap,
+		strResult,
+		strHasValue,
+	}
+}
+
+func (a *aggregator) toPbTableQueryResult(buckets []*aggBucket, intAggResult aggResult[int64]) *pb.TableQueryResult {
+	bucketCount := len(buckets)
+	groupbyRes := a.toPbGroupbyQueryResult(buckets, intAggResult)
 
 	// fills values for aggregated columns that have int results
 	colCnt := len(intAggResult.intResIdxes) + len(intAggResult.genericResIdxes)
@@ -217,12 +262,12 @@ func (a *aggregator) toPbTableQueryResult(buckets []*aggBucket, intAggResult agg
 	return &pb.TableQueryResult{
 		Count:          int32(bucketCount),
 		IntColumnNames: a.ctx.groupbyIntColumnNames,
-		IntResult:      intResult,
-		IntHasValue:    intHasValue,
+		IntResult:      groupbyRes.intResult,
+		IntHasValue:    groupbyRes.intHasValue,
 		StrColumnNames: a.ctx.groupbyStrColumnNames,
-		StrIdMap:       strIdMap,
-		StrResult:      strResult,
-		StrHasValue:    strHasValue,
+		StrIdMap:       groupbyRes.strIdMap,
+		StrResult:      groupbyRes.strResult,
+		StrHasValue:    groupbyRes.strHasValue,
 
 		AggIntColumnNames: aggIntColumnNames,
 		AggIntResult:      aggIntResult,
@@ -231,7 +276,7 @@ func (a *aggregator) toPbTableQueryResult(buckets []*aggBucket, intAggResult agg
 		AggFloatColumnNames: aggFloatColumnNames,
 		AggFloatResult:      aggFloatResult,
 		AggFloatHasValue:    aggFloatHasValue,
-	}, true
+	}
 }
 
 func (a *aggregator) aggregateBlock(r *BlockQueryResult) accSliceMap[int64] {
@@ -256,15 +301,31 @@ func (a *aggregator) aggregateBlock(r *BlockQueryResult) accSliceMap[int64] {
 		}
 	}
 
-	for colIdx := a.ctx.groupbyIntColCnt; colIdx < a.ctx.intColCnt; colIdx++ {
-		intHasVal := r.IntResult.hasValue[colIdx]
-		intVals := r.IntResult.matrix[colIdx]
+	if a.ctx.isTimelineQuery {
+		// timelineQuery: aggregate only the ts col (first after groupbyCols) with the tsBucket
+		tsColIdx := a.ctx.groupbyIntColCnt
+		tsHasRes := r.IntResult.hasValue[tsColIdx]
+		tsVals := r.IntResult.matrix[tsColIdx]
 
 		for rowIdx, hash := range hashes {
-			if !intHasVal[rowIdx] {
-				continue
+			if !tsHasRes[rowIdx] {
+				a.ctx.logger.Panic("missing ts")
 			}
-			intAccSliceMap[hash][colIdx-a.ctx.groupbyIntColCnt].addValue(intVals[rowIdx])
+			tsBucket := (tsVals[rowIdx] - a.ctx.startTs) / int64(a.ctx.gran)
+			intAccSliceMap[hash][tsColIdx-a.ctx.groupbyIntColCnt].addValue(tsBucket)
+		}
+	} else {
+		// tableQuery: aggregate the aggCols (stored after groupbyCols) with the vals
+		for colIdx := a.ctx.groupbyIntColCnt; colIdx < a.ctx.intColCnt; colIdx++ {
+			intHasVal := r.IntResult.hasValue[colIdx]
+			intVals := r.IntResult.matrix[colIdx]
+
+			for rowIdx, hash := range hashes {
+				if !intHasVal[rowIdx] {
+					continue
+				}
+				intAccSliceMap[hash][colIdx-a.ctx.groupbyIntColCnt].addValue(intVals[rowIdx])
+			}
 		}
 	}
 

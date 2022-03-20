@@ -1,6 +1,7 @@
 package store
 
 import (
+	"bapi/internal/common"
 	"bapi/internal/pb"
 	"testing"
 
@@ -69,6 +70,7 @@ func assertAggregator(
 	expected [][][]interface{}) {
 	blockRes, strStore := debugNewBlockQueryResult(s.rows)
 	aggregator := newAggregator(&aggCtx{
+		logger:           common.NewTestBapiCtx().Logger,
 		op:               op,
 		groupbyIntColCnt: len(s.groupbyIntCols),
 		intColCnt:        len(s.groupbyIntCols) + len(s.aggIntCols),
@@ -81,7 +83,7 @@ func assertAggregator(
 		strStore:              strStore,
 	})
 
-	res, _ := aggregator.aggregate([]*BlockQueryResult{blockRes})
+	res, _ := aggregator.aggregateForTableQuery([]*BlockQueryResult{blockRes})
 	actual := make([][][]interface{}, res.Count)
 
 	for i := range actual {

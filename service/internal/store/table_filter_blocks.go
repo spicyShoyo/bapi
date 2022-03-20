@@ -37,7 +37,7 @@ func (t *Table) queryBlocks(query queryWithFilter) ([]*BlockQueryResult, bool) {
 // --------------------------- internals ----------------------------
 // A wrapper around pb querys providing getters for filtering related fields
 type queryWithFilter struct {
-	q interface{} // *pb.RowsQuery | *pb.TableQuery
+	q interface{} // *pb.RowsQuery | *pb.TableQuery | *pb.TimelineQuery
 }
 
 func (q *queryWithFilter) getMinTs() int64 {
@@ -45,6 +45,9 @@ func (q *queryWithFilter) getMinTs() int64 {
 		return query.MinTs
 	}
 	if query, ok := q.q.(*pb.TableQuery); ok {
+		return query.MinTs
+	}
+	if query, ok := q.q.(*pb.TimelineQuery); ok {
 		return query.MinTs
 	}
 	return 0
@@ -57,6 +60,9 @@ func (q *queryWithFilter) getMaxTs() (int64, bool) {
 	if query, ok := q.q.(*pb.TableQuery); ok {
 		return query.GetMaxTs(), query.MaxTs != nil
 	}
+	if query, ok := q.q.(*pb.TimelineQuery); ok {
+		return query.GetMaxTs(), query.MaxTs != nil
+	}
 	return 0, false
 }
 
@@ -65,6 +71,9 @@ func (q *queryWithFilter) getIntFilters() []*pb.Filter {
 		return query.IntFilters
 	}
 	if query, ok := q.q.(*pb.TableQuery); ok {
+		return query.IntFilters
+	}
+	if query, ok := q.q.(*pb.TimelineQuery); ok {
 		return query.IntFilters
 	}
 	return make([]*pb.Filter, 0)
@@ -77,6 +86,9 @@ func (q *queryWithFilter) getStrFilters() []*pb.Filter {
 	if query, ok := q.q.(*pb.TableQuery); ok {
 		return query.StrFilters
 	}
+	if query, ok := q.q.(*pb.TimelineQuery); ok {
+		return query.StrFilters
+	}
 	return make([]*pb.Filter, 0)
 }
 
@@ -87,6 +99,9 @@ func (q *queryWithFilter) getIntColNames() []string {
 	if query, ok := q.q.(*pb.TableQuery); ok {
 		return append(query.GroupbyIntColumnNames, query.AggIntColumnNames...)
 	}
+	if query, ok := q.q.(*pb.TimelineQuery); ok {
+		return append(query.GroupbyIntColumnNames, []string{TS_COLUMN_NAME}...)
+	}
 	return make([]string, 0)
 }
 
@@ -95,6 +110,9 @@ func (q *queryWithFilter) getStrColNames() []string {
 		return query.StrColumnNames
 	}
 	if query, ok := q.q.(*pb.TableQuery); ok {
+		return query.GroupbyStrColumnNames
+	}
+	if query, ok := q.q.(*pb.TimelineQuery); ok {
 		return query.GroupbyStrColumnNames
 	}
 	return make([]string, 0)

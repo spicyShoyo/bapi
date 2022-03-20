@@ -5,7 +5,35 @@ import (
 	"unsafe"
 )
 
+// TimelineQuery supports only count aggregation at this time. This is achived via having
+// the `ts` column as the aggIntCol with AggOp_TIMELINE_COUNT.
 func (t *Table) TimeilneQuery(query *pb.TimelineQuery) (*pb.TimelineQueryResult, bool) {
+	blockResults, hasResult := t.queryBlocks(queryWithFilter{query})
+	if !hasResult {
+		return nil, false
+	}
+
+	aggIntCols := []string{TS_COLUMN_NAME}
+	intColCnt := len(query.GroupbyIntColumnNames) + len(aggIntCols)
+
+	aggregator := newAggregator(&aggCtx{
+		logger:           t.ctx.Logger,
+		op:               pb.AggOp_TIMELINE_COUNT,
+		groupbyIntColCnt: len(query.GroupbyIntColumnNames),
+		intColCnt:        intColCnt,
+		groupbyStrColCnt: len(query.GroupbyStrColumnNames),
+		strColCnt:        len(query.GroupbyStrColumnNames),
+
+		groupbyIntColumnNames: query.GroupbyIntColumnNames,
+		groupbyStrColumnNames: query.GroupbyStrColumnNames,
+		aggIntColumnNames:     aggIntCols,
+		strStore:              t.strStore,
+
+		startTs: query.MinTs,
+		gran:    uint64(query.Gran),
+	})
+
+	aggregator.aggregateForTableQuery(blockResults)
 	return nil, false
 }
 
@@ -20,6 +48,7 @@ func (t *Table) TableQuery(query *pb.TableQuery) (*pb.TableQueryResult, bool) {
 	}
 
 	aggregator := newAggregator(&aggCtx{
+		logger:           t.ctx.Logger,
 		op:               query.AggOp,
 		groupbyIntColCnt: len(query.GroupbyIntColumnNames), // aggIntCols are after groupByIntCols
 		intColCnt:        len(query.GroupbyIntColumnNames) + len(query.AggIntColumnNames),
@@ -31,7 +60,7 @@ func (t *Table) TableQuery(query *pb.TableQuery) (*pb.TableQueryResult, bool) {
 		aggIntColumnNames:     query.AggIntColumnNames,
 		strStore:              t.strStore,
 	})
-	return aggregator.aggregate(blockResults)
+	return aggregator.aggregateForTableQuery(blockResults)
 }
 
 func (t *Table) RowsQuery(query *pb.RowsQuery) (*pb.RowsQueryResult, bool) {

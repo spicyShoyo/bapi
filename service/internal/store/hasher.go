@@ -6,7 +6,6 @@ type aggBucket struct {
 	intHasVal []bool
 	strVals   []strId
 	strHasVal []bool
-	tsBucket  int
 }
 
 type hasher struct {
@@ -24,7 +23,6 @@ func buildHasherForBlock(ctx *aggCtx, blockResult *BlockQueryResult) *hasher {
 		hashToRowIdx: make(map[uint64]int),
 	}
 
-	h.maybeProcessTsBucket()
 	for colIdx := 0; colIdx < h.c.groupbyIntColCnt; colIdx++ {
 		h.processIntCol(h.r.IntResult, colIdx)
 	}
@@ -56,12 +54,6 @@ func (h *hasher) getAggBucket(hash uint64) (*aggBucket, bool) {
 		intHasVal: make([]bool, h.c.groupbyIntColCnt),
 		strVals:   make([]strId, h.c.groupbyStrColCnt),
 		strHasVal: make([]bool, h.c.groupbyStrColCnt),
-		tsBucket:  0,
-	}
-
-	if h.c.isTimelineQuery {
-		rowTs := h.r.IntResult.matrix[h.c.tsCol][rowIdx]
-		bucket.tsBucket = int(rowTs-h.c.startTs) / int(h.c.gran)
 	}
 
 	for colIdx := 0; colIdx < h.c.groupbyIntColCnt; colIdx++ {
@@ -97,21 +89,6 @@ func (h *hasher) processStrCol(r StrResult, colIdx int) {
 		if !hasValue[i] {
 			h.hashes[i] = hash128To64(h.hashes[i], uint64(v))
 		}
-	}
-}
-
-func (h *hasher) getTsBucket(rowIdx int) int {
-	rowTs := h.r.IntResult.matrix[h.c.tsCol][rowIdx]
-	return int(rowTs-h.c.startTs) / int(h.c.gran)
-}
-
-func (h *hasher) maybeProcessTsBucket() {
-	if !h.c.isTimelineQuery {
-		return
-	}
-	for rowIdx := 0; rowIdx < h.r.Count; rowIdx++ {
-		bucket := uint64(h.getTsBucket(rowIdx))
-		h.hashes[rowIdx] = hash128To64(h.hashes[rowIdx], bucket)
 	}
 }
 
