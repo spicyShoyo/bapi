@@ -4,14 +4,7 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [
-    react({
-      babel: {
-        plugins: ["babel-plugin-macros", "babel-plugin-styled-components"],
-      },
-    }),
-    tsconfigPaths(),
-  ],
+  plugins: [react(), tsconfigPaths()],
   server: {
     proxy: {
       "/v1": {

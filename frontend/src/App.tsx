@@ -1,22 +1,13 @@
 import axios from "axios";
-import tw from "twin.macro";
-
-const Header = tw.div`
-h-[32px] text-white text-lg text-left pl-4 font-logo
-`;
-const SidePane = tw.div`
-w-[324px]  bg-blue-600 min-h-full
-`;
-const ResultView = tw.div`
- bg-blue-300 flex-grow min-h-full
-`;
 
 function App() {
   return (
     <div className="text-center bg-sky-900	min-h-screen  flex flex-col">
-      <Header>Bapi</Header>
+      <div className="h-[32px] text-white text-lg text-left pl-4 font-logo">
+        Bapi
+      </div>
       <div className="min-w-screen flex grow">
-        <SidePane>
+        <div className="w-[324px]  bg-blue-600 min-h-full">
           <p>
             <button
               className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded"
@@ -46,8 +37,8 @@ function App() {
               Load
             </button>
           </p>
-        </SidePane>
-        <ResultView />
+        </div>
+        <div className="bg-blue-300 flex-grow min-h-full" />
       </div>
     </div>
   );
