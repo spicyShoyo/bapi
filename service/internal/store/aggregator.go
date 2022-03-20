@@ -198,7 +198,21 @@ func (a *aggregator) toPbTableQueryResult(buckets []*aggBucket, intAggResult agg
 		}
 	}
 
-	// TODO: support float
+	colCnt = len(intAggResult.floatResIdxes)
+	aggFloatColumnNames := make([]string, 0)
+	aggFloatResultLen := bucketCount * colCnt
+	aggFloatResult := make([]float64, aggFloatResultLen)
+	aggFloatHasValue := make([]bool, aggFloatResultLen)
+	for colIdx, accIdx := range intAggResult.floatResIdxes {
+		aggFloatColumnNames = append(aggFloatColumnNames, a.ctx.aggIntColumnNames[accIdx])
+
+		for i, bucket := range buckets {
+			idx := (colIdx)*bucketCount + i
+			accRes := intAggResult.m[bucket.hash][accIdx]
+			aggFloatResult[idx] = accRes.floatVal
+			aggFloatHasValue[idx] = accRes.hasValue
+		}
+	}
 
 	return &pb.TableQueryResult{
 		Count:          int32(bucketCount),
@@ -213,6 +227,10 @@ func (a *aggregator) toPbTableQueryResult(buckets []*aggBucket, intAggResult agg
 		AggIntColumnNames: aggIntColumnNames,
 		AggIntResult:      aggIntResult,
 		AggIntHasValue:    aggIntHasValue,
+
+		AggFloatColumnNames: aggFloatColumnNames,
+		AggFloatResult:      aggFloatResult,
+		AggFloatHasValue:    aggFloatHasValue,
 	}, true
 }
 

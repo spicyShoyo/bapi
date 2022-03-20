@@ -12,6 +12,7 @@ func TestAggregator(t *testing.T) {
 		rows: [][]interface{}{
 			{1, 2, "ok"},
 			{1, 2, "ok"},
+			{1, 5, "ok"},
 			{2, 3, "ok"},
 			{1, 4, "ok2"},
 		},
@@ -21,21 +22,27 @@ func TestAggregator(t *testing.T) {
 	}
 
 	assertAggregator(t, pb.AggOp_SUM, setup, [][][]interface{}{
-		{{1, "ok"}, {4}},
+		{{1, "ok"}, {9}},
 		{{2, "ok"}, {3}},
 		{{1, "ok2"}, {4}},
 	})
 
 	assertAggregator(t, pb.AggOp_COUNT, setup, [][][]interface{}{
-		{{1, "ok"}, {2}},
+		{{1, "ok"}, {3}},
 		{{2, "ok"}, {1}},
 		{{1, "ok2"}, {1}},
 	})
 
 	assertAggregator(t, pb.AggOp_COUNT_DISTINCT, setup, [][][]interface{}{
-		{{1, "ok"}, {1}},
+		{{1, "ok"}, {2}},
 		{{2, "ok"}, {1}},
 		{{1, "ok2"}, {1}},
+	})
+
+	assertAggregator(t, pb.AggOp_AVG, setup, [][][]interface{}{
+		{{1, "ok"}, {3.0}},
+		{{2, "ok"}, {3.0}},
+		{{1, "ok2"}, {4.0}},
 	})
 }
 
@@ -109,12 +116,24 @@ func assertAggregator(
 		}
 
 		// fills aggIntCols
-		for colIdx := 0; colIdx < len(res.IntColumnNames); colIdx++ {
+		for colIdx := 0; colIdx < len(res.AggIntColumnNames); colIdx++ {
 			valIdx := colIdx*int(res.Count) + i
 			val := res.AggIntResult[valIdx]
 			hasVal := res.AggIntHasValue[valIdx]
 			if hasVal {
 				actual[i][1] = append(actual[i][1], int(val))
+			} else {
+				actual[i][1] = append(actual[i][1], 0)
+			}
+		}
+
+		// fills aggFloatCols
+		for colIdx := 0; colIdx < len(res.AggFloatColumnNames); colIdx++ {
+			valIdx := colIdx*int(res.Count) + i
+			val := res.AggFloatResult[valIdx]
+			hasVal := res.AggFloatHasValue[valIdx]
+			if hasVal {
+				actual[i][1] = append(actual[i][1], val)
 			} else {
 				actual[i][1] = append(actual[i][1], 0)
 			}
