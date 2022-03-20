@@ -1,6 +1,8 @@
 package store
 
-import "bapi/internal/pb"
+import (
+	"bapi/internal/pb"
+)
 
 // Responsible for accumulating values of a given col
 type accumulator[T OrderedNumeric] interface {

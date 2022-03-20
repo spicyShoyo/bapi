@@ -46,20 +46,32 @@ func (accMap accSliceMap[T]) finalize() (aggResult[T], bool) {
 		genericResIdxes: make([]int, 0),
 	}
 
+	if len(accMap) == 0 {
+		return aggRes, false
+	}
+
+	init := false
 	for hash, accSlice := range accMap {
 		aggRes.m[hash] = make([]accResult[T], len(accSlice))
 		for i, accumulator := range accSlice {
 			aggRes.m[hash][i] = accumulator.finalize()
-			switch aggRes.m[hash][i].valType {
-			case accIntRes:
-				aggRes.intResIdxes = append(aggRes.intResIdxes, i)
-			case accFloatRes:
-				aggRes.floatResIdxes = append(aggRes.floatResIdxes, i)
-			case accGenericRes:
-				aggRes.genericResIdxes = append(aggRes.genericResIdxes, i)
-			default:
-				// abort: invalid result type
-				return aggRes, false
+		}
+
+		if !init {
+			// assign accRes of each col base on the type. just need to do this once
+			init = true
+			for i := range accSlice {
+				switch aggRes.m[hash][i].valType {
+				case accIntRes:
+					aggRes.intResIdxes = append(aggRes.intResIdxes, i)
+				case accFloatRes:
+					aggRes.floatResIdxes = append(aggRes.floatResIdxes, i)
+				case accGenericRes:
+					aggRes.genericResIdxes = append(aggRes.genericResIdxes, i)
+				default:
+					// abort: invalid result type
+					return aggRes, false
+				}
 			}
 		}
 	}
@@ -75,6 +87,14 @@ func newAggregator(c *aggCtx) *aggregator {
 }
 
 func (a *aggregator) aggregate(filterResults []*BlockQueryResult) (*pb.TableQueryResult, bool) {
+	aggResult, ok := a.doAggregate(filterResults)
+	if !ok {
+		return nil, false
+	}
+	return a.buildResult(aggResult)
+}
+
+func (a *aggregator) doAggregate(filterResults []*BlockQueryResult) (aggResult[int64], bool) {
 	tableIntAccSliceMap := make(accSliceMap[int64])
 
 	for _, result := range filterResults {
@@ -95,11 +115,7 @@ func (a *aggregator) aggregate(filterResults []*BlockQueryResult) (*pb.TableQuer
 		}
 	}
 
-	aggResult, ok := tableIntAccSliceMap.finalize()
-	if !ok {
-		return nil, false
-	}
-	return a.buildResult(aggResult)
+	return tableIntAccSliceMap.finalize()
 }
 
 func (a *aggregator) buildResult(intAggResult aggResult[int64]) (*pb.TableQueryResult, bool) {
@@ -177,7 +193,7 @@ func (a *aggregator) toPbTableQueryResult(buckets []*aggBucket, intAggResult agg
 		for i, bucket := range buckets {
 			idx := (colIdxOffset+colIdx)*bucketCount + i
 			accRes := intAggResult.m[bucket.hash][accIdx]
-			aggIntResult[idx] = accRes.intVal
+			aggIntResult[idx] = accRes.genericVal
 			aggIntHasValue[idx] = accRes.hasValue
 		}
 	}
