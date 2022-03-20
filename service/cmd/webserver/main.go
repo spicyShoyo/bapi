@@ -55,6 +55,7 @@ func main() {
 		g.POST("/ingest", postIngest)
 		g.GET("/queryRows", runRowsQuery)
 		g.GET("/tableQuery", runTableQuery)
+		g.GET("/timelineQuery", runTimelineQuery)
 	}
 
 	port := os.Getenv("PORT")
@@ -128,6 +129,10 @@ type tableQueryWrapper struct {
 	Q pb.TableQuery `form:"q"`
 }
 
+type timelineQueryWrapper struct {
+	Q pb.TimelineQuery `form:"q"`
+}
+
 func runRowsQuery(c *gin.Context) {
 	request := rowsQueryWrapper{}
 	//	allow passing as Json body (for testing locally) or url params
@@ -175,6 +180,34 @@ func runTableQuery(c *gin.Context) {
 	client := pb.NewBapiClient(conn)
 
 	reply, e := client.RunTableQuery(context.Background(), &request.Q)
+	if e != nil {
+		logger.Warnf("fail to get service reply: %v", e)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, &reply)
+}
+
+func runTimelineQuery(c *gin.Context) {
+	request := timelineQueryWrapper{}
+	//	allow passing as Json body (for testing locally) or url params
+	if err := c.ShouldBindJSON(&request); err != nil {
+		if err := c.ShouldBindQuery(&request); err != nil {
+			c.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
+	}
+
+	conn, ok := getServiceConnection()
+	if !ok {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
+	client := pb.NewBapiClient(conn)
+
+	reply, e := client.RunTimelineQuery(context.Background(), &request.Q)
 	if e != nil {
 		logger.Warnf("fail to get service reply: %v", e)
 		c.AbortWithStatus(http.StatusInternalServerError)

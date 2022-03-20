@@ -90,3 +90,21 @@ func (s *server) RunTableQuery(ctx context.Context, in *pb.TableQuery) (*pb.Tabl
 		Result:  result,
 	}, nil
 }
+
+func (s *server) RunTimelineQuery(ctx context.Context, in *pb.TimelineQuery) (*pb.TimelineQueryReply, error) {
+	s.ctx.Logger.Info(in)
+	result, hasValue := s.table.TimeilneQuery(in)
+	if !hasValue {
+		return &pb.TimelineQueryReply{
+			Status:  pb.Status_NO_CONTENT,
+			Message: nil,
+			Result:  nil,
+		}, nil
+	}
+
+	return &pb.TimelineQueryReply{
+		Status:  pb.Status_OK,
+		Message: nil,
+		Result:  result,
+	}, nil
+}

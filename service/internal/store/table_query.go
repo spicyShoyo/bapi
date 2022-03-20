@@ -5,6 +5,10 @@ import (
 	"unsafe"
 )
 
+func (t *Table) TimeilneQuery(query *pb.TimelineQuery) (*pb.TimelineQueryResult, bool) {
+	return nil, false
+}
+
 func (t *Table) TableQuery(query *pb.TableQuery) (*pb.TableQueryResult, bool) {
 	if len(query.AggIntColumnNames) == 0 {
 		return nil, false
