@@ -56,7 +56,7 @@ func TestAggregatorForTimelineQuery(t *testing.T) {
 		groupbyIntCols: []string{"groupbyIntCol"},
 		groupbyStrCols: []string{},
 	}
-	// TODO: flaky!
+
 	assertAggregatorForTimelineQuery(t, pb.TimeGran_MIN_5, setup, [][][]interface{}{
 		{{1}, {0, 1, 1, 1}},
 	})

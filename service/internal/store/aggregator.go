@@ -162,7 +162,7 @@ func (a *aggregator) toPbTimelineGroups(buckets []*aggBucket, intAggResult aggRe
 		}
 
 		sort.Slice(tsBuckets, func(i, j int) bool {
-			return i < j
+			return tsBuckets[i] < tsBuckets[j]
 		})
 
 		counts := make([]uint32, 0, len(line))
