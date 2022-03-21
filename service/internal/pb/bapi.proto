@@ -117,6 +117,11 @@ message TableQueryResult {
   repeated bool agg_float_has_value = 14;
 }
 
+message TimelineGroup {
+  repeated uint32 ts_buckets = 1;
+  repeated uint32 counts = 2;
+}
+
 message TimelineQueryResult {
   int32 count = 1;
 
@@ -129,7 +134,7 @@ message TimelineQueryResult {
   repeated uint32 str_result = 7;
   repeated bool str_has_value = 8;
 
-  repeated uint32 ts_buckets = 9;
+  repeated TimelineGroup timelineGroups = 9;
 }
 
 service Bapi {

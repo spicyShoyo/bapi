@@ -10,6 +10,7 @@ type accumulator[T OrderedNumeric] interface {
 	consume(accumulator[T])
 	finalize() accResult[T]
 	new() accumulator[T]
+	debugGetType() string
 }
 
 // The type of the accumulated value for a col.
@@ -98,6 +99,10 @@ func (op *accumulatorCount[T]) finalize() accResult[T] {
 	return newAccIntResult[T](op.count, true /*hasValue*/)
 }
 
+func (op *accumulatorCount[T]) debugGetType() string {
+	return "accumulatorCount"
+}
+
 // --------------------------- accumulatorCountDistinct ---------------------------
 type accumulatorCountDistinct[T OrderedNumeric] struct {
 	m map[T]bool
@@ -123,6 +128,10 @@ func (op *accumulatorCountDistinct[T]) consume(other accumulator[T]) {
 
 func (op *accumulatorCountDistinct[T]) finalize() accResult[T] {
 	return newAccIntResult[T](int64(len(op.m)), true /*hasValue*/)
+}
+
+func (op *accumulatorCountDistinct[T]) debugGetType() string {
+	return "accumulatorCountDistinct"
 }
 
 // --------------------------- accumulatorSum ---------------------------
@@ -152,6 +161,10 @@ func (op *accumulatorSum[T]) consume(other accumulator[T]) {
 
 func (op *accumulatorSum[T]) finalize() accResult[T] {
 	return newAccGenericResult(op.sum, op.hasValue)
+}
+
+func (op *accumulatorSum[T]) debugGetType() string {
+	return "accumulatorSum"
 }
 
 // --------------------------- accumulatorAvg ---------------------------
@@ -186,6 +199,10 @@ func (op *accumulatorAvg[T]) finalize() accResult[T] {
 	return newAccFloatResult[T](float64(op.sum)/float64(op.count), true /*hasValue*/)
 }
 
+func (op *accumulatorAvg[T]) debugGetType() string {
+	return "accumulatorAvg"
+}
+
 // --------------------------- accumulatorTimelineCount ---------------------------
 type accumulatorTimelineCount[T OrderedNumeric] struct {
 	m map[int64]int
@@ -196,7 +213,7 @@ func newAccumulatorTimelineCount[T OrderedNumeric]() *accumulatorTimelineCount[T
 }
 
 func (op *accumulatorTimelineCount[T]) new() accumulator[T] {
-	return newAccumulatorAvg[T]()
+	return newAccumulatorTimelineCount[T]()
 }
 
 // The caller is responsible to make sure v is the ts bucket
@@ -220,4 +237,8 @@ func (op *accumulatorTimelineCount[T]) consume(other accumulator[T]) {
 
 func (op *accumulatorTimelineCount[T]) finalize() accResult[T] {
 	return newAccTimelineCountResult[T](op.m, len(op.m) != 0)
+}
+
+func (op *accumulatorTimelineCount[T]) debugGetType() string {
+	return "accumulatorTimelineCount"
 }

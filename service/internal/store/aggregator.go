@@ -2,6 +2,7 @@ package store
 
 import (
 	"bapi/internal/pb"
+	"sort"
 	"sync"
 
 	"go.uber.org/zap"
@@ -42,10 +43,11 @@ type accSliceMap[T OrderedNumeric] map[uint64][]accumulator[T]
 
 func (accMap accSliceMap[T]) finalize() (aggResult[T], bool) {
 	aggRes := aggResult[T]{
-		m:               make(map[uint64][]accResult[T]),
-		intResIdxes:     make([]int, 0),
-		floatResIdxes:   make([]int, 0),
-		genericResIdxes: make([]int, 0),
+		m:                  make(map[uint64][]accResult[T]),
+		intResIdxes:        make([]int, 0),
+		floatResIdxes:      make([]int, 0),
+		genericResIdxes:    make([]int, 0),
+		timelineCountIdxes: make([]int, 0),
 	}
 
 	if len(accMap) == 0 {
@@ -144,6 +146,39 @@ func (a *aggregator) doAggregate(filterResults []*BlockQueryResult) ([]*aggBucke
 	return buckets, aggRes, true
 }
 
+func (a *aggregator) toPbTimelineGroups(buckets []*aggBucket, intAggResult aggResult[int64]) []*pb.TimelineGroup {
+	groups := make([]*pb.TimelineGroup, 0)
+
+	for _, bucket := range buckets {
+		// `line` represents a line in the result timeline UI; it's a map from a ts bucket to
+		// number of rows in that ts bucket. We want to get 2 slices:
+		//	- tsBuckets: the sorted ts buckets
+		//	- counts: the counts of those ts buckets in the same order
+		line := intAggResult.m[bucket.hash][intAggResult.timelineCountIdxes[0]].timelintCountVal
+
+		tsBuckets := make([]uint32, 0, len(line))
+		for tsBucket := range line {
+			tsBuckets = append(tsBuckets, uint32(tsBucket))
+		}
+
+		sort.Slice(tsBuckets, func(i, j int) bool {
+			return i < j
+		})
+
+		counts := make([]uint32, 0, len(line))
+		for _, tsBucket := range tsBuckets {
+			counts = append(counts, uint32(line[int64(tsBucket)]))
+		}
+
+		groups = append(groups, &pb.TimelineGroup{
+			TsBuckets: tsBuckets,
+			Counts:    counts,
+		})
+	}
+
+	return groups
+}
+
 func (a *aggregator) toPbTimelineQueryResult(buckets []*aggBucket, intAggResult aggResult[int64]) *pb.TimelineQueryResult {
 	bucketCount := len(buckets)
 	groupbyRes := a.toPbGroupbyQueryResult(buckets, intAggResult)
@@ -157,6 +192,8 @@ func (a *aggregator) toPbTimelineQueryResult(buckets []*aggBucket, intAggResult 
 		StrIdMap:       groupbyRes.strIdMap,
 		StrResult:      groupbyRes.strResult,
 		StrHasValue:    groupbyRes.strHasValue,
+
+		TimelineGroups: a.toPbTimelineGroups(buckets, intAggResult),
 	}
 }
 

@@ -29,8 +29,9 @@ func (t *Table) TimeilneQuery(query *pb.TimelineQuery) (*pb.TimelineQueryResult,
 		aggIntColumnNames:     aggIntCols,
 		strStore:              t.strStore,
 
-		startTs: query.MinTs,
-		gran:    uint64(query.Gran),
+		isTimelineQuery: true,
+		startTs:         query.MinTs,
+		gran:            uint64(query.Gran),
 	})
 
 	aggregator.aggregateForTableQuery(blockResults)
