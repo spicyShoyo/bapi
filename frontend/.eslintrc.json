@@ -26,9 +26,11 @@
     "no-shadow": "off",
     "react/jsx-filename-extension": [1, { "extensions": [".ts", ".tsx"] }],
     "no-console": "warn",
+    "no-unused-vars": "warn",
     "no-param-reassign": "off",
     "react/button-has-type": "off",
     "react-hooks/exhaustive-deps": "error",
+    "react/destructuring-assignment": "off",
     "import/order": [
       "error",
       {

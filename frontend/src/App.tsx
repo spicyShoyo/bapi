@@ -1,3 +1,5 @@
+import TimeRangePicker from "@/components/TimeRangePicker";
+
 function App() {
   return (
     <div className="flex flex-col bg-slate-800 h-screen w-screen">
@@ -7,7 +9,9 @@ function App() {
         </div>
       </div>
       <div className="flex flex-1">
-        <div className="w-[288px] h-full bg-slate-600 " />
+        <div className="w-[288px] h-full bg-slate-600 ">
+          <TimeRangePicker />
+        </div>
         <div className="flex-1 h-full bg-slate-700" />
       </div>
     </div>
