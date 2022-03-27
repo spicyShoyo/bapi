@@ -26,6 +26,9 @@ function useQueryRecord(): [
   const location = useLocation();
   const queryRecordRef = useRef<QueryRecord>(QueryRecord.fromUrl(location));
 
+  // @ts-expect-error: for debug
+  window.recordRef = queryRecordRef;
+
   const updateQueryRecord = useCallback(
     (updateFn: UpdateFn) => {
       const newRecord = updateFn(queryRecordRef.current);
