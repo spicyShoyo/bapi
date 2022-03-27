@@ -1,14 +1,9 @@
 import dayjs from "dayjs";
-import { useState } from "react";
+import { useContext, useEffect, useState } from "react";
 
-const NOW = dayjs();
-const L5M = NOW.subtract(5, "minute");
-const L1H = NOW.subtract(1, "hour");
-const L12H = NOW.subtract(12, "hour");
-const L1D = NOW.subtract(1, "day");
-const L2D = NOW.subtract(2, "day");
-const L7D = NOW.subtract(7, "day");
-const L14D = NOW.subtract(14, "day");
+import { QueryContext } from "@/QueryContext";
+import { NOW, L5M, L1H, L12H, L1D, L2D, L7D, L14D } from "@/tsConsts";
+
 const FORMAT_STR = "YYYY-MM-DDTHH:mm";
 
 function TimeChip(props: {
@@ -52,8 +47,15 @@ function TimePicker(props: {
 }
 
 export default function TimeRangePicker() {
-  const [startTs, setStartTs] = useState(L1D.unix());
-  const [endTs, setEndTs] = useState(NOW.unix());
+  const { queryRecord, updateQueryRecord } = useContext(QueryContext);
+  const [startTs, setStartTs] = useState(queryRecord.min_ts ?? L1D.unix());
+  const [endTs, setEndTs] = useState(queryRecord.max_ts ?? NOW.unix());
+
+  useEffect(() => {
+    updateQueryRecord((currentRecord) =>
+      currentRecord.set("min_ts", startTs).set("max_ts", endTs),
+    );
+  }, [updateQueryRecord, startTs, endTs]);
 
   const chips: [string, number, number][] = [
     ["L14d", L14D.unix(), NOW.unix()],
