@@ -573,3 +573,7 @@ func (s *testReadOnlyStrStore) getStr(id strId) (string, bool) {
 	}
 	return "", false
 }
+
+func (s *testReadOnlyStrStore) search(colId columnId, searchStr string) ([]string, bool) {
+	return nil, false
+}

@@ -11,15 +11,15 @@ import (
 
 func TestStrStore(t *testing.T) {
 	s := newBasicStrStore(common.NewBapiCtx())
-	id, loaded, ok := s.getOrInsertStrId("hi")
+	id, loaded, ok := s.getOrInsertStrId("hi", columnId(0))
 	assert.True(t, ok)
 	assert.False(t, loaded)
 	assert.Equal(t, strId(0), id)
-	id, loaded, ok = s.getOrInsertStrId("hello")
+	id, loaded, ok = s.getOrInsertStrId("hello", columnId(0))
 	assert.True(t, ok)
 	assert.False(t, loaded)
 	assert.Equal(t, strId(1), id)
-	id, loaded, ok = s.getOrInsertStrId("hello")
+	id, loaded, ok = s.getOrInsertStrId("hello", columnId(0))
 	assert.True(t, ok)
 	assert.True(t, loaded)
 	assert.Equal(t, strId(1), id)
@@ -63,7 +63,7 @@ func TestConcurrentReadWrite(t *testing.T) {
 				str = strconv.Itoa(idx - 1)
 			}
 
-			id, loaded, ok := s.getOrInsertStrId(str)
+			id, loaded, ok := s.getOrInsertStrId(str, columnId(0))
 			ids[idx] = id
 			loadeds[idx] = loaded
 			oks[idx] = ok
@@ -101,7 +101,7 @@ func TestConcurrentStressWrite(t *testing.T) {
 			<-ready
 			defer wg.Done()
 
-			id, loaded, ok := s.getOrInsertStrId("hi")
+			id, loaded, ok := s.getOrInsertStrId("hi", columnId(0))
 			ids[idx] = id
 			loadeds[idx] = loaded
 			oks[idx] = ok

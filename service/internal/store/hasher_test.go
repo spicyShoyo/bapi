@@ -118,7 +118,7 @@ func debugNewBlockQueryResult(rows [][]interface{}) (*BlockQueryResult, *basicSt
 				return nil, nil
 			}
 			colIdx := valIdx - intColCnt
-			strId, _, _ := strStore.getOrInsertStrId(strVal)
+			strId, _, _ := strStore.getOrInsertStrId(strVal, columnId(0))
 			strHasVals[colIdx][rowIdx] = strVal != ""
 			strVals[colIdx][rowIdx] = strId
 			strIdSet[strId] = true

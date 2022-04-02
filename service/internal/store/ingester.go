@@ -111,27 +111,17 @@ func (ingester *ingester) ingestRawJson(rawJson RawJson) error {
 			return err
 		}
 
-		strId, err := ingester.getOrInsertStrId(strings.TrimSpace(value))
-		if err != nil {
-			return err
+		strId, _, ok := ingester.ctx.getOrInsertStrId(strings.TrimSpace(value), colId)
+		if !ok {
+			return fmt.Errorf("reached max str count: %d", strId)
 		}
+
+		ingester.strIdSet[strId] = true
 		row.addStr(colId, strId)
 	}
 
 	ingester.rows = append(ingester.rows, row)
 	return nil
-}
-
-// Inserts or gets the id for the string value.
-// Note: the size of the string value store is unbounded.
-func (ingester *ingester) getOrInsertStrId(strValue string) (strId, error) {
-	strId, _, ok := ingester.ctx.getOrInsertStrId(strValue)
-	if !ok {
-		return nonexistentStr, fmt.Errorf("reached max str count: %d", strId)
-	}
-
-	ingester.strIdSet[strId] = true
-	return strId, nil
 }
 
 // --------------------------- row ----------------------------

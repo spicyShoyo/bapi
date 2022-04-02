@@ -112,18 +112,34 @@ func (s *server) RunTimelineQuery(ctx context.Context, in *pb.TimelineQuery) (*p
 func (s *server) GetTableInfo(ctx context.Context, in *pb.GetTableInfoRequest) (*pb.GetTableInfoReply, error) {
 	s.ctx.Logger.Info(in)
 	tableInfo := s.table.GetTableInfo()
-	if tableInfo.TableName == in.TableName {
+	if tableInfo.TableName != in.TableName {
 		return &pb.GetTableInfoReply{
-			Status:    pb.Status_OK,
-			TableInfo: tableInfo,
+			Status: pb.Status_NO_CONTENT,
 		}, nil
 	}
 
 	return &pb.GetTableInfoReply{
-		Status: pb.Status_NO_CONTENT,
+		Status:    pb.Status_OK,
+		TableInfo: tableInfo,
 	}, nil
 }
 
-func (s *server) GetStrColumnValues(ctx context.Context, in *pb.GetStrColumnValuesRequest) (*pb.GetStrColumnValuesReply, error) {
-	return &pb.GetStrColumnValuesReply{}, nil
+func (s *server) SearchStrValues(ctx context.Context, in *pb.SearchStrValuesRequest) (*pb.SearchStrValuesReply, error) {
+	s.ctx.Logger.Info(in)
+	tableInfo := s.table.GetTableInfo()
+	if tableInfo.TableName != in.TableName {
+		return &pb.SearchStrValuesReply{
+			Status: pb.Status_NO_CONTENT,
+		}, nil
+	}
+
+	if vals, ok := s.table.SearchStrValues(in.ColumnName, in.SearchString); ok {
+		return &pb.SearchStrValuesReply{
+			Status: pb.Status_OK,
+			Values: vals,
+		}, nil
+	}
+	return &pb.SearchStrValuesReply{
+		Status: pb.Status_NO_CONTENT,
+	}, nil
 }

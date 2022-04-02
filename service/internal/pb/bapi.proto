@@ -165,16 +165,18 @@ service Bapi {
   rpc RunTimelineQuery(TimelineQuery) returns (TimelineQueryReply) {}
   rpc InitiateShutdown(InitiateShutdownRequest) returns (InitiateShutdownReply) {}
   rpc GetTableInfo(GetTableInfoRequest) returns (GetTableInfoReply) {}
-  rpc GetStrColumnValues(GetStrColumnValuesRequest) returns (GetStrColumnValuesReply) {}
+  rpc SearchStrValues(SearchStrValuesRequest) returns (SearchStrValuesReply) {}
 }
 
-message GetStrColumnValuesRequest {
-  string column_name = 1;
+message SearchStrValuesRequest {
+  string table_name = 1;
+  string column_name = 2;
+  string search_string = 3;
 }
 
-message GetStrColumnValuesReply {
+message SearchStrValuesReply {
   Status status = 1;
-  repeated string values =2;
+  repeated string values = 2;
 }
 
 message GetTableInfoRequest {

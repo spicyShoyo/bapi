@@ -57,7 +57,7 @@ func main() {
 		g.GET("/table", runTableQuery)
 		g.GET("/timeline", runTimelineQuery)
 		g.GET("/table_info", getTableInfo)
-		g.GET("/str_column_values", getStrColumnValues)
+		g.GET("/string_values", searchStrValues)
 	}
 
 	port := os.Getenv("PORT")
@@ -220,7 +220,7 @@ func runTimelineQuery(c *gin.Context) {
 }
 
 func getTableInfo(c *gin.Context) {
-	table_name, ok := getSingleParam(c, "table")
+	tableName, ok := getSingleParam(c, "table")
 	if !ok {
 		c.AbortWithStatus(http.StatusBadRequest)
 	}
@@ -234,7 +234,7 @@ func getTableInfo(c *gin.Context) {
 	client := pb.NewBapiClient(conn)
 
 	reply, e := client.GetTableInfo(context.Background(), &pb.GetTableInfoRequest{
-		TableName: table_name,
+		TableName: tableName,
 	})
 
 	if e != nil {
@@ -246,11 +246,11 @@ func getTableInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, &reply)
 }
 
-func getStrColumnValues(c *gin.Context) {
-	// TODO: add table name to all queries
-	_, ok1 := getSingleParam(c, "table")
-	column_name, ok2 := getSingleParam(c, "column")
-	if !ok1 || !ok2 {
+func searchStrValues(c *gin.Context) {
+	tableName, ok1 := getSingleParam(c, "table")
+	columnName, ok2 := getSingleParam(c, "column")
+	searchString, ok3 := getSingleParam(c, "search_string")
+	if !ok1 || !ok2 || !ok3 {
 		c.AbortWithStatus(http.StatusBadRequest)
 	}
 
@@ -262,8 +262,10 @@ func getStrColumnValues(c *gin.Context) {
 	defer conn.Close()
 	client := pb.NewBapiClient(conn)
 
-	reply, e := client.GetStrColumnValues(context.Background(), &pb.GetStrColumnValuesRequest{
-		ColumnName: column_name,
+	reply, e := client.SearchStrValues(context.Background(), &pb.SearchStrValuesRequest{
+		TableName:    tableName,
+		ColumnName:   columnName,
+		SearchString: searchString,
 	})
 
 	if e != nil {

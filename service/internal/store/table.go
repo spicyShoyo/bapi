@@ -331,3 +331,12 @@ func (t *Table) GetTableInfo() *pb.TableInfo {
 		StrColumns: pbStrColumns,
 	}
 }
+
+func (t *Table) SearchStrValues(colName string, searchStr string) ([]string, bool) {
+	colInfo, ok := t.colInfoMap.getColumnInfo(colName)
+	if !ok {
+		return nil, false
+	}
+
+	return t.strStore.search(colInfo.id, searchStr)
+}
