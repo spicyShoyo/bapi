@@ -39,6 +39,26 @@ enum FilterOp {
   NULL = 7;
 }
 
+enum ColumnType {
+  NONE = 0;
+  INT = 1;
+  STR = 2;
+}
+
+message ColumnInfo {
+  string column_name = 1;
+  ColumnType column_type = 2;
+}
+
+message TableInfo {
+  string table_name = 1;
+  int64 row_count = 2;
+  int64 min_ts = 3;
+  int64 max_ts = 4;
+  repeated ColumnInfo int_columns = 5;
+  repeated ColumnInfo str_columns = 6;
+}
+
 message Filter {
   string column_name = 1;
   FilterOp filter_op = 2;
@@ -144,6 +164,26 @@ service Bapi {
   rpc RunTableQuery(TableQuery) returns (TableQueryReply) {}
   rpc RunTimelineQuery(TimelineQuery) returns (TimelineQueryReply) {}
   rpc InitiateShutdown(InitiateShutdownRequest) returns (InitiateShutdownReply) {}
+  rpc GetTableInfo(GetTableInfoRequest) returns (GetTableInfoReply) {}
+  rpc GetStrColumnValues(GetStrColumnValuesRequest) returns (GetStrColumnValuesReply) {}
+}
+
+message GetStrColumnValuesRequest {
+  string column_name = 1;
+}
+
+message GetStrColumnValuesReply {
+  Status status = 1;
+  repeated string values =2;
+}
+
+message GetTableInfoRequest {
+  string table_name = 1;
+}
+
+message GetTableInfoReply {
+  Status status = 1;
+  optional TableInfo table_info = 2;
 }
 
 message IngestRawRowsRequset { 

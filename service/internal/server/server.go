@@ -108,3 +108,22 @@ func (s *server) RunTimelineQuery(ctx context.Context, in *pb.TimelineQuery) (*p
 		Result:  result,
 	}, nil
 }
+
+func (s *server) GetTableInfo(ctx context.Context, in *pb.GetTableInfoRequest) (*pb.GetTableInfoReply, error) {
+	s.ctx.Logger.Info(in)
+	tableInfo := s.table.GetTableInfo()
+	if tableInfo.TableName == in.TableName {
+		return &pb.GetTableInfoReply{
+			Status:    pb.Status_OK,
+			TableInfo: tableInfo,
+		}, nil
+	}
+
+	return &pb.GetTableInfoReply{
+		Status: pb.Status_NO_CONTENT,
+	}, nil
+}
+
+func (s *server) GetStrColumnValues(ctx context.Context, in *pb.GetStrColumnValuesRequest) (*pb.GetStrColumnValuesReply, error) {
+	return &pb.GetStrColumnValuesReply{}, nil
+}

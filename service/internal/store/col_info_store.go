@@ -8,7 +8,7 @@ import (
 
 type colInfoStore struct {
 	ctx       *common.BapiCtx
-	colMap    sync.Map
+	colMap    sync.Map // map[string]*ColumnInfo
 	m         sync.Mutex
 	nextColId columnId
 }
@@ -20,6 +20,25 @@ func newColInfoStore(ctx *common.BapiCtx) *colInfoStore {
 		m:         sync.Mutex{},
 		nextColId: columnId(0),
 	}
+}
+
+func (s *colInfoStore) getColumns() ([]*ColumnInfo, []*ColumnInfo) {
+	intCols := make([]*ColumnInfo, 0)
+	strCols := make([]*ColumnInfo, 0)
+
+	s.colMap.Range(
+		func(_colName, val interface{}) bool {
+			colInfo := val.(*ColumnInfo)
+			if colInfo.ColumnType == IntColumnType {
+				intCols = append(intCols, colInfo)
+			} else if colInfo.ColumnType == StrColumnType {
+				strCols = append(strCols, colInfo)
+			}
+			return true
+		},
+	)
+
+	return intCols, strCols
 }
 
 func (s *colInfoStore) getColumnInfo(colName string) (*ColumnInfo, bool) {

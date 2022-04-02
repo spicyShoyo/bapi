@@ -301,3 +301,33 @@ func (table *Table) IngestJsonRows(rows []*pb.RawRow, useServerTs bool) int {
 	table.ingesterPool.Put(ingester)
 	return cnt_success
 }
+
+func (t *Table) GetTableInfo() *pb.TableInfo {
+	intColumns, strColumns := t.colInfoMap.getColumns()
+
+	pbIntColumns := make([]*pb.ColumnInfo, 0)
+	pbStrColumns := make([]*pb.ColumnInfo, 0)
+
+	for _, colInfo := range intColumns {
+		pbIntColumns = append(pbIntColumns, &pb.ColumnInfo{
+			ColumnName: colInfo.Name,
+			ColumnType: pb.ColumnType_INT,
+		})
+	}
+
+	for _, colInfo := range strColumns {
+		pbStrColumns = append(pbStrColumns, &pb.ColumnInfo{
+			ColumnName: colInfo.Name,
+			ColumnType: pb.ColumnType_STR,
+		})
+	}
+
+	return &pb.TableInfo{
+		TableName:  t.tableInfo.name,
+		RowCount:   int64(t.tableInfo.rowCount.Load()),
+		MinTs:      int64(t.tableInfo.minTs.Load()),
+		MaxTs:      int64(t.tableInfo.maxTs.Load()),
+		IntColumns: pbIntColumns,
+		StrColumns: pbStrColumns,
+	}
+}

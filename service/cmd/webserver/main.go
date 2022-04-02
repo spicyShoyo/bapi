@@ -53,7 +53,7 @@ func main() {
 	{
 		g.GET("/ping", getPing)
 		g.POST("/ingest", postIngest)
-		g.GET("/queryRows", runRowsQuery)
+		g.GET("/rowsQuery", runRowsQuery)
 		g.GET("/tableQuery", runTableQuery)
 		g.GET("/timelineQuery", runTimelineQuery)
 	}
