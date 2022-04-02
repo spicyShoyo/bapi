@@ -53,9 +53,11 @@ func main() {
 	{
 		g.GET("/ping", getPing)
 		g.POST("/ingest", postIngest)
-		g.GET("/rowsQuery", runRowsQuery)
-		g.GET("/tableQuery", runTableQuery)
-		g.GET("/timelineQuery", runTimelineQuery)
+		g.GET("/rows", runRowsQuery)
+		g.GET("/table", runTableQuery)
+		g.GET("/timeline", runTimelineQuery)
+		g.GET("/table_info", getTableInfo)
+		g.GET("/str_column_values", getStrColumnValues)
 	}
 
 	port := os.Getenv("PORT")
@@ -215,4 +217,69 @@ func runTimelineQuery(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, &reply)
+}
+
+func getTableInfo(c *gin.Context) {
+	table_name, ok := getSingleParam(c, "table")
+	if !ok {
+		c.AbortWithStatus(http.StatusBadRequest)
+	}
+
+	conn, ok := getServiceConnection()
+	if !ok {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
+	client := pb.NewBapiClient(conn)
+
+	reply, e := client.GetTableInfo(context.Background(), &pb.GetTableInfoRequest{
+		TableName: table_name,
+	})
+
+	if e != nil {
+		logger.Warnf("fail to get service reply: %v", e)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, &reply)
+}
+
+func getStrColumnValues(c *gin.Context) {
+	// TODO: add table name to all queries
+	_, ok1 := getSingleParam(c, "table")
+	column_name, ok2 := getSingleParam(c, "column")
+	if !ok1 || !ok2 {
+		c.AbortWithStatus(http.StatusBadRequest)
+	}
+
+	conn, ok := getServiceConnection()
+	if !ok {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
+	client := pb.NewBapiClient(conn)
+
+	reply, e := client.GetStrColumnValues(context.Background(), &pb.GetStrColumnValuesRequest{
+		ColumnName: column_name,
+	})
+
+	if e != nil {
+		logger.Warnf("fail to get service reply: %v", e)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, &reply)
+}
+
+func getSingleParam(c *gin.Context, param string) (string, bool) {
+	vals, ok := c.Request.URL.Query()[param]
+	if !ok || len(vals) != 1 {
+		return "", false
+	}
+
+	return vals[0], true
 }
