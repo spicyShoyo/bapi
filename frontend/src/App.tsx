@@ -19,8 +19,7 @@ function App() {
             <div className="flex flex-1">
               <div className="w-[288px] h-full bg-slate-600 ">
                 <TimeRangePicker />
-                <FilterField />
-                <FilterField />
+                <FilterField onRemove={() => {}} />
               </div>
               <div className="flex-1 h-full bg-slate-700" />
             </div>

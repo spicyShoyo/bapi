@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { Popover, Combobox, Listbox } from "@headlessui/react";
-import { useContext, useState } from "react";
+import { useCallback, useContext, useState } from "react";
 
 import { FilterOp, FilterOpType, getFilterOpStr } from "@/queryConsts";
 import { TableContext, TableData } from "@/TableContext";
@@ -37,21 +37,24 @@ export default function FilterField(props: { onRemove: () => void }) {
   const { colName, setColName, filterOp, setFilterOp } =
     useFilterSettings(tableData);
   return (
-    <div className="flex justify-between mt-4 mr-2">
-      <div className="flex">
-        <ColSelector
-          tableData={tableData}
-          colName={colName}
-          setColName={setColName}
-        />
-        <FilterSelector filterOp={filterOp} setFilterOp={setFilterOp} />
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-between mt-4 mr-2">
+        <div className="flex">
+          <ColSelector
+            tableData={tableData}
+            colName={colName}
+            setColName={setColName}
+          />
+          <FilterSelector filterOp={filterOp} setFilterOp={setFilterOp} />
+        </div>
+        <button
+          className="text-slate-100 bg-slate-700 px-2 py-1 rounded font-bold"
+          onClick={props.onRemove}
+        >
+          <b>{"\u00d7"}</b>
+        </button>
       </div>
-      <button
-        className="text-slate-100 bg-slate-700 px-2 py-1 rounded font-bold"
-        onClick={props.onRemove}
-      >
-        <b>{"\u00d7"}</b>
-      </button>
+      <ValuesCombobox colName={colName} />
     </div>
   );
 }
@@ -181,5 +184,66 @@ function ColCombobox({
         </div>
       </Combobox>
     </div>
+  );
+}
+
+function useValuesHint(colName: string, query: string): string[] {
+  // TODO: connect to backend
+  return query.trim() === "" ? [] : [query.trim()];
+}
+
+function ValuesCombobox({ colName }: { colName: string }) {
+  const [query, setQuery] = useState("");
+  const valuesHint = useValuesHint(colName, query);
+  const [values, setValues] = useState<string[]>([]);
+  const onSelect = useCallback(
+    (value) => {
+      if (values.includes(value)) {
+        return;
+      }
+      setValues([...values, value]);
+    },
+    [values, setValues],
+  );
+
+  const onRemove = useCallback(
+    (value) => {
+      setValues(values.filter((val) => val !== value));
+    },
+    [values, setValues],
+  );
+
+  return (
+    <Combobox value="" onChange={onSelect}>
+      <div className="flex flex-col mt-1 w-[144px]">
+        <div className="text-left bg-white rounded-lg shadow-md overflow-hidden">
+          {values.map((val) => (
+            <button key={val} onClick={() => onRemove(val)}>
+              {val}
+            </button>
+          ))}
+          <Combobox.Input
+            className="py-2 pl-3 pr-10 text-gray-900"
+            displayValue={(col: string) => col}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </div>
+        <Combobox.Options className="py-1 mt-1  bg-white rounded-md shadow-lg max-h-60 focus:outline-none sm:text-sm">
+          {valuesHint.map((val) => (
+            <Combobox.Option
+              key={val}
+              className={({ active }) =>
+                `cursor-default select-none py-2 pl-4 pr-4 ${
+                  active ? "text-white bg-teal-600" : "text-gray-900"
+                }`
+              }
+              value={val}
+            >
+              {val}
+            </Combobox.Option>
+          ))}
+        </Combobox.Options>
+      </div>
+    </Combobox>
   );
 }
