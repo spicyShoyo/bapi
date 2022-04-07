@@ -37,9 +37,9 @@ export default function FilterField(props: { onRemove: () => void }) {
   const { colName, setColName, filterOp, setFilterOp } =
     useFilterSettings(tableData);
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex justify-between mt-4 mr-2">
-        <div className="flex">
+    <div className="flex flex-col gap-4 mx-2">
+      <div className="flex justify-between mt-4">
+        <div className="flex gap-2">
           <ColSelector
             tableData={tableData}
             colName={colName}
@@ -110,7 +110,7 @@ function ColSelector({
   return (
     <Popover>
       <Popover.Button>
-        <div className="flex justify-between text-slate-100 bg-slate-700 mx-2 px-2 py-1 rounded font-bold w-[144px] text-left">
+        <div className="flex justify-between text-slate-100 bg-slate-700 px-2 py-1 rounded font-bold w-[144px] text-left">
           <div>{colName}</div>
           <div>{"\u2630"}</div>
         </div>
@@ -147,7 +147,7 @@ function ColCombobox({
         );
 
   return (
-    <div className="absolute ml-2">
+    <div className="absolute">
       <Combobox value="" onChange={setColName}>
         <div className="flex flex-col mt-1 w-[144px]">
           <div className="text-left bg-white rounded-lg shadow-md overflow-hidden">
@@ -214,36 +214,46 @@ function ValuesCombobox({ colName }: { colName: string }) {
   );
 
   return (
-    <Combobox value="" onChange={onSelect}>
-      <div className="flex flex-col mt-1 w-[144px]">
-        <div className="text-left bg-white rounded-lg shadow-md overflow-hidden">
-          {values.map((val) => (
-            <button key={val} onClick={() => onRemove(val)}>
-              {val}
-            </button>
-          ))}
-          <Combobox.Input
-            className="py-2 pl-3 pr-10 text-gray-900"
-            displayValue={(col: string) => col}
-            onChange={(event) => setQuery(event.target.value)}
-          />
+    <div className="flex flex-col gap-2">
+      <Combobox value="" onChange={onSelect}>
+        <div className="flex flex-col">
+          <div className="text-left bg-white rounded-lg shadow-md overflow-hidden w-full">
+            <Combobox.Input
+              className="py-2 pl-3 pr-10 text-gray-900 w-full"
+              displayValue={(col: string) => col}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </div>
+          <div className="absolute mt-11 w-[272px]">
+            <Combobox.Options className="py-1 bg-white rounded-md shadow-lg max-h-60 focus:outline-none sm:text-sm">
+              {valuesHint.map((val) => (
+                <Combobox.Option
+                  key={val}
+                  className={({ active }) =>
+                    `cursor-default select-none py-2 pl-4 pr-4 ${
+                      active ? "text-white bg-teal-600" : "text-gray-900"
+                    }`
+                  }
+                  value={val}
+                >
+                  {val}
+                </Combobox.Option>
+              ))}
+            </Combobox.Options>
+          </div>
         </div>
-        <Combobox.Options className="py-1 mt-1  bg-white rounded-md shadow-lg max-h-60 focus:outline-none sm:text-sm">
-          {valuesHint.map((val) => (
-            <Combobox.Option
-              key={val}
-              className={({ active }) =>
-                `cursor-default select-none py-2 pl-4 pr-4 ${
-                  active ? "text-white bg-teal-600" : "text-gray-900"
-                }`
-              }
-              value={val}
-            >
-              {val}
-            </Combobox.Option>
-          ))}
-        </Combobox.Options>
+      </Combobox>
+      <div className="flex flex-wrap gap-1">
+        {values.map((val) => (
+          <button
+            className="bg-slate-500 rounded mx-1 px-2 text-slate-200"
+            key={val}
+            onClick={() => onRemove(val)}
+          >
+            {val}
+          </button>
+        ))}
       </div>
-    </Combobox>
+    </div>
   );
 }
