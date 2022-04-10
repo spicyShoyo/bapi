@@ -1,48 +1,57 @@
+/* eslint-disable no-unused-vars */
 import Immutable from "immutable";
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 import { Filter } from "./queryConsts";
+import useFilters, { FilterId, FiltersManager } from "./useFilters";
 import QueryRecord from "@/QueryRecord";
 
 // eslint-disable-next-line no-unused-vars
-type UpdateFn = (queryRecord: QueryRecord) => QueryRecord;
+export type UpdateFn = (queryRecord: QueryRecord) => QueryRecord;
 
-export const QueryContext = React.createContext<{
-  queryRecord: QueryRecord;
-  filterMap: Map<number, React.MutableRefObject<Filter>>;
-  runQuery: () => void;
-  // eslint-disable-next-line no-unused-vars
-  updateQueryRecord: (fn: UpdateFn) => void;
-}>({
+export const QueryContext = React.createContext<
+  FiltersManager & {
+    queryRecord: QueryRecord;
+    runQuery: () => void;
+    // eslint-disable-next-line no-unused-vars
+    updateQueryRecord: (fn: UpdateFn) => void;
+  }
+>({
   queryRecord: new QueryRecord(),
-  filterMap: new Map(),
   runQuery: () => {},
   updateQueryRecord: () => {},
+
+  uiFilters: [],
+  addFilter: () => 0,
+  removeFilter: (filterId: FilterId) => {},
+  updateFilter: (id: FilterId, filter: Filter) => {},
 });
 
 function useQueryRecord(): [
-  React.MutableRefObject<QueryRecord>,
+  QueryRecord,
   // eslint-disable-next-line no-unused-vars
   (fn: UpdateFn) => void,
 ] {
   const location = useLocation();
-  const queryRecordRef = useRef<QueryRecord>(QueryRecord.fromUrl(location));
+  const [queryRecord, setQueryRecord] = useState<QueryRecord>(
+    QueryRecord.fromUrl(location),
+  );
 
   // @ts-expect-error: for debug
-  window.recordRef = queryRecordRef;
+  window.getRecord = () => queryRecord;
 
   const updateQueryRecord = useCallback(
     (updateFn: UpdateFn) => {
-      const newRecord = updateFn(queryRecordRef.current);
-      if (!Immutable.is(newRecord, queryRecordRef.current)) {
-        queryRecordRef.current = newRecord;
+      const newRecord = updateFn(queryRecord);
+      if (!Immutable.is(newRecord, queryRecord)) {
+        setQueryRecord(newRecord);
       }
     },
-    [queryRecordRef],
+    [queryRecord, setQueryRecord],
   );
 
-  return [queryRecordRef, updateQueryRecord];
+  return [queryRecord, updateQueryRecord];
 }
 
 export function QueryContextProvider({
@@ -51,15 +60,11 @@ export function QueryContextProvider({
   children: React.ReactElement | null;
 }) {
   const navigate = useNavigate();
-  const [queryRecordRef, updateQueryRecord] = useQueryRecord();
-  // TODO: this is gross
-  const filterMap = useRef<Map<number, React.MutableRefObject<Filter>>>(
-    new Map(),
-  );
+  const [queryRecord, updateQueryRecord] = useQueryRecord();
 
   const runQuery = useCallback(() => {
-    navigate(queryRecordRef.current.toUrl());
-  }, [queryRecordRef, navigate]);
+    navigate(queryRecord.toUrl());
+  }, [queryRecord, navigate]);
 
   useEffect(() => {
     function onEnter(e: KeyboardEvent) {
@@ -77,9 +82,9 @@ export function QueryContextProvider({
       // eslint-disable-next-line react/jsx-no-constructed-context-values
       value={{
         runQuery,
-        filterMap: filterMap.current,
-        queryRecord: queryRecordRef.current,
+        queryRecord,
         updateQueryRecord,
+        ...useFilters(updateQueryRecord),
       }}
     >
       {children}

@@ -21,7 +21,7 @@ import {
 
 function useFilterSettings(
   tableData: TableInfo,
-  onAdd: (ref: React.MutableRefObject<Filter>) => void,
+  onUpdate: (updatedFilter: Filter) => void,
 ): {
   column: ColumnInfo;
   setColName: (_: string) => void;
@@ -37,28 +37,15 @@ function useFilterSettings(
   const [intVals, setIntVals] = useState<number[]>([]);
   const [strVals, setStrVals] = useState<string[]>([]);
 
-  const filter = useRef<Filter>({
-    column_name: column.column_name,
-    filter_op: filterOp,
-    // TODO: support multiple values
-    int_val: intVals[0],
-    str_val: strVals[0],
-  });
-
   useEffect(() => {
-    filter.current = {
+    onUpdate({
       column_name: column.column_name,
       filter_op: filterOp,
       // TODO: support multiple values
-      int_val: intVals[0],
-      str_val: strVals[0],
-    };
-  }, [column, filterOp, intVals, strVals]);
-
-  useEffect(() => {
-    onAdd(filter);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      int_vals: intVals,
+      str_vals: strVals,
+    });
+  }, [column, filterOp, intVals, strVals, onUpdate]);
 
   return {
     column,
@@ -80,12 +67,12 @@ function useFilterSettings(
 }
 
 export default function FilterField(props: {
-  onAdd: (ref: React.MutableRefObject<Filter>) => void;
+  onUpdate: (updatedFilter: Filter) => void;
   onRemove: () => void;
 }) {
   const tableInfo = useContext(TableContext);
   const { column, setColName, filterOp, setFilterOp, setIntVals, setStrVals } =
-    useFilterSettings(nullthrows(tableInfo), props.onAdd);
+    useFilterSettings(nullthrows(tableInfo), props.onUpdate);
 
   return (
     <div className="flex flex-col gap-4 mx-2 mt-2 py-2 px-4 outline-double outline-slate-200">
