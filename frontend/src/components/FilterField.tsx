@@ -1,8 +1,8 @@
 /* eslint-disable no-unused-vars */
 import { Popover, Combobox, Listbox } from "@headlessui/react";
-import { useCallback, useContext, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 
-import { FilterOp, FilterOpType, getFilterOpStr } from "@/queryConsts";
+import { Filter, FilterOp, FilterOpType, getFilterOpStr } from "@/queryConsts";
 import { TableContext, TableData } from "@/TableContext";
 
 function useFilterSettings(tableData: TableData): {
@@ -36,9 +36,28 @@ export default function FilterField(props: { onRemove: () => void }) {
   const { tableData } = useContext(TableContext);
   const { colName, setColName, filterOp, setFilterOp } =
     useFilterSettings(tableData);
+  const [intVals, setIntVals] = useState<number[]>([]);
+  const [strVals, setStrVals] = useState<string[]>([]);
+
+  const filter = useRef<Filter>({
+    column_name: colName,
+    filter_op: filterOp,
+    int_val: null,
+    str_val: null,
+  });
+
+  useEffect(() => {
+    Object.assign(filter.current, {
+      column_name: colName,
+      filter_op: filterOp,
+      int_val: null,
+      str_val: null,
+    });
+  }, [filter, colName, filterOp]);
+
   return (
-    <div className="flex flex-col gap-4 mx-2">
-      <div className="flex justify-between mt-4">
+    <div className="flex flex-col gap-4 mx-2 mt-2 pt-2 px-4 outline-double outline-slate-200">
+      <div className="flex justify-between">
         <div className="flex gap-2">
           <ColSelector
             tableData={tableData}
