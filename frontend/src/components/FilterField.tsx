@@ -1,11 +1,20 @@
 /* eslint-disable no-unused-vars */
 import { Popover, Combobox, Listbox } from "@headlessui/react";
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import React, {
+  InputHTMLAttributes,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
+import * as dataManager from "@/dataManager";
+import nullthrows from "@/nullthrows";
 import { Filter, FilterOp, FilterOpType, getFilterOpStr } from "@/queryConsts";
-import { TableContext, TableData } from "@/TableContext";
+import { TableContext, TableInfo } from "@/TableContext";
 
-function useFilterSettings(tableData: TableData): {
+function useFilterSettings(tableData: TableInfo): {
   colName: string;
   setColName: (_: string) => void;
   filterOp: FilterOpType;
@@ -15,7 +24,11 @@ function useFilterSettings(tableData: TableData): {
   strVal: string | null;
   setStrVal: (_: string | null) => void;
 } {
-  const [colName, setColName] = useState(tableData.str_columns[0]);
+  const [colName, setColName] = useState(
+    tableData.str_columns?.[0].column_name ??
+      tableData.int_columns?.[0].column_name ??
+      "INVALID",
+  );
   const [filterOp, setFilterOp] = useState<FilterOpType>(FilterOp.EQ);
   const [intVal, setIntVal] = useState<number | null>(null);
   const [strVal, setStrVal] = useState<string | null>(null);
@@ -33,9 +46,10 @@ function useFilterSettings(tableData: TableData): {
 }
 
 export default function FilterField(props: { onRemove: () => void }) {
-  const { tableData } = useContext(TableContext);
-  const { colName, setColName, filterOp, setFilterOp } =
-    useFilterSettings(tableData);
+  const tableInfo = useContext(TableContext);
+  const { colName, setColName, filterOp, setFilterOp } = useFilterSettings(
+    nullthrows(tableInfo),
+  );
   const [intVals, setIntVals] = useState<number[]>([]);
   const [strVals, setStrVals] = useState<string[]>([]);
 
@@ -56,11 +70,11 @@ export default function FilterField(props: { onRemove: () => void }) {
   }, [filter, colName, filterOp]);
 
   return (
-    <div className="flex flex-col gap-4 mx-2 mt-2 pt-2 px-4 outline-double outline-slate-200">
+    <div className="flex flex-col gap-4 mx-2 mt-2 py-2 px-4 outline-double outline-slate-200">
       <div className="flex justify-between">
         <div className="flex gap-2">
           <ColSelector
-            tableData={tableData}
+            tableData={tableInfo!}
             colName={colName}
             setColName={setColName}
           />
@@ -73,7 +87,7 @@ export default function FilterField(props: { onRemove: () => void }) {
           <b>{"\u00d7"}</b>
         </button>
       </div>
-      <ValuesCombobox colName={colName} />
+      <ValuesCombobox table={tableInfo!.table_name} colName={colName} />
     </div>
   );
 }
@@ -123,7 +137,7 @@ function ColSelector({
   setColName,
 }: {
   colName: string;
-  tableData: TableData;
+  tableData: TableInfo;
   setColName: (_: string) => void;
 }) {
   return (
@@ -141,7 +155,10 @@ function ColSelector({
               setColName(colName);
               close();
             }}
-            cols={[...tableData.str_columns, ...tableData.int_columns]}
+            cols={[
+              ...(tableData!.str_columns?.map((col) => col.column_name) ?? []),
+              ...(tableData!.int_columns?.map((col) => col.column_name) ?? []),
+            ]}
           />
         )}
       </Popover.Panel>
@@ -206,14 +223,44 @@ function ColCombobox({
   );
 }
 
-function useValuesHint(colName: string, query: string): string[] {
-  // TODO: connect to backend
-  return query.trim() === "" ? [] : [query.trim()];
+function useTypeahead(table: string, colName: string, query: string): string[] {
+  const [hint, setHint] = useState<string[]>([]);
+  const queryString = query.trim();
+
+  useEffect(() => {
+    setHint(queryString === "" ? [] : [queryString]);
+
+    if (queryString === "") {
+      return;
+    }
+
+    dataManager.fetchStringValues(table, colName, queryString).then((hints) => {
+      if (hints == null) {
+        return;
+      }
+      setHint(queryString === "" ? hints : [queryString, ...hints]);
+    });
+  }, [table, colName, queryString]);
+  return hint;
 }
 
-function ValuesCombobox({ colName }: { colName: string }) {
+const TextBox = React.forwardRef(
+  (props: InputHTMLAttributes<HTMLInputElement>, ref) => (
+    // @ts-ignore
+    // eslint-disable-next-line react/jsx-props-no-spreading
+    <input ref={ref} autoComplete="off" {...props} />
+  ),
+);
+
+function ValuesCombobox({
+  table,
+  colName,
+}: {
+  table: string;
+  colName: string;
+}) {
   const [query, setQuery] = useState("");
-  const valuesHint = useValuesHint(colName, query);
+  const valuesHint = useTypeahead(table, colName, query);
   const [values, setValues] = useState<string[]>([]);
   const onSelect = useCallback(
     (value) => {
@@ -238,7 +285,8 @@ function ValuesCombobox({ colName }: { colName: string }) {
         <div className="flex flex-col">
           <div className="text-left bg-white rounded-lg shadow-md overflow-hidden w-full">
             <Combobox.Input
-              className="py-2 pl-3 pr-10 text-gray-900 w-full"
+              as={TextBox}
+              className="py-2 pl-3 pr-10 text-gray-900 w-full autocompl"
               displayValue={(col: string) => col}
               onChange={(event) => setQuery(event.target.value)}
             />

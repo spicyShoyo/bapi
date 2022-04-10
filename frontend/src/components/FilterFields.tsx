@@ -26,10 +26,11 @@ export default function FilterFields() {
       {fieldIds.map((fieldId) => (
         <FilterField key={fieldId} onRemove={() => removeField(fieldId)} />
       ))}
-      <button className="text-slate-100 bg-slate-700 mx-2 py-1 mt-2 rounded font-bold">
-        <b role="button" tabIndex={0} onClick={addField} onKeyDown={addField}>
-          + Add Filter
-        </b>
+      <button
+        className="text-slate-100 bg-slate-700 mx-2 py-1 mt-2 rounded font-bold"
+        onClick={addField}
+      >
+        <b>+ Add Filter</b>
       </button>
     </div>
   );

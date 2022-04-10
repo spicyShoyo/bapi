@@ -8,7 +8,7 @@ import { TableContextProvider } from "@/TableContext";
 function App() {
   return (
     <HashRouter>
-      <TableContextProvider>
+      <TableContextProvider table="test_table">
         <QueryContextProvider>
           <div className="flex flex-col bg-slate-800 h-screen w-screen">
             <div className="flex h-[36px]">

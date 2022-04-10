@@ -1,33 +1,46 @@
-import React from "react";
+import React, { useEffect } from "react";
 
-export type TableData = {
-  int_columns: string[];
-  str_columns: string[];
+import * as dataManager from "@/dataManager";
+
+export enum ColumnType {
+  NONE = 0,
+  INT = 1,
+  STR = 2,
+}
+
+export type ColumnInfo = {
+  column_name: string;
+  column_type: ColumnType;
+};
+
+export type TableInfo = {
+  table_name: string;
+  row_count: number;
+  min_ts: number;
+  max_ts: number | null;
+  int_columns: ColumnInfo[] | null;
+  str_columns: ColumnInfo[] | null;
 };
 
 // Provides data related to the current user such as wallet.
-export const TableContext = React.createContext<{ tableData: TableData }>({
-  tableData: {
-    int_columns: [],
-    str_columns: [],
-  },
-});
+export const TableContext = React.createContext<TableInfo | null>(null);
 
 export function TableContextProvider({
+  table,
   children = null,
 }: {
+  table: string;
   children: React.ReactElement | null;
 }) {
   // TODO: connect with table data
-  const [tableData] = React.useState<TableData>({
-    int_columns: ["ts", "count"],
-    str_columns: ["event"],
-  });
+  const [tableInfo, setTableInfo] = React.useState<TableInfo | null>(null);
 
-  return (
+  useEffect(() => {
+    dataManager.fetchTableInfo(table).then(setTableInfo);
+  }, [table]);
+
+  return tableInfo == null ? null : (
     // eslint-disable-next-line react/jsx-no-constructed-context-values
-    <TableContext.Provider value={{ tableData }}>
-      {children}
-    </TableContext.Provider>
+    <TableContext.Provider value={tableInfo}>{children}</TableContext.Provider>
   );
 }
