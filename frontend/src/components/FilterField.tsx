@@ -10,8 +10,9 @@ import React, {
 } from "react";
 
 import * as dataManager from "@/dataManager";
+import { Filter, FilterRecord } from "@/filterRecord";
 import nullthrows from "@/nullthrows";
-import { Filter, FilterOp, FilterOpType, getFilterOpStr } from "@/queryConsts";
+import { FilterOp, FilterOpType, getFilterOpStr } from "@/queryConsts";
 import {
   ColumnInfo,
   ColumnType,
@@ -19,7 +20,31 @@ import {
   TableInfo,
 } from "@/TableContext";
 
+function findColumn(
+  colName: string | undefined,
+  tableInfo: TableInfo,
+): ColumnInfo | null {
+  if (colName == null) {
+    return null;
+  }
+  return (
+    tableInfo.str_columns?.find((col) => col.column_name === colName) ??
+    tableInfo.int_columns?.find((col) => col.column_name === colName) ??
+    null
+  );
+}
+
+function arrayMatch<T>(arr1: T[] | null, arr2: T[] | null): boolean {
+  return (
+    arr1 != null &&
+    arr2 != null &&
+    arr1.length === arr2.length &&
+    arr1.every((item, idx) => item === arr2[idx])
+  );
+}
+
 function useFilterSettings(
+  initFilter: Filter | null,
   tableData: TableInfo,
   onUpdate: (updatedFilter: Filter) => void,
 ): {
@@ -30,30 +55,42 @@ function useFilterSettings(
   setIntVals: (_: number[]) => void;
   setStrVals: (_: string[]) => void;
 } {
+  const [filter, setFilter] = useState<Filter | null>(initFilter);
+
   const [column, setColumn] = useState<ColumnInfo>(
-    nullthrows(tableData.str_columns?.[0] ?? tableData.int_columns?.[0]),
+    nullthrows(
+      findColumn(filter?.column_name, tableData) ??
+        tableData.str_columns?.[0] ??
+        tableData.int_columns?.[0],
+    ),
   );
-  const [filterOp, setFilterOp] = useState<FilterOpType>(FilterOp.EQ);
-  const [intVals, setIntVals] = useState<number[]>([]);
-  const [strVals, setStrVals] = useState<string[]>([]);
+  const [filterOp, setFilterOp] = useState<FilterOpType>(
+    filter?.filter_op ?? FilterOp.EQ,
+  );
+  const [intVals, setIntVals] = useState<number[]>(filter?.int_vals ?? []);
+  const [strVals, setStrVals] = useState<string[]>(filter?.str_vals ?? []);
 
   useEffect(() => {
-    onUpdate({
+    const newFilter = {
       column_name: column.column_name,
       filter_op: filterOp,
-      // TODO: support multiple values
       int_vals: intVals,
       str_vals: strVals,
-    });
-  }, [column, filterOp, intVals, strVals, onUpdate]);
+    };
+    if (FilterRecord.filtersMatch(newFilter, filter)) {
+      return;
+    }
+
+    setFilter(newFilter);
+    onUpdate(newFilter);
+
+    // TODO: this is gross
+  }, [column, filterOp, intVals, strVals, onUpdate, filter]);
 
   return {
     column,
     setColName: (colName: string) => {
-      const column = nullthrows(
-        tableData.str_columns?.find((col) => col.column_name === colName) ??
-          tableData.int_columns?.find((col) => col.column_name === colName),
-      );
+      const column = nullthrows(findColumn(colName, tableData));
       setColumn(column);
       setFilterOp(FilterOp.EQ);
       setIntVals([]);
@@ -67,12 +104,13 @@ function useFilterSettings(
 }
 
 export default function FilterField(props: {
+  filter: Filter | null;
   onUpdate: (updatedFilter: Filter) => void;
   onRemove: () => void;
 }) {
   const tableInfo = useContext(TableContext);
   const { column, setColName, filterOp, setFilterOp, setIntVals, setStrVals } =
-    useFilterSettings(nullthrows(tableInfo), props.onUpdate);
+    useFilterSettings(props.filter, nullthrows(tableInfo), props.onUpdate);
 
   return (
     <div className="flex flex-col gap-4 mx-2 mt-2 py-2 px-4 outline-double outline-slate-200">

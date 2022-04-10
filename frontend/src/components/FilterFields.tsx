@@ -1,7 +1,7 @@
 import { useContext } from "react";
 
 import FilterField from "./FilterField";
-import { Filter } from "@/queryConsts";
+import { Filter } from "@/filterRecord";
 import { QueryContext } from "@/QueryContext";
 
 export default function FilterFields() {
@@ -13,6 +13,7 @@ export default function FilterFields() {
       {uiFilters.map((filter) => (
         <FilterField
           key={filter.id}
+          filter={filter.filter}
           onUpdate={(updatedFilter: Filter) =>
             updateFilter(filter.id, updatedFilter)
           }

@@ -3,9 +3,9 @@ import Immutable from "immutable";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
-import { Filter } from "./queryConsts";
 import useFilters, { FilterId, FiltersManager } from "./useFilters";
-import QueryRecord from "@/QueryRecord";
+import { Filter } from "@/filterRecord";
+import QueryRecord from "@/queryRecord";
 
 // eslint-disable-next-line no-unused-vars
 export type UpdateFn = (queryRecord: QueryRecord) => QueryRecord;

@@ -1,11 +1,9 @@
 /* eslint-disable no-unused-vars */
 import { useCallback, useRef, useState } from "react";
 
-import nullthrows from "./nullthrows";
-import { Filter } from "./queryConsts";
+import { Filter, FilterRecord } from "./filterRecord";
 import { ColumnType } from "./TableContext";
 import { UpdateFn } from "@/QueryContext";
-import QueryRecord from "@/QueryRecord";
 
 export type FilterId = number;
 export type UiFilter = {
@@ -57,18 +55,14 @@ export default function useFilters(
       updateQueryRecord((record) => {
         switch (colType) {
           case ColumnType.INT: {
-            console.log("$$$", record.int_filters);
-            break;
+            return record.removeIntFilter(idx);
           }
           case ColumnType.STR: {
-            console.log("$$$", record.str_filters);
-            break;
+            return record.removeStrFilter(idx);
           }
           default:
             throw new Error(`invalid column type ${colType}`);
         }
-
-        return record;
       });
     },
     [updateQueryRecord],
@@ -77,6 +71,17 @@ export default function useFilters(
   const removeFilter = useCallback(
     (id: FilterId) => {
       dematerializeFilter(id);
+      if (uiFilters.length === 1) {
+        // keep at least one filter in UI
+        lastFilterId.current += 1;
+        setUiFilters([
+          {
+            id: lastFilterId.current,
+            filter: null,
+          },
+        ]);
+        return;
+      }
       setUiFilters(uiFilters.filter((v) => v.id !== id));
     },
     [dematerializeFilter, uiFilters],
@@ -84,17 +89,51 @@ export default function useFilters(
 
   const materializeFilter = useCallback(
     (id: FilterId, filter: Filter) => {
-      updateQueryRecord((record) => record);
+      if (!materialized.current.has(id)) {
+        updateQueryRecord((record) => {
+          // TODO: better handling of filter type
+          if (filter.int_vals.length !== 0) {
+            materialized.current.set(id, [
+              ColumnType.INT,
+              record.int_filters?.size ?? 0,
+            ]);
+            return record.addIntFilter(filter);
+          }
+          if (filter.str_vals.length !== 0) {
+            materialized.current.set(id, [
+              ColumnType.STR,
+              record.str_filters?.size ?? 0,
+            ]);
+            return record.addStrFilter(filter);
+          }
+          return record;
+        });
+        return;
+      }
+      const [_, idx] = materialized.current.get(id)!;
+      updateQueryRecord((record) => {
+        // TODO: better handling of filter type
+        if (filter.int_vals.length !== 0) {
+          return record.updateIntFilter(filter, idx);
+        }
+        if (filter.str_vals.length !== 0) {
+          return record.updateStrFilter(filter, idx);
+        }
+        return record;
+      });
     },
     [updateQueryRecord],
   );
 
   const updateFilter = useCallback(
     (id: FilterId, filter: Filter) => {
-      console.log("$$$", id, filter);
-      updateQueryRecord((record) => record);
+      if (!FilterRecord.isValidFilter(filter)) {
+        dematerializeFilter(id);
+        return;
+      }
+      materializeFilter(id, filter);
     },
-    [updateQueryRecord],
+    [dematerializeFilter, materializeFilter],
   );
 
   return {

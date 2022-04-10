@@ -49,13 +49,6 @@ function getFilterOpStr(filterOp: FilterOpType): string {
   }
 }
 
-type Filter = {
-  column_name: string;
-  filter_op: FilterOpType;
-  int_vals: number[];
-  str_vals: string[];
-};
-
 export { QueryType, FilterOp, QueryUrlPath, getFilterOpStr };
 
-export type { FilterOpType, Filter };
+export type { FilterOpType };
