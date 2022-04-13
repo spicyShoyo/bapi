@@ -1,10 +1,13 @@
+/* eslint-disable react/jsx-props-no-spreading */
 /* eslint-disable no-unused-vars */
 import { Popover, Combobox, Listbox } from "@headlessui/react";
 import React, {
+  ForwardedRef,
   InputHTMLAttributes,
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -298,12 +301,58 @@ function useTypeahead(
   return hint;
 }
 
+const TokenContext = React.createContext<{
+  values: string[];
+  query: string;
+  onRemove: (val: string) => void;
+}>({
+  values: [],
+  query: "",
+  onRemove: () => {},
+});
+
 const TextBox = React.forwardRef(
-  (props: InputHTMLAttributes<HTMLInputElement>, ref) => (
-    // @ts-ignore
-    // eslint-disable-next-line react/jsx-props-no-spreading
-    <input ref={ref} autoComplete="off" {...props} />
-  ),
+  (
+    props: InputHTMLAttributes<HTMLInputElement>,
+    ref: ForwardedRef<HTMLInputElement>,
+  ) => {
+    const { values, query, onRemove } = useContext(TokenContext);
+    const [backspaceOnce, setBackspaceOnce] = useState(false);
+    return (
+      // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+      <div
+        className="flex flex-wrap gap-1 m-1"
+        onKeyDown={(e) => {
+          if (e.key !== "Backspace" || values.length === 0 || query !== "") {
+            setBackspaceOnce(false);
+            return;
+          }
+          // backspace twice to delete selected tokens
+          if (!backspaceOnce) {
+            setBackspaceOnce(true);
+            return;
+          }
+          onRemove(values[values.length - 1]);
+        }}
+      >
+        {values.map((val) => (
+          <button
+            className="bg-slate-500 rounded px-2 text-slate-200"
+            key={val}
+            onClick={() => onRemove(val)}
+          >
+            {val}
+          </button>
+        ))}
+        <input
+          className="pl-1 text-gray-900 w-full focus:outline-none flex-1"
+          ref={ref}
+          autoComplete="off"
+          {...props}
+        />
+      </div>
+    );
+  },
 );
 
 function ValuesCombobox({
@@ -322,12 +371,13 @@ function ValuesCombobox({
   const [values, setValues] = useState<string[]>([]);
   const onSelect = useCallback(
     (value) => {
+      setQuery("");
       if (values.includes(value)) {
         return;
       }
       setValues([...values, value]);
     },
-    [values, setValues],
+    [values, setQuery, setValues],
   );
 
   const onRemove = useCallback(
@@ -347,13 +397,17 @@ function ValuesCombobox({
   }, [column.column_type, setIntVals, setStrVals, values]);
 
   return (
-    <div className="flex flex-col gap-2">
+    <TokenContext.Provider
+      value={useMemo(
+        () => ({ values, query, onRemove }),
+        [values, query, onRemove],
+      )}
+    >
       <Combobox value="" onChange={onSelect}>
         <div className="flex flex-col">
           <div className="text-left bg-white rounded-lg shadow-md overflow-hidden w-full">
             <Combobox.Input
               as={TextBox}
-              className="py-2 pl-3 pr-10 text-gray-900 w-full autocompl"
               displayValue={(col: string) => col}
               onChange={(event) => setQuery(event.target.value)}
             />
@@ -377,17 +431,6 @@ function ValuesCombobox({
           </div>
         </div>
       </Combobox>
-      <div className="flex flex-wrap gap-1">
-        {values.map((val) => (
-          <button
-            className="bg-slate-500 rounded mx-1 px-2 text-slate-200"
-            key={val}
-            onClick={() => onRemove(val)}
-          >
-            {val}
-          </button>
-        ))}
-      </div>
-    </div>
+    </TokenContext.Provider>
   );
 }
