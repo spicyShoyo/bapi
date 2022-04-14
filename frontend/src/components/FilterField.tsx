@@ -1,4 +1,3 @@
-/* eslint-disable react/jsx-props-no-spreading */
 /* eslint-disable no-unused-vars */
 import { Popover, Combobox, Listbox } from "@headlessui/react";
 import React, {
@@ -12,6 +11,7 @@ import React, {
   useState,
 } from "react";
 
+import TokenizedTextField from "./TokenizedTextField";
 import * as dataManager from "@/dataManager";
 import { Filter, FilterRecord } from "@/filterRecord";
 import nullthrows from "@/nullthrows";
@@ -34,15 +34,6 @@ function findColumn(
     tableInfo.str_columns?.find((col) => col.column_name === colName) ??
     tableInfo.int_columns?.find((col) => col.column_name === colName) ??
     null
-  );
-}
-
-function arrayMatch<T>(arr1: T[] | null, arr2: T[] | null): boolean {
-  return (
-    arr1 != null &&
-    arr2 != null &&
-    arr1.length === arr2.length &&
-    arr1.every((item, idx) => item === arr2[idx])
   );
 }
 
@@ -133,11 +124,26 @@ export default function FilterField(props: {
           <b>{"\u00d7"}</b>
         </button>
       </div>
-      <ValuesCombobox
-        table={tableInfo!.table_name}
-        column={column}
-        setIntVals={setIntVals}
-        setStrVals={setStrVals}
+      <TokenizedTextField
+        strict={false}
+        fetchHints={(query) => {
+          if (column.column_type === ColumnType.INT) {
+            return Promise.resolve([]);
+          }
+          return dataManager.fetchStringValues(
+            tableInfo!.table_name,
+            column.column_name,
+            query,
+          );
+        }}
+        setValues={(values) => {
+          // TODO: validate ints
+          if (column.column_type === ColumnType.INT) {
+            setIntVals(values.map((v) => +v));
+          } else if (column.column_type === ColumnType.STR) {
+            setStrVals(values);
+          }
+        }}
       />
     </div>
   );
@@ -271,166 +277,5 @@ function ColCombobox({
         </div>
       </Combobox>
     </div>
-  );
-}
-
-function useTypeahead(
-  table: string,
-  column: ColumnInfo,
-  query: string,
-): string[] {
-  const [hint, setHint] = useState<string[]>([]);
-  const queryString = query.trim();
-
-  useEffect(() => {
-    setHint(queryString === "" ? [] : [queryString]);
-
-    if (queryString === "" || column.column_type !== ColumnType.STR) {
-      return;
-    }
-
-    dataManager
-      .fetchStringValues(table, column.column_name, queryString)
-      .then((hints) => {
-        if (hints == null) {
-          return;
-        }
-        setHint(queryString === "" ? hints : [queryString, ...hints]);
-      });
-  }, [table, column, queryString]);
-  return hint;
-}
-
-const TokenContext = React.createContext<{
-  values: string[];
-  query: string;
-  onRemove: (val: string) => void;
-}>({
-  values: [],
-  query: "",
-  onRemove: () => {},
-});
-
-const TextBox = React.forwardRef(
-  (
-    props: InputHTMLAttributes<HTMLInputElement>,
-    ref: ForwardedRef<HTMLInputElement>,
-  ) => {
-    const { values, query, onRemove } = useContext(TokenContext);
-    const [backspaceOnce, setBackspaceOnce] = useState(false);
-    return (
-      // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-      <div
-        className="flex flex-wrap gap-1 m-1"
-        onKeyDown={(e) => {
-          if (e.key !== "Backspace" || values.length === 0 || query !== "") {
-            setBackspaceOnce(false);
-            return;
-          }
-          // backspace twice to delete selected tokens
-          if (!backspaceOnce) {
-            setBackspaceOnce(true);
-            return;
-          }
-          onRemove(values[values.length - 1]);
-        }}
-      >
-        {values.map((val) => (
-          <button
-            className="bg-slate-500 rounded px-2 text-slate-200"
-            key={val}
-            onClick={() => onRemove(val)}
-          >
-            {val}
-          </button>
-        ))}
-        <input
-          className="pl-1 text-gray-900 w-full focus:outline-none flex-1"
-          ref={ref}
-          autoComplete="off"
-          {...props}
-        />
-      </div>
-    );
-  },
-);
-
-function ValuesCombobox({
-  table,
-  column,
-  setIntVals,
-  setStrVals,
-}: {
-  table: string;
-  column: ColumnInfo;
-  setIntVals: (_: number[]) => void;
-  setStrVals: (_: string[]) => void;
-}) {
-  const [query, setQuery] = useState("");
-  const valuesHint = useTypeahead(table, column, query);
-  const [values, setValues] = useState<string[]>([]);
-  const onSelect = useCallback(
-    (value) => {
-      setQuery("");
-      if (values.includes(value)) {
-        return;
-      }
-      setValues([...values, value]);
-    },
-    [values, setQuery, setValues],
-  );
-
-  const onRemove = useCallback(
-    (value) => {
-      setValues(values.filter((val) => val !== value));
-    },
-    [values, setValues],
-  );
-
-  useEffect(() => {
-    // TODO: validate ints
-    if (column.column_type === ColumnType.INT) {
-      setIntVals(values.map((v) => +v));
-    } else if (column.column_type === ColumnType.STR) {
-      setStrVals(values);
-    }
-  }, [column.column_type, setIntVals, setStrVals, values]);
-
-  return (
-    <TokenContext.Provider
-      value={useMemo(
-        () => ({ values, query, onRemove }),
-        [values, query, onRemove],
-      )}
-    >
-      <Combobox value="" onChange={onSelect}>
-        <div className="flex flex-col">
-          <div className="text-left bg-white rounded-lg shadow-md overflow-hidden w-full">
-            <Combobox.Input
-              as={TextBox}
-              displayValue={(col: string) => col}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </div>
-          <div className="absolute mt-11 w-[272px]">
-            <Combobox.Options className="py-1 bg-white rounded-md shadow-lg max-h-60 focus:outline-none sm:text-sm">
-              {valuesHint.map((val) => (
-                <Combobox.Option
-                  key={val}
-                  className={({ active }) =>
-                    `cursor-default select-none py-2 pl-4 pr-4 ${
-                      active ? "text-white bg-teal-600" : "text-gray-900"
-                    }`
-                  }
-                  value={val}
-                >
-                  {val}
-                </Combobox.Option>
-              ))}
-            </Combobox.Options>
-          </div>
-        </div>
-      </Combobox>
-    </TokenContext.Provider>
   );
 }
