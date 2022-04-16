@@ -12,18 +12,22 @@ import React, {
   useState,
 } from "react";
 
-function useTypeahead(
+function useTypeahead<T>(
   query: string,
-  strict: boolean,
-  fetchHints: (query: string) => Promise<string[] | null>,
-): string[] {
-  const [hint, setHint] = useState<string[]>([]);
+  queryToValue: ((query: string) => T) | null,
+  fetchHints: (query: string) => Promise<T[] | null>,
+): T[] {
+  const [hint, setHint] = useState<T[]>([]);
   const queryString = query.trim();
 
   const latestPromiseKey = useRef(0);
 
   useEffect(() => {
-    setHint(queryString === "" || strict ? [] : [queryString]);
+    const queryValue =
+      queryString !== "" && queryToValue != null
+        ? queryToValue(queryString)
+        : null;
+    setHint(queryValue == null ? [] : [queryValue]);
 
     latestPromiseKey.current += 1;
     const promiseHandle = latestPromiseKey.current;
@@ -32,9 +36,14 @@ function useTypeahead(
       if (hints == null || promiseHandle !== latestPromiseKey.current) {
         return;
       }
-      setHint(queryString === "" || strict ? hints : [queryString, ...hints]);
+
+      const queryValue =
+        queryString !== "" && queryToValue != null
+          ? queryToValue(queryString)
+          : null;
+      setHint(queryValue == null ? hints : [queryValue, ...hints]);
     });
-  }, [queryString, fetchHints, strict]);
+  }, [queryString, fetchHints, queryToValue]);
   return hint;
 }
 
@@ -89,19 +98,21 @@ const TextBox = React.forwardRef(
   },
 );
 
-export default function TokenizedTextField({
-  strict,
+export default function TokenizedTextField<T>({
+  queryToValue,
+  valueToString,
   setValues,
   fetchHints,
 }: {
-  strict: boolean;
-  setValues: (_: string[]) => void;
-  fetchHints: (query: string) => Promise<string[] | null>;
+  queryToValue: ((query: string) => T) | null; // null means only ones from hints is selectable
+  valueToString: (_: T | null) => string;
+  setValues: (_: T[]) => void;
+  fetchHints: (query: string) => Promise<T[] | null>;
 }) {
   const [query, setQuery] = useState("");
-  const typeaheadValues = useTypeahead(query, strict, fetchHints);
+  const typeaheadValues = useTypeahead(query, queryToValue, fetchHints);
 
-  const [selectedValues, setSelectedValues] = useState<string[]>([]);
+  const [selectedValues, setSelectedValues] = useState<T[]>([]);
   const onSelect = useCallback(
     (value) => {
       setQuery("");
@@ -127,8 +138,12 @@ export default function TokenizedTextField({
   return (
     <TokenContext.Provider
       value={useMemo(
-        () => ({ selectedValues, query, onRemove }),
-        [selectedValues, query, onRemove],
+        () => ({
+          selectedValues: selectedValues.map(valueToString),
+          query,
+          onRemove,
+        }),
+        [selectedValues, valueToString, query, onRemove],
       )}
     >
       <Combobox value="" onChange={onSelect}>
@@ -136,7 +151,7 @@ export default function TokenizedTextField({
           <div className="text-left bg-white rounded-md shadow-md overflow-hidden">
             <Combobox.Input
               as={TextBox}
-              displayValue={(col: string) => col}
+              displayValue={valueToString}
               onChange={(event) => setQuery(event.target.value)}
             />
           </div>
@@ -145,7 +160,7 @@ export default function TokenizedTextField({
               <Combobox.Options className="py-1 bg-white rounded-md shadow-lg max-h-60 focus:outline-none sm:text-sm">
                 {typeaheadValues.map((val) => (
                   <Combobox.Option
-                    key={val}
+                    key={valueToString(val)}
                     className={({ active }) =>
                       `cursor-default select-none py-2 pl-4 pr-4 ${
                         active ? "text-white bg-teal-600" : "text-gray-900"
@@ -153,7 +168,7 @@ export default function TokenizedTextField({
                     }
                     value={val}
                   >
-                    {val}
+                    {valueToString(val)}
                   </Combobox.Option>
                 ))}
               </Combobox.Options>

@@ -3,6 +3,7 @@ import Immutable from "immutable";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
+import { ColumnInfo } from "./TableContext";
 import useFilters, { FilterId, FiltersManager } from "./useFilters";
 import { Filter } from "@/filterRecord";
 import QueryRecord from "@/queryRecord";
@@ -26,7 +27,7 @@ export const QueryContext = React.createContext<
   addFilter: () => 0,
   removeFilter: (filterId: FilterId) => {},
   updateFilter: (id: FilterId, filter: Filter) => {},
-  setGroupbyCols: (col: string[]) => {},
+  setGroupbyCols: (col: ColumnInfo[]) => {},
 });
 
 function useQueryRecord(): [

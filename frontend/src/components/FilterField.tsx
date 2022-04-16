@@ -116,7 +116,8 @@ export default function FilterField(props: {
         </button>
       </div>
       <TokenizedTextField
-        strict={false}
+        queryToValue={(v: string) => v}
+        valueToString={(v: string | null) => v ?? ""}
         fetchHints={(query) => {
           if (column.column_type === ColumnType.INT) {
             return Promise.resolve([]);
@@ -232,7 +233,7 @@ function ColCombobox({
 
   return (
     <div className="absolute">
-      <Combobox value="" onChange={setColName}>
+      <Combobox value={null} onChange={setColName}>
         <div className="flex flex-col mt-1 w-[144px]">
           <div className="text-left bg-white rounded-lg shadow-md overflow-hidden">
             <Combobox.Input

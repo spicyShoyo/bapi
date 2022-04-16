@@ -2,7 +2,7 @@
 import { useCallback, useRef, useState } from "react";
 
 import { Filter, FilterRecord } from "./filterRecord";
-import { ColumnType } from "./TableContext";
+import { ColumnInfo, ColumnType } from "./TableContext";
 import { UpdateFn } from "@/QueryContext";
 
 export type FilterId = number;
@@ -16,7 +16,7 @@ export type FiltersManager = {
   addFilter: () => FilterId;
   removeFilter: (filterId: FilterId) => void;
   updateFilter: (id: FilterId, filter: Filter) => void;
-  setGroupbyCols: (colName: string[]) => void;
+  setGroupbyCols: (colName: ColumnInfo[]) => void;
 };
 
 export default function useFilters(
@@ -137,7 +137,7 @@ export default function useFilters(
     [dematerializeFilter, materializeFilter],
   );
 
-  const setGroupbyCols = (colName: string[]) => console.log(colName);
+  const setGroupbyCols = (colName: ColumnInfo[]) => console.log(colName);
 
   return {
     uiFilters,
