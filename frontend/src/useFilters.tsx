@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import { useCallback, useRef, useState } from "react";
 
 import { Filter, FilterRecord } from "./filterRecord";

@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 
-import { ColumnInfo } from "@/ColumnRecord";
+import { ColumnInfo } from "@/columnRecord";
 import * as dataManager from "@/dataManager";
 
 export type TableInfo = {
@@ -22,7 +22,6 @@ export function TableContextProvider({
   table: string;
   children: React.ReactElement | null;
 }) {
-  // TODO: connect with table data
   const [tableInfo, setTableInfo] = React.useState<TableInfo | null>(null);
 
   useEffect(() => {

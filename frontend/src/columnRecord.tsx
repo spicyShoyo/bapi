@@ -11,10 +11,7 @@ export type ColumnInfo = {
   column_type: ColumnType;
 };
 
-export class ColumnRecord extends Immutable.Record<{
-  column_name: string | null;
-  column_type: ColumnType | null;
-}>({
+export class ColumnRecord extends Immutable.Record<DeepRecord<ColumnInfo>>({
   column_name: null,
   column_type: null,
 }) {

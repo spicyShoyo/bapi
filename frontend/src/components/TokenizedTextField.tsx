@@ -1,5 +1,4 @@
 /* eslint-disable react/jsx-props-no-spreading */
-/* eslint-disable no-unused-vars */
 import { Combobox } from "@headlessui/react";
 import React, {
   ForwardedRef,

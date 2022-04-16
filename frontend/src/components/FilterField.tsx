@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import { Popover, Combobox, Listbox } from "@headlessui/react";
 import { useContext, useEffect, useState } from "react";
 

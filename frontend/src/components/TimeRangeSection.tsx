@@ -28,7 +28,6 @@ function TimeChip(props: {
 function TimePicker(props: {
   label: string;
   value: number;
-  // eslint-disable-next-line no-unused-vars
   onChange: (ts: number) => void;
 }) {
   return (

@@ -5,15 +5,17 @@ import { ColumnInfo, ColumnRecord, ColumnType } from "@/columnRecord";
 import { Filter, FilterRecord } from "@/filterRecord";
 import { QueryType, QueryUrlPath } from "@/queryConsts";
 
-export default class QueryRecord extends Immutable.Record<{
-  query_type: QueryType | null;
-  min_ts: number | null;
-  max_ts: number | null;
-  int_filters: Immutable.List<FilterRecord> | null;
-  str_filters: Immutable.List<FilterRecord> | null;
-  groupby_int_columns: Immutable.List<ColumnRecord> | null;
-  groupby_str_columns: Immutable.List<ColumnRecord> | null;
-}>({
+export default class QueryRecord extends Immutable.Record<
+  DeepRecord<{
+    query_type: QueryType;
+    min_ts: number;
+    max_ts: number;
+    int_filters: Filter[];
+    str_filters: Filter[];
+    groupby_int_columns: ColumnInfo[];
+    groupby_str_columns: ColumnInfo[];
+  }>
+>({
   query_type: null,
   min_ts: null,
   max_ts: null,

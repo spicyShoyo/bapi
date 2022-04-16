@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import Immutable from "immutable";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -8,14 +7,12 @@ import { ColumnInfo } from "@/columnRecord";
 import { Filter } from "@/filterRecord";
 import QueryRecord from "@/queryRecord";
 
-// eslint-disable-next-line no-unused-vars
 export type UpdateFn = (queryRecord: QueryRecord) => QueryRecord;
 
 export const QueryContext = React.createContext<
   FiltersManager & {
     queryRecord: QueryRecord;
     runQuery: () => void;
-    // eslint-disable-next-line no-unused-vars
     updateQueryRecord: (fn: UpdateFn) => void;
   }
 >({
@@ -30,11 +27,7 @@ export const QueryContext = React.createContext<
   setGroupbyCols: (col: ColumnInfo[]) => {},
 });
 
-function useQueryRecord(): [
-  QueryRecord,
-  // eslint-disable-next-line no-unused-vars
-  (fn: UpdateFn) => void,
-] {
+function useQueryRecord(): [QueryRecord, (fn: UpdateFn) => void] {
   const location = useLocation();
   const [queryRecord, setQueryRecord] = useState<QueryRecord>(
     QueryRecord.fromUrl(location),

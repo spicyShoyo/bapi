@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 // keep in sync with bapi.proto
 
 enum QueryType {

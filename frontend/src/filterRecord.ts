@@ -18,12 +18,7 @@ function arrayMatch<T>(arr1: T[] | null, arr2: T[] | null): boolean {
   );
 }
 
-export class FilterRecord extends Immutable.Record<{
-  column_name: string | null;
-  filter_op: FilterOpType | null;
-  int_vals: Immutable.List<number> | null;
-  str_vals: Immutable.List<string> | null;
-}>({
+export class FilterRecord extends Immutable.Record<DeepRecord<Filter>>({
   column_name: null,
   filter_op: null,
   int_vals: null,

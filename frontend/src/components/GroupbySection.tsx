@@ -1,9 +1,10 @@
 import { useContext } from "react";
 
 import TokenizedTextField from "./TokenizedTextField";
+import { ColumnInfo } from "@/columnRecord";
 import nullthrows from "@/nullthrows";
 import { QueryContext } from "@/QueryContext";
-import { ColumnInfo, TableContext } from "@/TableContext";
+import { TableContext } from "@/TableContext";
 
 export default function GroupbySection() {
   const { int_columns, str_columns } = nullthrows(useContext(TableContext));
