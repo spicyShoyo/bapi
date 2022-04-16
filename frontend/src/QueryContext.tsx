@@ -26,6 +26,7 @@ export const QueryContext = React.createContext<
   addFilter: () => 0,
   removeFilter: (filterId: FilterId) => {},
   updateFilter: (id: FilterId, filter: Filter) => {},
+  setGroupbyCols: (col: string[]) => {},
 });
 
 function useQueryRecord(): [

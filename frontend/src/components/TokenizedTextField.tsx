@@ -1,6 +1,6 @@
 /* eslint-disable react/jsx-props-no-spreading */
 /* eslint-disable no-unused-vars */
-import { Popover, Combobox, Listbox } from "@headlessui/react";
+import { Combobox } from "@headlessui/react";
 import React, {
   ForwardedRef,
   InputHTMLAttributes,
@@ -11,8 +11,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-
-import { ColumnInfo, ColumnType } from "@/TableContext";
 
 function useTypeahead(
   query: string,
@@ -34,7 +32,7 @@ function useTypeahead(
       if (hints == null || promiseHandle !== latestPromiseKey.current) {
         return;
       }
-      setHint(queryString === "" ? hints : [queryString, ...hints]);
+      setHint(queryString === "" || strict ? hints : [queryString, ...hints]);
     });
   }, [queryString, fetchHints, strict]);
   return hint;
@@ -135,29 +133,31 @@ export default function TokenizedTextField({
     >
       <Combobox value="" onChange={onSelect}>
         <div className="flex flex-col">
-          <div className="text-left bg-white rounded-lg shadow-md overflow-hidden w-full">
+          <div className="text-left bg-white rounded-md shadow-md overflow-hidden">
             <Combobox.Input
               as={TextBox}
               displayValue={(col: string) => col}
               onChange={(event) => setQuery(event.target.value)}
             />
           </div>
-          <div className="absolute mt-11 w-[272px]">
-            <Combobox.Options className="py-1 bg-white rounded-md shadow-lg max-h-60 focus:outline-none sm:text-sm">
-              {typeaheadValues.map((val) => (
-                <Combobox.Option
-                  key={val}
-                  className={({ active }) =>
-                    `cursor-default select-none py-2 pl-4 pr-4 ${
-                      active ? "text-white bg-teal-600" : "text-gray-900"
-                    }`
-                  }
-                  value={val}
-                >
-                  {val}
-                </Combobox.Option>
-              ))}
-            </Combobox.Options>
+          <div className="relative">
+            <div className="absolute w-full">
+              <Combobox.Options className="py-1 bg-white rounded-md shadow-lg max-h-60 focus:outline-none sm:text-sm">
+                {typeaheadValues.map((val) => (
+                  <Combobox.Option
+                    key={val}
+                    className={({ active }) =>
+                      `cursor-default select-none py-2 pl-4 pr-4 ${
+                        active ? "text-white bg-teal-600" : "text-gray-900"
+                      }`
+                    }
+                    value={val}
+                  >
+                    {val}
+                  </Combobox.Option>
+                ))}
+              </Combobox.Options>
+            </div>
           </div>
         </div>
       </Combobox>

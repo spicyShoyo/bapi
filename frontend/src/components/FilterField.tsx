@@ -1,15 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { Popover, Combobox, Listbox } from "@headlessui/react";
-import React, {
-  ForwardedRef,
-  InputHTMLAttributes,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useContext, useEffect, useState } from "react";
 
 import TokenizedTextField from "./TokenizedTextField";
 import * as dataManager from "@/dataManager";

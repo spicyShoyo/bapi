@@ -46,7 +46,7 @@ function TimePicker(props: {
   );
 }
 
-export default function TimeRangePicker() {
+export default function TimeRangeSection() {
   const { queryRecord, updateQueryRecord } = useContext(QueryContext);
   const [startTs, setStartTs] = useState(queryRecord.min_ts ?? L1D.unix());
   const [endTs, setEndTs] = useState(queryRecord.max_ts ?? NOW.unix());

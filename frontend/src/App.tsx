@@ -1,7 +1,8 @@
 import { HashRouter } from "react-router-dom";
 
-import FilterFields from "@/components/FilterFields";
-import TimeRangePicker from "@/components/TimeRangePicker";
+import FiltersSection from "./components/FiltersSection";
+import GroupbySection from "./components/GroupbySection";
+import TimeRangeSection from "@/components/TimeRangeSection";
 import { QueryContextProvider } from "@/QueryContext";
 import { TableContextProvider } from "@/TableContext";
 
@@ -18,8 +19,9 @@ function App() {
             </div>
             <div className="flex flex-1">
               <div className="w-[312px] h-full bg-slate-600 ">
-                <TimeRangePicker />
-                <FilterFields />
+                <TimeRangeSection />
+                <GroupbySection />
+                <FiltersSection />
               </div>
               <div className="flex-1 h-full bg-slate-700" />
             </div>

@@ -4,7 +4,7 @@ import FilterField from "./FilterField";
 import { Filter } from "@/filterRecord";
 import { QueryContext } from "@/QueryContext";
 
-export default function FilterFields() {
+export default function FiltersSection() {
   const { uiFilters, addFilter, updateFilter, removeFilter } =
     useContext(QueryContext);
 
