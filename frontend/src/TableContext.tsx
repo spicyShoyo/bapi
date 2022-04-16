@@ -1,17 +1,7 @@
 import React, { useEffect } from "react";
 
+import { ColumnInfo } from "@/ColumnRecord";
 import * as dataManager from "@/dataManager";
-
-export enum ColumnType {
-  NONE = 0,
-  INT = 1,
-  STR = 2,
-}
-
-export type ColumnInfo = {
-  column_name: string;
-  column_type: ColumnType;
-};
 
 export type TableInfo = {
   table_name: string;

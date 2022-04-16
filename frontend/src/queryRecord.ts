@@ -1,6 +1,7 @@
 import Immutable from "immutable";
 import { Location } from "react-router-dom";
 
+import { ColumnInfo, ColumnRecord, ColumnType } from "@/columnRecord";
 import { Filter, FilterRecord } from "@/filterRecord";
 import { QueryType, QueryUrlPath } from "@/queryConsts";
 
@@ -10,16 +11,16 @@ export default class QueryRecord extends Immutable.Record<{
   max_ts: number | null;
   int_filters: Immutable.List<FilterRecord> | null;
   str_filters: Immutable.List<FilterRecord> | null;
-  int_column_names: string[] | null;
-  str_column_names: string[] | null;
+  groupby_int_columns: Immutable.List<ColumnRecord> | null;
+  groupby_str_columns: Immutable.List<ColumnRecord> | null;
 }>({
   query_type: null,
   min_ts: null,
   max_ts: null,
   int_filters: null,
   str_filters: null,
-  int_column_names: null,
-  str_column_names: null,
+  groupby_int_columns: null,
+  groupby_str_columns: null,
 }) {
   static fromUrl(location: Location): QueryRecord {
     if (location.pathname === QueryUrlPath.ROWS) {
@@ -74,5 +75,26 @@ export default class QueryRecord extends Immutable.Record<{
 
   updateIntFilter(filter: Filter, index: number): this {
     return this.setIn(["int_filters", index], FilterRecord.fromFilter(filter));
+  }
+
+  setGroupbyCols(cols: ColumnInfo[]): this {
+    let intCols = Immutable.List();
+    let strCols = Immutable.List();
+    cols.forEach((col) => {
+      switch (col.column_type) {
+        case ColumnType.INT:
+          intCols = intCols.push(ColumnRecord.fromColumnInfo(col));
+          break;
+        case ColumnType.STR:
+          strCols = strCols.push(ColumnRecord.fromColumnInfo(col));
+          break;
+        default:
+          throw new Error(`invalid groupby column type ${col.column_type}`);
+      }
+    });
+    return this.setIn(["groupby_int_columns"], intCols).setIn(
+      ["groupby_str_columns"],
+      strCols,
+    );
   }
 }

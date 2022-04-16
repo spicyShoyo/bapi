@@ -25,15 +25,19 @@
     "react/react-in-jsx-scope": "off",
     "no-shadow": "off",
     "func-names": "off",
+    "no-param-reassign": "off",
+    "no-empty": "off",
+    "camelcase": "off",
+    "no-use-before-define": "off",
+    "react/button-has-type": "off",
+    "react/destructuring-assignment": "off",
+    "import/extensions": "off",
+    "import/no-unresolved": "off",
+    "import/no-extraneous-dependencies": "off",
     "react/jsx-filename-extension": [1, { "extensions": [".ts", ".tsx"] }],
     "no-console": "warn",
     "no-unused-vars": "warn",
-    "no-param-reassign": "off",
-    "no-empty": "off",
-    "no-use-before-define": "off",
-    "react/button-has-type": "off",
     "react-hooks/exhaustive-deps": "error",
-    "react/destructuring-assignment": "off",
     "import/order": [
       "error",
       {
@@ -52,9 +56,6 @@
         "pathGroupsExcludedImportTypes": ["builtin"],
         "newlines-between": "always"
       }
-    ],
-    "import/extensions": "off",
-    "import/no-unresolved": "off",
-    "import/no-extraneous-dependencies": "off"
+    ]
   }
 }

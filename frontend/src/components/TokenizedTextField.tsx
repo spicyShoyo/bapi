@@ -128,11 +128,13 @@ export default function TokenizedTextField<T>({
 
   const onRemove = useCallback(
     (value) => {
-      const newValues = selectedValues.filter((val) => val !== value);
-      setSelectedValues(selectedValues.filter((val) => val !== value));
+      const newValues = selectedValues.filter(
+        (val) => valueToString(val) !== value,
+      );
+      setSelectedValues(newValues);
       setValues(newValues);
     },
-    [selectedValues, setValues, setSelectedValues],
+    [selectedValues, setValues, valueToString],
   );
 
   return (
