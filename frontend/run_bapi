@@ -1,2 +1,2 @@
 #!/bin/bash
-cd ../service && ./run & cd ../service && ./run_web
+npm run dev & cd ../service && ./run & cd ../service && ./run_web

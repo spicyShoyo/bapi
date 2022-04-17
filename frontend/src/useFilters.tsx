@@ -15,7 +15,6 @@ export type FiltersManager = {
   addFilter: () => FilterId;
   removeFilter: (filterId: FilterId) => void;
   updateFilter: (id: FilterId, filter: Filter) => void;
-  setGroupbyCols: (colName: ColumnInfo[]) => void;
 };
 
 export default function useFilters(
@@ -136,17 +135,10 @@ export default function useFilters(
     [dematerializeFilter, materializeFilter],
   );
 
-  const setGroupbyCols = useCallback(
-    (cols: ColumnInfo[]) =>
-      updateQueryRecord((record) => record.setGroupbyCols(cols)),
-    [updateQueryRecord],
-  );
-
   return {
     uiFilters,
     addFilter,
     removeFilter,
     updateFilter,
-    setGroupbyCols,
   };
 }

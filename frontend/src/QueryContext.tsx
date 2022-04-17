@@ -6,15 +6,18 @@ import useFilters, { FilterId, FiltersManager } from "./useFilters";
 import { ColumnInfo } from "@/columnRecord";
 import { Filter } from "@/filterRecord";
 import QueryRecord from "@/queryRecord";
+import useAggregation, { AggregateManager } from "./useAggregation";
+import { AggOpType } from "./queryConsts";
 
 export type UpdateFn = (queryRecord: QueryRecord) => QueryRecord;
 
 export const QueryContext = React.createContext<
-  FiltersManager & {
-    queryRecord: QueryRecord;
-    runQuery: () => void;
-    updateQueryRecord: (fn: UpdateFn) => void;
-  }
+  AggregateManager &
+    FiltersManager & {
+      queryRecord: QueryRecord;
+      runQuery: () => void;
+      updateQueryRecord: (fn: UpdateFn) => void;
+    }
 >({
   queryRecord: new QueryRecord(),
   runQuery: () => {},
@@ -24,7 +27,10 @@ export const QueryContext = React.createContext<
   addFilter: () => 0,
   removeFilter: (filterId: FilterId) => {},
   updateFilter: (id: FilterId, filter: Filter) => {},
+
   setGroupbyCols: (col: ColumnInfo[]) => {},
+  setAggregateCols: (col: ColumnInfo[]) => {},
+  setAggOp: (op: AggOpType) => {},
 });
 
 function useQueryRecord(): [QueryRecord, (fn: UpdateFn) => void] {
@@ -80,6 +86,7 @@ export function QueryContextProvider({
         queryRecord,
         updateQueryRecord,
         ...useFilters(updateQueryRecord),
+        ...useAggregation(updateQueryRecord),
       }}
     >
       {children}

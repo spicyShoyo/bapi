@@ -8,6 +8,7 @@ import { Filter, FilterRecord } from "@/filterRecord";
 import nullthrows from "@/nullthrows";
 import { FilterOp, FilterOpType, getFilterOpStr } from "@/queryConsts";
 import { TableContext, TableInfo } from "@/TableContext";
+import { Dropdown } from "./Dropdown";
 
 function findColumn(
   colName: string | undefined,
@@ -101,7 +102,21 @@ export default function FilterField(props: {
             colName={column.column_name}
             setColName={setColName}
           />
-          <FilterSelector filterOp={filterOp} setFilterOp={setFilterOp} />
+          <Dropdown
+            valToString={getFilterOpStr}
+            values={[
+              FilterOp.EQ,
+              FilterOp.NE,
+              FilterOp.LT,
+              FilterOp.GT,
+              FilterOp.LE,
+              FilterOp.GE,
+              FilterOp.NONNULL,
+              FilterOp.NULL,
+            ]}
+            selected={filterOp}
+            setSelected={setFilterOp}
+          />
         </div>
         <button
           className="text-slate-100 bg-slate-700 px-2 py-1 rounded font-bold"
@@ -132,45 +147,6 @@ export default function FilterField(props: {
           }
         }}
       />
-    </div>
-  );
-}
-
-function FilterSelector(props: {
-  filterOp: FilterOpType;
-  setFilterOp: (_: FilterOpType) => void;
-}) {
-  return (
-    <div className="flex">
-      <Listbox value={props.filterOp} onChange={props.setFilterOp}>
-        <Listbox.Button className="text-slate-100 bg-slate-700 p-1 rounded font-bold w-[72px] text-center">
-          {getFilterOpStr(props.filterOp)}
-        </Listbox.Button>
-        <Listbox.Options className="absolute mt-8 p-2 bg-white rounded overflow-hidden">
-          {[
-            FilterOp.EQ,
-            FilterOp.NE,
-            FilterOp.LT,
-            FilterOp.GT,
-            FilterOp.LE,
-            FilterOp.GE,
-            FilterOp.NONNULL,
-            FilterOp.NULL,
-          ].map((op) => (
-            <Listbox.Option
-              className={({ active }) =>
-                `cursor-pointer select-none rounded text-center ${
-                  active ? "text-white bg-teal-600" : "text-gray-900"
-                }`
-              }
-              key={op}
-              value={op}
-            >
-              <b>{getFilterOpStr(op)}</b>
-            </Listbox.Option>
-          ))}
-        </Listbox.Options>
-      </Listbox>
     </div>
   );
 }

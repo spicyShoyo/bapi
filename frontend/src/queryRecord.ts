@@ -3,7 +3,7 @@ import { Location } from "react-router-dom";
 
 import { ColumnInfo, ColumnRecord, ColumnType } from "@/columnRecord";
 import { Filter, FilterRecord } from "@/filterRecord";
-import { QueryType, QueryUrlPath } from "@/queryConsts";
+import { AggOpType, QueryType, QueryUrlPath } from "@/queryConsts";
 
 export default class QueryRecord extends Immutable.Record<
   DeepRecord<{
@@ -14,6 +14,8 @@ export default class QueryRecord extends Immutable.Record<
     str_filters: Filter[];
     groupby_int_columns: ColumnInfo[];
     groupby_str_columns: ColumnInfo[];
+    agg_op: AggOpType;
+    agg_int_column_names: ColumnInfo[];
   }>
 >({
   query_type: null,
@@ -23,6 +25,8 @@ export default class QueryRecord extends Immutable.Record<
   str_filters: null,
   groupby_int_columns: null,
   groupby_str_columns: null,
+  agg_op: null,
+  agg_int_column_names: null,
 }) {
   static fromUrl(location: Location): QueryRecord {
     if (location.pathname === QueryUrlPath.ROWS) {
@@ -80,8 +84,8 @@ export default class QueryRecord extends Immutable.Record<
   }
 
   setGroupbyCols(cols: ColumnInfo[]): this {
-    let intCols = Immutable.List();
-    let strCols = Immutable.List();
+    let intCols = Immutable.List<ColumnRecord>();
+    let strCols = Immutable.List<ColumnRecord>();
     cols.forEach((col) => {
       switch (col.column_type) {
         case ColumnType.INT:
@@ -94,9 +98,27 @@ export default class QueryRecord extends Immutable.Record<
           throw new Error(`invalid groupby column type ${col.column_type}`);
       }
     });
-    return this.setIn(["groupby_int_columns"], intCols).setIn(
-      ["groupby_str_columns"],
+    return this.set("groupby_int_columns", intCols).set(
+      "groupby_str_columns",
       strCols,
     );
+  }
+
+  setAggregateCols(cols: ColumnInfo[]): this {
+    let intCols = Immutable.List<ColumnRecord>();
+    cols.forEach((col) => {
+      switch (col.column_type) {
+        case ColumnType.INT:
+          intCols = intCols.push(ColumnRecord.fromColumnInfo(col));
+          break;
+        default:
+          throw new Error(`invalid agregate column type ${col.column_type}`);
+      }
+    });
+    return this.set("agg_int_column_names", intCols);
+  }
+
+  setAggOp(op: AggOpType): this {
+    return this.set("agg_op", op);
   }
 }

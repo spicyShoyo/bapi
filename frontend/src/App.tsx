@@ -5,6 +5,7 @@ import GroupbySection from "./components/GroupbySection";
 import TimeRangeSection from "@/components/TimeRangeSection";
 import { QueryContextProvider } from "@/QueryContext";
 import { TableContextProvider } from "@/TableContext";
+import AggregateSection from "./components/AggregateSection";
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
             <div className="flex flex-1">
               <div className="w-[312px] h-full bg-slate-600 ">
                 <TimeRangeSection />
+                <AggregateSection />
                 <GroupbySection />
                 <FiltersSection />
               </div>

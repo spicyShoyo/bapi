@@ -21,7 +21,15 @@ const FilterOp = {
   NULL: 7,
 } as const;
 
+const AggOp = {
+  COUNT: 0,
+  COUNT_DISTINCT: 1,
+  SUM: 2,
+  AVG: 3,
+} as const;
+
 type FilterOpType = typeof FilterOp[keyof typeof FilterOp];
+type AggOpType = typeof AggOp[keyof typeof AggOp];
 
 function getFilterOpStr(filterOp: FilterOpType): string {
   switch (filterOp) {
@@ -48,6 +56,30 @@ function getFilterOpStr(filterOp: FilterOpType): string {
   }
 }
 
-export { QueryType, FilterOp, QueryUrlPath, getFilterOpStr };
+function getAggOpStr(aggOp: AggOpType): string {
+  switch (aggOp) {
+    case AggOp.COUNT:
+      return "Cnt";
+    case AggOp.COUNT_DISTINCT:
+      return "Cnt Dist";
+    case AggOp.SUM:
+      return "Sum";
+    case AggOp.AVG:
+      return "Avg";
+    default: {
+      const _: never = aggOp;
+      return "";
+    }
+  }
+}
 
-export type { FilterOpType };
+export {
+  QueryType,
+  FilterOp,
+  AggOp,
+  QueryUrlPath,
+  getFilterOpStr,
+  getAggOpStr,
+};
+
+export type { FilterOpType, AggOpType };
