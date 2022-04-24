@@ -1,8 +1,7 @@
 import Immutable from "immutable";
-import { Location } from "react-router-dom";
 
-import { ColumnInfo, ColumnRecord, ColumnType } from "@/columnRecord";
-import { Filter, FilterRecord } from "@/filterRecord";
+import { ColumnInfo } from "@/columnRecord";
+import { Filter } from "@/filterRecord";
 import { AggOp, AggOpType, QueryType, QueryUrlPath } from "@/queryConsts";
 import { L1D, NOW } from "./tsConsts";
 
