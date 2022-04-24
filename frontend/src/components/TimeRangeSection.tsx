@@ -3,6 +3,9 @@ import { useContext, useEffect, useState } from "react";
 
 import { QueryContext } from "@/QueryContext";
 import { NOW, L5M, L1H, L12H, L1D, L2D, L7D, L14D } from "@/tsConsts";
+import { useDispatch, useSelector } from "react-redux";
+import useQuerySelector from "@/useQuerySelector";
+import { setTsRange } from "@/queryRecordReducer";
 
 const FORMAT_STR = "YYYY-MM-DDTHH:mm";
 
@@ -46,15 +49,12 @@ function TimePicker(props: {
 }
 
 export default function TimeRangeSection() {
-  const { queryRecord, updateQueryRecord } = useContext(QueryContext);
-  const [startTs, setStartTs] = useState(queryRecord.min_ts ?? L1D.unix());
-  const [endTs, setEndTs] = useState(queryRecord.max_ts ?? NOW.unix());
+  const dispatch = useDispatch();
+  const startTs = useQuerySelector((state) => state.min_ts);
+  const endTs = useQuerySelector((state) => state.max_ts);
 
-  useEffect(() => {
-    updateQueryRecord((currentRecord) =>
-      currentRecord.set("min_ts", startTs).set("max_ts", endTs),
-    );
-  }, [updateQueryRecord, startTs, endTs]);
+  const setTs = (payload: { maxTs?: number; minTs?: number }) =>
+    dispatch(setTsRange(payload));
 
   const chips: [string, number, number][] = [
     ["L14d", L14D.unix(), NOW.unix()],
@@ -69,8 +69,16 @@ export default function TimeRangeSection() {
 
   return (
     <div className="flex flex-col">
-      <TimePicker label="Start" value={startTs} onChange={setStartTs} />
-      <TimePicker label="End" value={endTs} onChange={setEndTs} />
+      <TimePicker
+        label="Start"
+        value={startTs ?? L1D.unix()}
+        onChange={(minTs) => setTs({ minTs })}
+      />
+      <TimePicker
+        label="End"
+        value={endTs ?? NOW.unix()}
+        onChange={(maxTs) => setTs({ maxTs })}
+      />
       <div className="flex flex-wrap gap-y-2">
         {chips.map(([label, start, end]) => (
           <TimeChip
@@ -78,8 +86,10 @@ export default function TimeRangeSection() {
             selected={startTs === start && endTs === end}
             label={label}
             onChange={() => {
-              setStartTs(start);
-              setEndTs(end);
+              setTs({
+                minTs: start,
+                maxTs: end,
+              });
             }}
           />
         ))}

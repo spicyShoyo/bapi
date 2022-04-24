@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 
 import { Filter, FilterRecord } from "./filterRecord";
-import { ColumnInfo, ColumnType } from "@/columnRecord";
+import { ColumnType } from "@/columnRecord";
 import { UpdateFn } from "@/QueryContext";
 import QueryRecord from "./queryRecord";
 
