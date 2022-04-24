@@ -29,6 +29,8 @@ function useFilterSettings(
   tableData: TableInfo,
   onUpdate: (updatedFilter: Filter) => void,
 ): {
+  intVals: number[];
+  strVals: string[];
   column: ColumnInfo;
   setColName: (_: string) => void;
   filterOp: FilterOpType;
@@ -79,6 +81,8 @@ function useFilterSettings(
     },
     filterOp,
     setFilterOp,
+    intVals,
+    strVals,
     setIntVals,
     setStrVals,
   };
@@ -90,8 +94,16 @@ export default function FilterField(props: {
   onRemove: () => void;
 }) {
   const tableInfo = useContext(TableContext);
-  const { column, setColName, filterOp, setFilterOp, setIntVals, setStrVals } =
-    useFilterSettings(props.filter, nullthrows(tableInfo), props.onUpdate);
+  const {
+    column,
+    setColName,
+    filterOp,
+    setFilterOp,
+    setIntVals,
+    setStrVals,
+    intVals,
+    strVals,
+  } = useFilterSettings(props.filter, nullthrows(tableInfo), props.onUpdate);
 
   return (
     <div className="flex flex-col gap-4 mx-2 mt-2 py-2 px-4 outline-double outline-slate-200">
@@ -126,6 +138,11 @@ export default function FilterField(props: {
         </button>
       </div>
       <TokenizedTextField
+        initValues={
+          column.column_type === ColumnType.INT
+            ? intVals.map((v) => v.toString())
+            : strVals
+        }
         queryToValue={(v: string) => v}
         valueToString={(v: string | null) => v ?? ""}
         fetchHints={(query) => {

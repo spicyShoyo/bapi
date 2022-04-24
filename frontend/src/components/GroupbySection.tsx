@@ -14,6 +14,7 @@ export default function GroupbySection() {
       <div className="text-slate-100 font-bold mr-2">Group by</div>
       <div className="flex-1">
         <TokenizedTextField
+          initValues={[]}
           queryToValue={null}
           valueToString={(v: ColumnInfo | null) => v?.column_name ?? ""}
           setValues={setGroupbyCols}

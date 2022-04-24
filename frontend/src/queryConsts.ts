@@ -7,7 +7,9 @@ enum QueryType {
 }
 
 enum QueryUrlPath {
-  ROWS = "/rows",
+  Rows = "/rows",
+  Table = "/table",
+  Timeline = "/timeline",
 }
 
 const FilterOp = {

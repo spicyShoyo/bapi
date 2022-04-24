@@ -98,11 +98,13 @@ const TextBox = React.forwardRef(
 );
 
 export default function TokenizedTextField<T>({
+  initValues,
   queryToValue,
   valueToString,
   setValues,
   fetchHints,
 }: {
+  initValues: T[] | null;
   queryToValue: ((query: string) => T) | null; // null means only ones from hints is selectable
   valueToString: (_: T | null) => string;
   setValues: (_: T[]) => void;
@@ -111,7 +113,7 @@ export default function TokenizedTextField<T>({
   const [query, setQuery] = useState("");
   const typeaheadValues = useTypeahead(query, queryToValue, fetchHints);
 
-  const [selectedValues, setSelectedValues] = useState<T[]>([]);
+  const [selectedValues, setSelectedValues] = useState<T[]>(initValues ?? []);
   const onSelect = useCallback(
     (value) => {
       setQuery("");

@@ -3,6 +3,7 @@ import { useCallback, useRef, useState } from "react";
 import { Filter, FilterRecord } from "./filterRecord";
 import { ColumnInfo, ColumnType } from "@/columnRecord";
 import { UpdateFn } from "@/QueryContext";
+import QueryRecord from "./queryRecord";
 
 export type FilterId = number;
 export type UiFilter = {
@@ -17,18 +18,81 @@ export type FiltersManager = {
   updateFilter: (id: FilterId, filter: Filter) => void;
 };
 
+const EMPTY_STATE: [Map<FilterId, [ColumnType, number]>, UiFilter[]] = [
+  new Map(),
+  [],
+];
+
+function initFromRecord(
+  lastFilterId: React.MutableRefObject<number>,
+  initRecord: QueryRecord,
+): [Map<FilterId, [ColumnType, number]>, UiFilter[]] {
+  if (lastFilterId.current !== 0) {
+    // The return value is only used once at first render
+    return EMPTY_STATE;
+  }
+
+  const materialized = new Map();
+  const uiFilters: UiFilter[] = [];
+  (initRecord.str_filters ?? []).forEach((filter, idx) => {
+    lastFilterId.current++;
+    const id = lastFilterId.current;
+    uiFilters.push({
+      id,
+      // @ts-ignore: TODO: fix typing
+      filter,
+    });
+    materialized.set(lastFilterId.current, [ColumnType.STR, idx]);
+  });
+  (initRecord.int_filters ?? []).forEach((filter, idx) => {
+    lastFilterId.current++;
+    const id = lastFilterId.current;
+    materialized.set(lastFilterId.current, [ColumnType.INT, idx]);
+    uiFilters.push({
+      id,
+      // @ts-ignore TODO: fix typing
+      filter,
+    });
+  });
+  return [
+    materialized,
+    uiFilters.length === 0
+      ? [
+          {
+            id: lastFilterId.current,
+            filter: null,
+          },
+        ]
+      : uiFilters,
+  ];
+}
+
+function useFilterUISpec(
+  initRecord: QueryRecord,
+): [
+  React.MutableRefObject<number>,
+  React.MutableRefObject<Map<FilterId, [ColumnType, number]>>,
+  UiFilter[],
+  (filters: UiFilter[]) => void,
+] {
+  const lastFilterId = useRef<FilterId>(0);
+  const [initMaterialized, initUiFilters] = initFromRecord(
+    lastFilterId,
+    initRecord,
+  );
+  // TODO: init from URL
+  const materialized =
+    useRef<Map<FilterId, [ColumnType, number]>>(initMaterialized);
+  const [uiFilters, setUiFilters] = useState<UiFilter[]>(initUiFilters);
+  return [lastFilterId, materialized, uiFilters, setUiFilters];
+}
+
 export default function useFilters(
+  initRecord: QueryRecord,
   updateQueryRecord: (fn: UpdateFn) => void,
 ): FiltersManager {
-  const lastFilterId = useRef<FilterId>(0);
-  // TODO: init from URL
-  const materialized = useRef<Map<FilterId, [ColumnType, number]>>(new Map());
-  const [uiFilters, setUiFilters] = useState<UiFilter[]>([
-    {
-      id: lastFilterId.current,
-      filter: null,
-    },
-  ]);
+  const [lastFilterId, materialized, uiFilters, setUiFilters] =
+    useFilterUISpec(initRecord);
 
   const addFilter = useCallback(() => {
     lastFilterId.current += 1;

@@ -7,7 +7,7 @@ import { ColumnInfo } from "@/columnRecord";
 import { Filter } from "@/filterRecord";
 import QueryRecord from "@/queryRecord";
 import useAggregation, { AggregateManager } from "./useAggregation";
-import { AggOpType } from "./queryConsts";
+import { AggOpType, QueryType } from "./queryConsts";
 
 export type UpdateFn = (queryRecord: QueryRecord) => QueryRecord;
 
@@ -63,9 +63,19 @@ export function QueryContextProvider({
   const navigate = useNavigate();
   const [queryRecord, updateQueryRecord] = useQueryRecord();
 
-  const runQuery = useCallback(() => {
+  const runQueryRef = useRef(() => {
     navigate(queryRecord.toUrl());
+  });
+
+  useEffect(() => {
+    runQueryRef.current = () => {
+      navigate(queryRecord.toUrl());
+    };
   }, [queryRecord, navigate]);
+
+  function runQuery() {
+    runQueryRef.current();
+  }
 
   useEffect(() => {
     function onEnter(e: KeyboardEvent) {
@@ -73,8 +83,8 @@ export function QueryContextProvider({
         runQuery();
       }
     }
-    document.addEventListener("keydown", onEnter);
-    return () => document.removeEventListener("keydown", onEnter);
+    document.addEventListener("keypress", onEnter);
+    return () => document.removeEventListener("keypress", onEnter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -85,7 +95,7 @@ export function QueryContextProvider({
         runQuery,
         queryRecord,
         updateQueryRecord,
-        ...useFilters(updateQueryRecord),
+        ...useFilters(queryRecord, updateQueryRecord),
         ...useAggregation(updateQueryRecord),
       }}
     >

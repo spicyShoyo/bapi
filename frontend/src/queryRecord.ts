@@ -29,7 +29,7 @@ export default class QueryRecord extends Immutable.Record<
   agg_int_column_names: null,
 }) {
   static fromUrl(location: Location): QueryRecord {
-    if (location.pathname === QueryUrlPath.ROWS) {
+    if (location.pathname === QueryUrlPath.Rows) {
       try {
         return new QueryRecord({
           query_type: QueryType.Rows,
@@ -40,13 +40,29 @@ export default class QueryRecord extends Immutable.Record<
           query_type: QueryType.Rows,
         });
       }
+    } else if (location.pathname === QueryUrlPath.Table) {
+      try {
+        return new QueryRecord({
+          query_type: QueryType.Table,
+          ...JSON.parse(decodeURI(location.search.split("?q=")[1])),
+        });
+      } catch {
+        return new QueryRecord({
+          query_type: QueryType.Table,
+        });
+      }
     }
-    return new QueryRecord();
+
+    return new QueryRecord({
+      query_type: QueryType.Table,
+    });
   }
 
   toUrl(): string {
     if (this.query_type === QueryType.Rows) {
-      return `${QueryUrlPath.ROWS}?q=${JSON.stringify(this.toJS())}`;
+      return `${QueryUrlPath.Rows}?q=${JSON.stringify(this.toJS())}`;
+    } else if (this.query_type === QueryType.Table) {
+      return `${QueryUrlPath.Table}?q=${JSON.stringify(this.toJS())}`;
     }
     return "";
   }
