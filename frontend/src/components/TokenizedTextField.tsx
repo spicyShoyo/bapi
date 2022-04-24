@@ -112,8 +112,8 @@ export default function TokenizedTextField<T>({
 }) {
   const [query, setQuery] = useState("");
   const typeaheadValues = useTypeahead(query, queryToValue, fetchHints);
-
   const [selectedValues, setSelectedValues] = useState<T[]>(initValues ?? []);
+
   const onSelect = useCallback(
     (value) => {
       setQuery("");

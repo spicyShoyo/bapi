@@ -28,36 +28,6 @@ export default class QueryRecord extends Immutable.Record<
   agg_op: null,
   agg_int_column_names: null,
 }) {
-  static fromUrl(location: Location): QueryRecord {
-    if (location.pathname === QueryUrlPath.Rows) {
-      try {
-        return new QueryRecord({
-          query_type: QueryType.Rows,
-          ...JSON.parse(decodeURI(location.search.split("?q=")[1])),
-        });
-      } catch {
-        return new QueryRecord({
-          query_type: QueryType.Rows,
-        });
-      }
-    } else if (location.pathname === QueryUrlPath.Table) {
-      try {
-        return new QueryRecord({
-          query_type: QueryType.Table,
-          ...JSON.parse(decodeURI(location.search.split("?q=")[1])),
-        });
-      } catch {
-        return new QueryRecord({
-          query_type: QueryType.Table,
-        });
-      }
-    }
-
-    return new QueryRecord({
-      query_type: QueryType.Table,
-    });
-  }
-
   toUrl(): string {
     if (this.query_type === QueryType.Rows) {
       return `${QueryUrlPath.Rows}?q=${JSON.stringify(this.toJS())}`;
@@ -98,43 +68,40 @@ export default class QueryRecord extends Immutable.Record<
   updateIntFilter(filter: Filter, index: number): this {
     return this.setIn(["int_filters", index], FilterRecord.fromFilter(filter));
   }
+}
 
-  setGroupbyCols(cols: ColumnInfo[]): this {
-    let intCols = Immutable.List<ColumnRecord>();
-    let strCols = Immutable.List<ColumnRecord>();
-    cols.forEach((col) => {
-      switch (col.column_type) {
-        case ColumnType.INT:
-          intCols = intCols.push(ColumnRecord.fromColumnInfo(col));
-          break;
-        case ColumnType.STR:
-          strCols = strCols.push(ColumnRecord.fromColumnInfo(col));
-          break;
-        default:
-          throw new Error(`invalid groupby column type ${col.column_type}`);
-      }
-    });
-    return this.set("groupby_int_columns", intCols).set(
-      "groupby_str_columns",
-      strCols,
-    );
+export function buildRecordFromUrl(): QueryRecord | undefined {
+  const split = window.location.hash.split("?q=");
+  if (split.length !== 2) {
+    // Need to be undefined instead of null for Redux to not set the state to null
+    return undefined;
   }
 
-  setAggregateCols(cols: ColumnInfo[]): this {
-    let intCols = Immutable.List<ColumnRecord>();
-    cols.forEach((col) => {
-      switch (col.column_type) {
-        case ColumnType.INT:
-          intCols = intCols.push(ColumnRecord.fromColumnInfo(col));
-          break;
-        default:
-          throw new Error(`invalid agregate column type ${col.column_type}`);
-      }
-    });
-    return this.set("agg_int_column_names", intCols);
-  }
+  const [query, search] = split;
+  const path = query.split("#")[1];
 
-  setAggOp(op: AggOpType): this {
-    return this.set("agg_op", op);
+  switch (path) {
+    case QueryUrlPath.Rows: {
+      try {
+        return new QueryRecord({
+          query_type: QueryType.Rows,
+          ...JSON.parse(decodeURI(search)),
+        });
+      } catch {
+        return undefined;
+      }
+    }
+    case QueryUrlPath.Table: {
+      try {
+        return new QueryRecord({
+          query_type: QueryType.Table,
+          ...JSON.parse(decodeURI(search)),
+        });
+      } catch {
+        return undefined;
+      }
+    }
+    default:
+      return undefined;
   }
 }

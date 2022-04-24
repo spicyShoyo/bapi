@@ -1,40 +1,29 @@
 import Immutable from "immutable";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import useFilters, { FilterId, FiltersManager } from "./useFilters";
-import { ColumnInfo } from "@/columnRecord";
 import { Filter } from "@/filterRecord";
 import QueryRecord from "@/queryRecord";
-import useAggregation, { AggregateManager } from "./useAggregation";
-import { AggOpType, QueryType } from "./queryConsts";
-import { useDispatch, useSelector } from "react-redux";
-import { initRecord } from "@/queryRecordReducer";
 import useQuerySelector from "./useQuerySelector";
 
 export type UpdateFn = (queryRecord: QueryRecord) => QueryRecord;
 
 export const QueryContext = React.createContext<
-  AggregateManager &
-    FiltersManager & {
-      queryRecord: QueryRecord;
-    }
+  FiltersManager & {
+    queryRecord: QueryRecord;
+  }
 >({
   queryRecord: new QueryRecord(),
   uiFilters: [],
   addFilter: () => 0,
   removeFilter: (filterId: FilterId) => {},
   updateFilter: (id: FilterId, filter: Filter) => {},
-
-  setGroupbyCols: (col: ColumnInfo[]) => {},
-  setAggregateCols: (col: ColumnInfo[]) => {},
-  setAggOp: (op: AggOpType) => {},
 });
 
 function useQueryRecord(): [QueryRecord, (fn: UpdateFn) => void] {
-  const location = useLocation();
   const [queryRecord, setQueryRecord] = useState<QueryRecord>(
-    QueryRecord.fromUrl(location),
+    new QueryRecord(),
   );
 
   // @ts-expect-error: for debug
@@ -77,11 +66,7 @@ export function QueryContextProvider({
 
   const [queryRecord, updateQueryRecord] = useQueryRecord();
 
-  const location = useLocation();
-  const dispatch = useDispatch();
   useEffect(() => {
-    dispatch(initRecord(QueryRecord.fromUrl(location)));
-
     function onEnter(e: KeyboardEvent) {
       if (e.key === "Enter" && e.ctrlKey) {
         runQuery();
@@ -98,7 +83,6 @@ export function QueryContextProvider({
       value={{
         queryRecord,
         ...useFilters(queryRecord, updateQueryRecord),
-        ...useAggregation(updateQueryRecord),
       }}
     >
       {children}

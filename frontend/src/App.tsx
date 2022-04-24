@@ -11,9 +11,9 @@ import queryStore from "./queryStore";
 
 function App() {
   return (
-    <Provider store={queryStore}>
-      <HashRouter>
-        <TableContextProvider table="test_table">
+    <HashRouter>
+      <TableContextProvider table="test_table">
+        <Provider store={queryStore}>
           <QueryContextProvider>
             <div className="flex flex-col bg-slate-800 h-screen w-screen">
               <div className="flex h-[36px]">
@@ -32,9 +32,9 @@ function App() {
               </div>
             </div>
           </QueryContextProvider>
-        </TableContextProvider>
-      </HashRouter>
-    </Provider>
+        </Provider>
+      </TableContextProvider>
+    </HashRouter>
   );
 }
 

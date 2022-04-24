@@ -1,8 +1,9 @@
-import { configureStore, PayloadAction } from "@reduxjs/toolkit";
-import queryRecordReducer from "./queryRecordReducer";
+import { configureStore } from "@reduxjs/toolkit";
+import queryReducer from "@/queryReducer";
+import { buildRecordFromUrl } from "@/queryRecord";
 
 export default configureStore({
-  reducer: queryRecordReducer,
+  reducer: queryReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
@@ -10,4 +11,5 @@ export default configureStore({
         ignoreActions: true,
       },
     }),
+  preloadedState: buildRecordFromUrl(),
 });

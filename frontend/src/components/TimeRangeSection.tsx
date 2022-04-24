@@ -5,7 +5,7 @@ import { QueryContext } from "@/QueryContext";
 import { NOW, L5M, L1H, L12H, L1D, L2D, L7D, L14D } from "@/tsConsts";
 import { useDispatch, useSelector } from "react-redux";
 import useQuerySelector from "@/useQuerySelector";
-import { setTsRange } from "@/queryRecordReducer";
+import { setTsRange } from "@/queryReducer";
 
 const FORMAT_STR = "YYYY-MM-DDTHH:mm";
 
