@@ -1,9 +1,11 @@
 import Immutable from "immutable";
+import { ColumnType } from "./columnRecord";
 
 import { FilterOpType } from "./queryConsts";
 
 export type Filter = {
   column_name: string;
+  column_type: ColumnType;
   filter_op: FilterOpType;
   int_vals: number[];
   str_vals: string[];
@@ -20,6 +22,7 @@ function arrayMatch<T>(arr1: T[] | null, arr2: T[] | null): boolean {
 
 export class FilterRecord extends Immutable.Record<DeepRecord<Filter>>({
   column_name: null,
+  column_type: null,
   filter_op: null,
   int_vals: null,
   str_vals: null,
@@ -45,6 +48,7 @@ export class FilterRecord extends Immutable.Record<DeepRecord<Filter>>({
     }
     return (
       filter1.column_name === filters2.column_name &&
+      filter1.column_type === filters2.column_type &&
       filter1.filter_op === filters2.filter_op &&
       arrayMatch(filter1.int_vals, filters2.int_vals) &&
       arrayMatch(filter1.str_vals, filters2.str_vals)
@@ -56,6 +60,7 @@ export class FilterRecord extends Immutable.Record<DeepRecord<Filter>>({
       ? {
           column_name: this.column_name!,
           filter_op: this.filter_op!,
+          column_type: this.column_type!,
           int_vals: this.int_vals?.toJSON() ?? [],
           str_vals: this.str_vals?.toJSON() ?? [],
         }
@@ -69,6 +74,7 @@ export class FilterRecord extends Immutable.Record<DeepRecord<Filter>>({
   isValid(): boolean {
     return (
       this.column_name != null &&
+      this.column_type != null &&
       this.filter_op != null &&
       (this.int_vals?.size !== 0 || this.str_vals?.size !== 0)
     );
@@ -77,6 +83,7 @@ export class FilterRecord extends Immutable.Record<DeepRecord<Filter>>({
   isEqual(filter: Filter): boolean {
     return (
       this.column_name === filter.column_name &&
+      this.column_type === filter.column_type &&
       this.filter_op === filter.filter_op &&
       Immutable.is(this.int_vals, Immutable.List(filter.int_vals)) &&
       Immutable.is(this.str_vals, Immutable.List(filter.str_vals))

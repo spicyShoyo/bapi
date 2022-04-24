@@ -2,29 +2,19 @@ import Immutable from "immutable";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import useFilters, { FilterId, FiltersManager } from "./useFilters";
-import { Filter } from "@/filterRecord";
-import QueryRecord from "@/queryRecord";
+import QueryRecord, { DEFAULT_RECORD } from "@/queryRecord";
 import useQuerySelector from "./useQuerySelector";
 
 export type UpdateFn = (queryRecord: QueryRecord) => QueryRecord;
 
-export const QueryContext = React.createContext<
-  FiltersManager & {
-    queryRecord: QueryRecord;
-  }
->({
-  queryRecord: new QueryRecord(),
-  uiFilters: [],
-  addFilter: () => 0,
-  removeFilter: (filterId: FilterId) => {},
-  updateFilter: (id: FilterId, filter: Filter) => {},
+export const QueryContext = React.createContext<{
+  queryRecord: QueryRecord;
+}>({
+  queryRecord: DEFAULT_RECORD,
 });
 
 function useQueryRecord(): [QueryRecord, (fn: UpdateFn) => void] {
-  const [queryRecord, setQueryRecord] = useState<QueryRecord>(
-    new QueryRecord(),
-  );
+  const [queryRecord, setQueryRecord] = useState<QueryRecord>(DEFAULT_RECORD);
 
   // @ts-expect-error: for debug
   window.getRecord = () => queryRecord;
@@ -82,7 +72,6 @@ export function QueryContextProvider({
       // eslint-disable-next-line react/jsx-no-constructed-context-values
       value={{
         queryRecord,
-        ...useFilters(queryRecord, updateQueryRecord),
       }}
     >
       {children}

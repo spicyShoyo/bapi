@@ -3,15 +3,15 @@ import { Location } from "react-router-dom";
 
 import { ColumnInfo, ColumnRecord, ColumnType } from "@/columnRecord";
 import { Filter, FilterRecord } from "@/filterRecord";
-import { AggOpType, QueryType, QueryUrlPath } from "@/queryConsts";
+import { AggOp, AggOpType, QueryType, QueryUrlPath } from "@/queryConsts";
+import { L1D, NOW } from "./tsConsts";
 
 export default class QueryRecord extends Immutable.Record<
   DeepRecord<{
     query_type: QueryType;
     min_ts: number;
     max_ts: number;
-    int_filters: Filter[];
-    str_filters: Filter[];
+    filters: Filter[];
     groupby_int_columns: ColumnInfo[];
     groupby_str_columns: ColumnInfo[];
     agg_op: AggOpType;
@@ -21,8 +21,7 @@ export default class QueryRecord extends Immutable.Record<
   query_type: null,
   min_ts: null,
   max_ts: null,
-  int_filters: null,
-  str_filters: null,
+  filters: null,
   groupby_int_columns: null,
   groupby_str_columns: null,
   agg_op: null,
@@ -36,45 +35,19 @@ export default class QueryRecord extends Immutable.Record<
     }
     return "";
   }
-
-  addStrFilter(filter: Filter): this {
-    const newStrFilters = this.str_filters ?? Immutable.List();
-    return this.set(
-      "str_filters",
-      newStrFilters.push(FilterRecord.fromFilter(filter)),
-    );
-  }
-
-  removeStrFilter(index: number): this {
-    return this.removeIn(["str_filters", index]);
-  }
-
-  updateStrFilter(filter: Filter, index: number): this {
-    return this.setIn(["str_filters", index], FilterRecord.fromFilter(filter));
-  }
-
-  addIntFilter(filter: Filter): this {
-    const newIntFilters = this.int_filters ?? Immutable.List();
-    return this.set(
-      "int_filters",
-      newIntFilters.push(FilterRecord.fromFilter(filter)),
-    );
-  }
-
-  removeIntFilter(index: number): this {
-    return this.removeIn(["int_filters", index]);
-  }
-
-  updateIntFilter(filter: Filter, index: number): this {
-    return this.setIn(["int_filters", index], FilterRecord.fromFilter(filter));
-  }
 }
 
-export function buildRecordFromUrl(): QueryRecord | undefined {
+export const DEFAULT_RECORD = new QueryRecord({
+  query_type: QueryType.Table,
+  agg_op: AggOp.COUNT,
+  min_ts: L1D.unix(),
+  max_ts: NOW.unix(),
+});
+
+export function buildRecordFromUrl(): QueryRecord {
   const split = window.location.hash.split("?q=");
   if (split.length !== 2) {
-    // Need to be undefined instead of null for Redux to not set the state to null
-    return undefined;
+    return DEFAULT_RECORD;
   }
 
   const [query, search] = split;
@@ -88,7 +61,7 @@ export function buildRecordFromUrl(): QueryRecord | undefined {
           ...JSON.parse(decodeURI(search)),
         });
       } catch {
-        return undefined;
+        return DEFAULT_RECORD;
       }
     }
     case QueryUrlPath.Table: {
@@ -98,10 +71,10 @@ export function buildRecordFromUrl(): QueryRecord | undefined {
           ...JSON.parse(decodeURI(search)),
         });
       } catch {
-        return undefined;
+        return DEFAULT_RECORD;
       }
     }
     default:
-      return undefined;
+      return DEFAULT_RECORD;
   }
 }

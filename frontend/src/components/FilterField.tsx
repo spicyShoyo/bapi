@@ -54,8 +54,9 @@ function useFilterSettings(
   const [strVals, setStrVals] = useState<string[]>(filter?.str_vals ?? []);
 
   useEffect(() => {
-    const newFilter = {
+    const newFilter: Filter = {
       column_name: column.column_name,
+      column_type: column.column_type,
       filter_op: filterOp,
       int_vals: intVals,
       str_vals: strVals,
