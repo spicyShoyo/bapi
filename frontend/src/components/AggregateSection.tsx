@@ -7,7 +7,7 @@ import { TableContext } from "@/TableContext";
 import { Dropdown } from "./Dropdown";
 import { AggOp, getAggOpStr } from "@/queryConsts";
 import { setAggOp, setAggregateCols } from "@/queryReducer";
-import useQuerySelector from "@/useQuerySelector";
+import useQuerySelector, { useQueryAggCols } from "@/useQuerySelector";
 import { useDispatch } from "react-redux";
 
 export default function AggregateSection() {
@@ -15,7 +15,7 @@ export default function AggregateSection() {
 
   const { int_columns } = nullthrows(useContext(TableContext));
   const aggOp = useQuerySelector((r) => r.agg_op);
-  const aggCols = useQuerySelector((r) => r.agg_int_column_names);
+  const aggCols = useQueryAggCols();
 
   return (
     <div className="mt-3 m-2 flex items-center gap-2">

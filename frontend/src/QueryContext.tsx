@@ -1,62 +1,26 @@
-import Immutable from "immutable";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import BapiQueryRecord from "@/bapiQueryRecord";
 
-import QueryRecord, { DEFAULT_RECORD } from "@/queryRecord";
-import useQuerySelector from "./useQuerySelector";
+import queryStore from "./queryStore";
+import { recordToUrl } from "./queryRecordUtils";
 
-export type UpdateFn = (queryRecord: QueryRecord) => QueryRecord;
+export type UpdateFn = (queryRecord: BapiQueryRecord) => BapiQueryRecord;
 
-export const QueryContext = React.createContext<{
-  queryRecord: QueryRecord;
-}>({
-  queryRecord: DEFAULT_RECORD,
-});
-
-function useQueryRecord(): [QueryRecord, (fn: UpdateFn) => void] {
-  const [queryRecord, setQueryRecord] = useState<QueryRecord>(DEFAULT_RECORD);
-
-  // @ts-expect-error: for debug
-  window.getRecord = () => queryRecord;
-
-  const updateQueryRecord = useCallback(
-    (updateFn: UpdateFn) => {
-      const newRecord = updateFn(queryRecord);
-      if (!Immutable.is(newRecord, queryRecord)) {
-        setQueryRecord(newRecord);
-      }
-    },
-    [queryRecord, setQueryRecord],
-  );
-
-  return [queryRecord, updateQueryRecord];
-}
-
-function useRunQuery(queryRecord: QueryRecord) {
-  const navigate = useNavigate();
-  const runQueryRef = useRef(() => {
-    navigate(queryRecord.toUrl());
-  });
-  useEffect(() => {
-    runQueryRef.current = () => {
-      navigate(queryRecord.toUrl());
-    };
-  }, [queryRecord, navigate]);
-
-  return () => runQueryRef.current();
-}
+export const QueryContext = React.createContext<{}>({});
 
 export function QueryContextProvider({
   children = null,
 }: {
   children: React.ReactElement | null;
 }) {
-  const query = useQuerySelector((r) => r);
-  const runQuery = useRunQuery(query);
-
-  const [queryRecord, updateQueryRecord] = useQueryRecord();
+  const navigate = useNavigate();
+  const runQuery = () => navigate(recordToUrl(queryStore.getState()));
 
   useEffect(() => {
+    // @ts-expect-error: for debug
+    window.getRecord = () => queryStore.getState();
+
     function onEnter(e: KeyboardEvent) {
       if (e.key === "Enter" && e.ctrlKey) {
         runQuery();
@@ -70,9 +34,7 @@ export function QueryContextProvider({
   return (
     <QueryContext.Provider
       // eslint-disable-next-line react/jsx-no-constructed-context-values
-      value={{
-        queryRecord,
-      }}
+      value={{}}
     >
       {children}
     </QueryContext.Provider>

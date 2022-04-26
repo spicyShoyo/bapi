@@ -1,11 +1,9 @@
-import { createAction, PayloadAction, Update } from "@reduxjs/toolkit";
+import { createAction, PayloadAction } from "@reduxjs/toolkit";
 import Immutable from "immutable";
-import { ColumnInfo, ColumnRecord, ColumnType } from "./columnRecord";
-import QueryRecord, { DEFAULT_RECORD } from "./queryRecord";
+import { ColumnInfo, ColumnRecord, ColumnType } from "@/columnRecord";
 import { AggOpType } from "@/queryConsts";
-import { Filter, FilterRecord } from "./filterRecord";
-
-export const initRecord = createAction<QueryRecord>("initRecord");
+import { Filter, FilterRecord } from "@/filterRecord";
+import { DEFAULT_RECORD } from "@/queryRecordUtils";
 
 type SetTsRangePayload = { maxTs?: number; minTs?: number };
 export const setTsRange = createAction<SetTsRangePayload>("setTsRange");
@@ -22,7 +20,6 @@ export const updateFilter = createAction<UpdateFilterPayload>("updateFilter");
 export default function queryReducer(
   state = DEFAULT_RECORD,
   action:
-    | PayloadAction<QueryRecord, "initRecord">
     | PayloadAction<SetTsRangePayload, "setTsRange">
     | PayloadAction<ColumnInfo[], "setGroupbyCols">
     | PayloadAction<ColumnInfo[], "setAggregateCols">
@@ -32,8 +29,6 @@ export default function queryReducer(
     | PayloadAction<UpdateFilterPayload, "updateFilter">,
 ) {
   switch (action.type) {
-    case "initRecord":
-      return action.payload;
     case "setTsRange": {
       let newState = state;
       if (action.payload.minTs != null) {
@@ -45,36 +40,18 @@ export default function queryReducer(
       return newState;
     }
     case "setGroupbyCols": {
-      let intCols = Immutable.List<ColumnRecord>();
-      let strCols = Immutable.List<ColumnRecord>();
+      let cols = Immutable.List<ColumnRecord>();
       action.payload.forEach((col) => {
-        switch (col.column_type) {
-          case ColumnType.INT:
-            intCols = intCols.push(ColumnRecord.fromColumnInfo(col));
-            break;
-          case ColumnType.STR:
-            strCols = strCols.push(ColumnRecord.fromColumnInfo(col));
-            break;
-          default:
-            throw new Error(`invalid groupby column type ${col.column_type}`);
-        }
+        cols = cols.push(new ColumnRecord(col));
       });
-      return state
-        .set("groupby_int_columns", intCols)
-        .set("groupby_str_columns", strCols);
+      return state.set("groupby_cols", cols);
     }
     case "setAggregateCols": {
-      let intCols = Immutable.List<ColumnRecord>();
+      let cols = Immutable.List<ColumnRecord>();
       action.payload.forEach((col) => {
-        switch (col.column_type) {
-          case ColumnType.INT:
-            intCols = intCols.push(ColumnRecord.fromColumnInfo(col));
-            break;
-          default:
-            throw new Error(`invalid agregate column type ${col.column_type}`);
-        }
+        cols = cols.push(new ColumnRecord(col));
       });
-      return state.set("agg_int_column_names", intCols);
+      return state.set("agg_cols", cols);
     }
     case "setAggOp": {
       return state.set("agg_op", action.payload);

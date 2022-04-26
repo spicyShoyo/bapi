@@ -1,6 +1,6 @@
 import { configureStore } from "@reduxjs/toolkit";
 import queryReducer from "@/queryReducer";
-import { buildRecordFromUrl } from "@/queryRecord";
+import { getRecordFromUrlOrDefault } from "@/queryRecordUtils";
 
 export default configureStore({
   reducer: queryReducer,
@@ -11,5 +11,5 @@ export default configureStore({
         ignoreActions: true,
       },
     }),
-  preloadedState: buildRecordFromUrl(),
+  preloadedState: getRecordFromUrlOrDefault(),
 });

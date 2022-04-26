@@ -4,7 +4,7 @@ import TokenizedTextField from "./TokenizedTextField";
 import { ColumnInfo } from "@/columnRecord";
 import nullthrows from "@/nullthrows";
 import { TableContext } from "@/TableContext";
-import useQuerySelector from "@/useQuerySelector";
+import { useQueryGroupbyCols } from "@/useQuerySelector";
 import { setGroupbyCols } from "@/queryReducer";
 import { useDispatch } from "react-redux";
 
@@ -12,10 +12,7 @@ export default function GroupbySection() {
   const dispatch = useDispatch();
 
   const { int_columns, str_columns } = nullthrows(useContext(TableContext));
-  const cols = useQuerySelector((r) => [
-    ...(r.groupby_str_columns ?? []),
-    ...(r.groupby_int_columns ?? []),
-  ]);
+  const cols = useQueryGroupbyCols();
 
   return (
     <div className="mt-3 m-2 flex items-center">
