@@ -28,7 +28,7 @@ export default function AggregateSection() {
       />
       <div className="flex-1">
         <TokenizedTextField
-          initValues={aggCols}
+          values={aggCols}
           queryToValue={null}
           valueToString={(v: ColumnInfo | null) => v?.column_name ?? ""}
           setValues={(cols) => dispatch(setAggregateCols(cols))}

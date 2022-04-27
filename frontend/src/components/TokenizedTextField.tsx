@@ -98,13 +98,13 @@ const TextBox = React.forwardRef(
 );
 
 export default function TokenizedTextField<T>({
-  initValues,
+  values,
   queryToValue,
   valueToString,
   setValues,
   fetchHints,
 }: {
-  initValues: T[] | null;
+  values: T[];
   queryToValue: ((query: string) => T) | null; // null means only ones from hints is selectable
   valueToString: (_: T | null) => string;
   setValues: (_: T[]) => void;
@@ -112,41 +112,34 @@ export default function TokenizedTextField<T>({
 }) {
   const [query, setQuery] = useState("");
   const typeaheadValues = useTypeahead(query, queryToValue, fetchHints);
-  const [selectedValues, setSelectedValues] = useState<T[]>(initValues ?? []);
 
   const onSelect = useCallback(
     (value) => {
       setQuery("");
-      if (selectedValues.includes(value)) {
+      if (values.includes(value)) {
         return;
       }
-      const newValues = [...selectedValues, value];
-      setSelectedValues(newValues);
-      setValues(newValues);
+      setValues([...values, value]);
     },
-    [selectedValues, setValues, setQuery, setSelectedValues],
+    [setValues, setQuery],
   );
 
   const onRemove = useCallback(
     (value) => {
-      const newValues = selectedValues.filter(
-        (val) => valueToString(val) !== value,
-      );
-      setSelectedValues(newValues);
-      setValues(newValues);
+      setValues(values.filter((val) => valueToString(val) !== value));
     },
-    [selectedValues, setValues, valueToString],
+    [values, setValues, valueToString],
   );
 
   return (
     <TokenContext.Provider
       value={useMemo(
         () => ({
-          selectedValues: selectedValues.map(valueToString),
+          selectedValues: values.map(valueToString),
           query,
           onRemove,
         }),
-        [selectedValues, valueToString, query, onRemove],
+        [values, valueToString, query, onRemove],
       )}
     >
       <Combobox value="" onChange={onSelect}>

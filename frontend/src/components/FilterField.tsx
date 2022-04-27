@@ -118,7 +118,7 @@ export default function FilterField(props: {
         </button>
       </div>
       <TokenizedTextField
-        initValues={
+        values={
           column.column_type === ColumnType.INT
             ? intVals.map((v) => v.toString())
             : strVals
