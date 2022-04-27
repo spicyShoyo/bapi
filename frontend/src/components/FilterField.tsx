@@ -10,13 +10,7 @@ import { FilterOp, FilterOpType, getFilterOpStr } from "@/queryConsts";
 import { TableContext, TableInfo } from "@/TableContext";
 import { Dropdown } from "./Dropdown";
 
-function findColumn(
-  colName: string | undefined,
-  tableInfo: TableInfo,
-): ColumnInfo | null {
-  if (colName == null) {
-    return null;
-  }
+function findColumn(colName: string, tableInfo: TableInfo): ColumnInfo | null {
   return (
     tableInfo.str_columns?.find((col) => col.column_name === colName) ??
     tableInfo.int_columns?.find((col) => col.column_name === colName) ??
@@ -25,72 +19,58 @@ function findColumn(
 }
 
 function useFilterSettings(
-  initFilter: Filter | null,
+  filter: Filter,
   tableData: TableInfo,
   onUpdate: (updatedFilter: Filter) => void,
 ): {
-  intVals: number[];
+  intVals: string[];
   strVals: string[];
   column: ColumnInfo;
   setColName: (_: string) => void;
   filterOp: FilterOpType;
   setFilterOp: (_: FilterOpType) => void;
-  setIntVals: (_: number[]) => void;
+  setIntVals: (_: string[]) => void;
   setStrVals: (_: string[]) => void;
 } {
-  const [filter, setFilter] = useState<Filter | null>(initFilter);
-
-  const [column, setColumn] = useState<ColumnInfo>(
-    nullthrows(
+  return {
+    column: nullthrows(
       findColumn(filter?.column_name, tableData) ??
         tableData.str_columns?.[0] ??
         tableData.int_columns?.[0],
     ),
-  );
-  const [filterOp, setFilterOp] = useState<FilterOpType>(
-    filter?.filter_op ?? FilterOp.EQ,
-  );
-  const [intVals, setIntVals] = useState<number[]>(filter?.int_vals ?? []);
-  const [strVals, setStrVals] = useState<string[]>(filter?.str_vals ?? []);
-
-  useEffect(() => {
-    const newFilter: Filter = {
-      column_name: column.column_name,
-      column_type: column.column_type,
-      filter_op: filterOp,
-      int_vals: intVals,
-      str_vals: strVals,
-    };
-    if (FilterRecord.filtersMatch(newFilter, filter)) {
-      return;
-    }
-
-    setFilter(newFilter);
-    onUpdate(newFilter);
-
-    // TODO: this is gross
-  }, [column, filterOp, intVals, strVals, onUpdate, filter]);
-
-  return {
-    column,
     setColName: (colName: string) => {
       const column = nullthrows(findColumn(colName, tableData));
-      setColumn(column);
-      setFilterOp(FilterOp.EQ);
-      setIntVals([]);
-      setStrVals([]);
+      onUpdate({
+        column_name: column.column_name,
+        column_type: column.column_type,
+        filter_op: filter.filter_op,
+        int_vals: filter.int_vals,
+        str_vals: filter.str_vals,
+      });
     },
-    filterOp,
-    setFilterOp,
-    intVals,
-    strVals,
-    setIntVals,
-    setStrVals,
+    filterOp: filter.filter_op,
+    setFilterOp: (op) =>
+      onUpdate({
+        ...filter,
+        filter_op: op,
+      }),
+    intVals: filter.int_vals,
+    strVals: filter.str_vals,
+    setIntVals: (vals) =>
+      onUpdate({
+        ...filter,
+        int_vals: vals,
+      }),
+    setStrVals: (vals) =>
+      onUpdate({
+        ...filter,
+        str_vals: vals,
+      }),
   };
 }
 
 export default function FilterField(props: {
-  filter: Filter | null;
+  filter: Filter;
   onUpdate: (updatedFilter: Filter) => void;
   onRemove: () => void;
 }) {
@@ -105,7 +85,6 @@ export default function FilterField(props: {
     intVals,
     strVals,
   } = useFilterSettings(props.filter, nullthrows(tableInfo), props.onUpdate);
-
   return (
     <div className="flex flex-col gap-4 mx-2 mt-2 py-2 px-4 outline-double outline-slate-200">
       <div className="flex justify-between">
@@ -159,7 +138,7 @@ export default function FilterField(props: {
         setValues={(values) => {
           // TODO: validate ints
           if (column.column_type === ColumnType.INT) {
-            setIntVals(values.map((v) => +v));
+            setIntVals(values);
           } else if (column.column_type === ColumnType.STR) {
             setStrVals(values);
           }

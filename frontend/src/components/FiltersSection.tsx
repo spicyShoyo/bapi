@@ -2,17 +2,16 @@ import { useContext } from "react";
 
 import FilterField from "./FilterField";
 import { Filter } from "@/filterRecord";
-import useQuerySelector from "@/useQuerySelector";
+import { useQueryFilters } from "@/useQuerySelector";
 import { useDispatch } from "react-redux";
 import { removeFilter, updateFilter, addFilter } from "@/queryReducer";
 import { TableContext } from "@/TableContext";
 import { ColumnType } from "@/columnRecord";
 import { FilterOp } from "@/queryConsts";
-import Immutable from "immutable";
 
 export default function FiltersSection() {
   const d = useDispatch();
-  const filters = useQuerySelector((r) => r.filters);
+  const filters = useQueryFilters();
   const tableInfo = useContext(TableContext);
 
   return (
@@ -20,22 +19,7 @@ export default function FiltersSection() {
       {filters?.map((filter, idx) => (
         <FilterField
           key={idx}
-          // TODO: fix typing
-          filter={{
-            column_name: filter.column_name!,
-            column_type: filter.column_type!,
-            filter_op: filter.filter_op!,
-            // @ts-ignore
-            int_vals:
-              filter.int_vals! instanceof Immutable.List
-                ? filter.int_vals.toJS()
-                : filter.int_vals!,
-            // @ts-ignore
-            str_vals:
-              filter.str_vals! instanceof Immutable.List
-                ? filter.str_vals.toJS()
-                : filter.str_vals!,
-          }}
+          filter={filter}
           onUpdate={(filter: Filter) =>
             d(
               updateFilter({

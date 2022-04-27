@@ -7,7 +7,7 @@ export type Filter = {
   column_name: string;
   column_type: ColumnType;
   filter_op: FilterOpType;
-  int_vals: number[];
+  int_vals: string[];
   str_vals: string[];
 };
 

@@ -1,10 +1,21 @@
 import BapiQueryRecord from "@/bapiQueryRecord";
-import { AggOp, QueryType, QueryUrlPath } from "@/queryConsts";
+import { AggOp, FilterOp, QueryType, QueryUrlPath } from "@/queryConsts";
 import { L1D, NOW } from "@/tsConsts";
+import { ColumnType } from "./columnRecord";
 
 export const DEFAULT_RECORD = new BapiQueryRecord({
   query_type: QueryType.Table,
   agg_op: AggOp.COUNT,
+  // @ts-ignore TODO: fix typing
+  filters: [
+    {
+      column_name: "",
+      column_type: ColumnType.STR,
+      filter_op: FilterOp.EQ,
+      int_vals: [],
+      str_vals: [],
+    },
+  ],
   min_ts: L1D.unix(),
   max_ts: NOW.unix(),
 });

@@ -64,7 +64,7 @@ function buildDeepRecordFactory(
         return undefined;
       }
 
-      if (spec[ELEMENT_FACTORY_KEY] == null) {
+      if (spec[ELEMENT_FACTORY_KEY] == true) {
         return Immutable.List(vals);
       }
 

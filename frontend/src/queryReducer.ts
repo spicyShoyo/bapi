@@ -58,12 +58,11 @@ export default function queryReducer(
     }
     case "addFilter": {
       const record = FilterRecord.fromFilter(action.payload);
-      // TODO: fix typing
-      const filters = Immutable.List(state.filters ?? []);
+      const filters = state.filters ?? Immutable.List();
       return state.set("filters", filters.push(record));
     }
     case "removeFilter": {
-      return state.removeIn(["filter", action.payload]);
+      return state.removeIn(["filters", action.payload]);
     }
     case "updateFilter": {
       const record = FilterRecord.fromFilter(action.payload.filter);
