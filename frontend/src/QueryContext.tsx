@@ -26,8 +26,8 @@ export function QueryContextProvider({
         runQuery();
       }
     }
-    document.addEventListener("keypress", onEnter);
-    return () => document.removeEventListener("keypress", onEnter);
+    document.addEventListener("keyup", onEnter);
+    return () => document.removeEventListener("keyup", onEnter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
