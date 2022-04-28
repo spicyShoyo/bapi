@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import BapiQueryRecord from "@/bapiQueryRecord";
 import { Filter } from "@/filterRecord";
 import { ColumnInfo } from "./columnRecord";
+import { getPropsForTimeRange, TimeRange } from "./tsConsts";
 
 export default function useQuerySelector<T>(
   selectFn: (record: BapiQueryRecord) => T,
@@ -27,4 +28,27 @@ export function useQueryGroupbyCols(): ColumnInfo[] {
 
 export function useQueryAggCols(): ColumnInfo[] {
   return useQuerySelector((r) => toJsOrEmptyArray<ColumnInfo>(r.agg_cols));
+}
+
+export function useQueryTs(): {
+  ts_range: TimeRange | null;
+  min_ts: number | null;
+  max_ts: number | null;
+} {
+  return useQuerySelector((r) => {
+    if (r.ts_range != null) {
+      const [_, min_ts, max_ts] = getPropsForTimeRange(r.ts_range);
+      return {
+        ts_range: r.ts_range,
+        min_ts,
+        max_ts,
+      };
+    }
+
+    return {
+      ts_range: null,
+      min_ts: r.min_ts,
+      max_ts: r.max_ts,
+    };
+  });
 }

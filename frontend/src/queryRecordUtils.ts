@@ -1,8 +1,9 @@
 import BapiQueryRecord from "@/bapiQueryRecord";
 import { AggOp, FilterOp, QueryType, QueryUrlPath } from "@/queryConsts";
-import { L1D, NOW } from "@/tsConsts";
+import { TimeRange, getPropsForTimeRange } from "@/tsConsts";
 import { ColumnType } from "./columnRecord";
 
+const [_, min_ts, max_ts] = getPropsForTimeRange(TimeRange.l1d);
 export const DEFAULT_RECORD = new BapiQueryRecord({
   query_type: QueryType.Table,
   agg_op: AggOp.COUNT,
@@ -16,8 +17,9 @@ export const DEFAULT_RECORD = new BapiQueryRecord({
       str_vals: [],
     },
   ],
-  min_ts: L1D.unix(),
-  max_ts: NOW.unix(),
+  ts_range: TimeRange.l1d,
+  min_ts,
+  max_ts,
 });
 
 export function recordToUrl(record: BapiQueryRecord): string {

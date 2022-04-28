@@ -2,6 +2,7 @@ import Immutable from "immutable";
 import { ColumnInfo } from "./columnRecord";
 import { Filter } from "./filterRecord";
 import { AggOpType, QueryType } from "./queryConsts";
+import { TimeRange } from "./tsConsts";
 
 const BAPI_PREFIX = "_BAPI_";
 const NODE_TYPE_KEY = BAPI_PREFIX + "NODE";
@@ -44,6 +45,7 @@ const QuerySpecPaths = {
   query_type: null,
   min_ts: null,
   max_ts: null,
+  ts_range: null,
   filters: FiltersSpecPaths,
   groupby_cols: ColumnsSpecPaths,
   agg_op: null,
@@ -146,6 +148,7 @@ const BapiQueryRecordBase: Immutable.Record.Factory<
     query_type: QueryType;
     min_ts: number;
     max_ts: number;
+    ts_range: TimeRange;
     filters: Filter[];
     groupby_cols: ColumnInfo[];
     agg_op: AggOpType;

@@ -4,8 +4,13 @@ import { ColumnInfo, ColumnRecord, ColumnType } from "@/columnRecord";
 import { AggOpType } from "@/queryConsts";
 import { Filter, FilterRecord } from "@/filterRecord";
 import { DEFAULT_RECORD } from "@/queryRecordUtils";
+import { TimeRange } from "./tsConsts";
 
-type SetTsRangePayload = { maxTs?: number; minTs?: number };
+type SetTsRangePayload = {
+  maxTs?: number;
+  minTs?: number;
+  timeRange?: TimeRange;
+};
 export const setTsRange = createAction<SetTsRangePayload>("setTsRange");
 
 export const setGroupbyCols = createAction<ColumnInfo[]>("setGroupbyCols");
@@ -31,6 +36,9 @@ export default function queryReducer(
   switch (action.type) {
     case "setTsRange": {
       let newState = state;
+      if (action.payload.timeRange != null) {
+        newState = newState.set("ts_range", action.payload.timeRange);
+      }
       if (action.payload.minTs != null) {
         newState = newState.set("min_ts", action.payload.minTs);
       }

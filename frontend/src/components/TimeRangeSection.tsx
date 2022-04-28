@@ -1,8 +1,8 @@
 import dayjs from "dayjs";
 
-import { NOW, L5M, L1H, L12H, L1D, L2D, L7D, L14D } from "@/tsConsts";
+import { getPropsForTimeRange, TimeRange, TimeRanges } from "@/tsConsts";
 import { useDispatch } from "react-redux";
-import useQuerySelector from "@/useQuerySelector";
+import useQuerySelector, { useQueryTs } from "@/useQuerySelector";
 import { setTsRange } from "@/queryReducer";
 
 const FORMAT_STR = "YYYY-MM-DDTHH:mm";
@@ -31,6 +31,7 @@ function TimePicker(props: {
   value: number;
   onChange: (ts: number) => void;
 }) {
+  const [_, min, max] = getPropsForTimeRange(TimeRange.l14d);
   return (
     <div className="flex m-2 justify-between">
       <div className="text-slate-100 font-bold mr-2">{props.label}</div>
@@ -38,8 +39,8 @@ function TimePicker(props: {
         type="datetime-local"
         style={{ width: "224px", borderRadius: "0.25rem" }}
         value={dayjs.unix(props.value).format(FORMAT_STR)}
-        min={L14D.format(FORMAT_STR)}
-        max={NOW.format(FORMAT_STR)}
+        min={dayjs.unix(min).format(FORMAT_STR)}
+        max={dayjs.unix(max).format(FORMAT_STR)}
         onChange={(e) => props.onChange(dayjs(e.target.value).unix())}
       />
     </div>
@@ -48,49 +49,36 @@ function TimePicker(props: {
 
 export default function TimeRangeSection() {
   const dispatch = useDispatch();
-  const startTs = useQuerySelector((state) => state.min_ts);
-  const endTs = useQuerySelector((state) => state.max_ts);
+  const { ts_range, min_ts, max_ts } = useQueryTs();
 
   const setTs = (payload: { maxTs?: number; minTs?: number }) =>
     dispatch(setTsRange(payload));
-
-  const chips: [string, number, number][] = [
-    ["L14d", L14D.unix(), NOW.unix()],
-    ["L7d", L7D.unix(), NOW.unix()],
-    ["L1d", L1D.unix(), NOW.unix()],
-    ["L12h", L12H.unix(), NOW.unix()],
-    ["L1h", L1H.unix(), NOW.unix()],
-    ["L5m", L5M.unix(), NOW.unix()],
-    ["Yesterday", L2D.unix(), L1D.unix()],
-    ["Last week", L14D.unix(), L7D.unix()],
-  ];
+  const [_, defaultStartTs, defaultEndTs] = getPropsForTimeRange(TimeRange.l1d);
 
   return (
     <div className="flex flex-col">
       <TimePicker
         label="Start"
-        value={startTs ?? L1D.unix()}
+        value={min_ts ?? defaultStartTs}
         onChange={(minTs) => setTs({ minTs })}
       />
       <TimePicker
         label="End"
-        value={endTs ?? NOW.unix()}
+        value={max_ts ?? defaultEndTs}
         onChange={(maxTs) => setTs({ maxTs })}
       />
       <div className="flex flex-wrap gap-y-2">
-        {chips.map(([label, start, end]) => (
-          <TimeChip
-            key={label}
-            selected={startTs === start && endTs === end}
-            label={label}
-            onChange={() => {
-              setTs({
-                minTs: start,
-                maxTs: end,
-              });
-            }}
-          />
-        ))}
+        {TimeRanges.map((timeRange) => {
+          const [label, minTs, maxTs] = getPropsForTimeRange(timeRange);
+          return (
+            <TimeChip
+              key={label}
+              selected={timeRange === ts_range}
+              label={label}
+              onChange={() => dispatch(setTsRange({ timeRange, minTs, maxTs }))}
+            />
+          );
+        })}
       </div>
     </div>
   );
