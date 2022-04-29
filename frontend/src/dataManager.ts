@@ -1,8 +1,21 @@
 import axios, { AxiosResponse } from "axios";
+import BapiQueryRecord from "./bapiQueryRecord";
+import { QueryType } from "./queryConsts";
+import { recordToTableQuery } from "./queryRecordUtils";
 
 import { TableInfo } from "./TableContext";
 
 const path = "/v1";
+
+// TODO: add typing
+export async function fetchQueryResult(query: BapiQueryRecord): Promise<any> {
+  if (query.query_type === QueryType.Table) {
+    return axios
+      .get(`${path}/table?q=${JSON.stringify(recordToTableQuery(query))}`)
+      .then((res: AxiosResponse<any>) => console.log("$$$", res.data.result));
+  }
+  return Promise.reject();
+}
 
 export async function fetchTableInfo(table: string): Promise<TableInfo> {
   return axios

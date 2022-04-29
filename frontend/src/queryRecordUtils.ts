@@ -33,6 +33,57 @@ export function recordToUrl(record: BapiQueryRecord): string {
   }
 }
 
+// TODO: add typing
+export function recordToTableQuery(record: BapiQueryRecord): object {
+  return {
+    min_ts: record.min_ts,
+    max_ts: record.max_ts,
+    int_filters: record.filters
+      ?.filter((filter) => filter.column_type === ColumnType.INT)
+      .map((filter) => ({
+        column_name: filter.column_name,
+        filter_op: filter.filter_op,
+        value: filter.int_vals?.get(0),
+      }))
+      .toJS(),
+    str_filters: record.filters
+      ?.filter((filter) => filter.column_type === ColumnType.STR)
+      .map((filter) => ({
+        column_name: filter.column_name,
+        filter_op: filter.filter_op,
+        value: filter.str_vals?.get(0),
+      }))
+      .toJS(),
+    group_by_int_column_names: record.groupby_cols
+      ?.filter((col) => col.column_type === ColumnType.INT)
+      .map((col) => col.column_name)
+      .toJS(),
+    group_by_str_column_names: record.groupby_cols
+      ?.filter((col) => col.column_type === ColumnType.STR)
+      .map((col) => col.column_name)
+      .toJS(),
+    agg_op: record.agg_op,
+    agg_int_column_names: record.agg_cols?.map((col) => col.column_name).toJS(),
+  };
+}
+
+export function materializeQuery(record: BapiQueryRecord): BapiQueryRecord {
+  let updatedReocrd = record;
+  if (record.ts_range != null) {
+    const [_, min_ts, max_ts] = getPropsForTimeRange(record.ts_range);
+    updatedReocrd = updatedReocrd.set("min_ts", min_ts).set("max_ts", max_ts);
+  }
+
+  return updatedReocrd.set(
+    "filters",
+    record.filters?.filter(
+      (filter) =>
+        filter.column_name !== "" &&
+        ((filter.int_vals?.size ?? 0) > 0 || (filter.str_vals?.size ?? 0) > 0),
+    ),
+  );
+}
+
 export function getRecordFromUrlOrDefault(): BapiQueryRecord {
   const split = window.location.hash.split("?q=");
   if (split.length !== 2) {

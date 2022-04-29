@@ -3,7 +3,7 @@ import Immutable from "immutable";
 import { ColumnInfo, ColumnRecord, ColumnType } from "@/columnRecord";
 import { AggOpType } from "@/queryConsts";
 import { Filter, FilterRecord } from "@/filterRecord";
-import { DEFAULT_RECORD } from "@/queryRecordUtils";
+import { DEFAULT_RECORD, materializeQuery } from "@/queryRecordUtils";
 import { TimeRange } from "./tsConsts";
 
 type SetTsRangePayload = {
@@ -11,6 +11,9 @@ type SetTsRangePayload = {
   minTs?: number;
   timeRange?: TimeRange;
 };
+
+export const materialize = createAction<void>("materialize");
+
 export const setTsRange = createAction<SetTsRangePayload>("setTsRange");
 
 export const setGroupbyCols = createAction<ColumnInfo[]>("setGroupbyCols");
@@ -25,6 +28,7 @@ export const updateFilter = createAction<UpdateFilterPayload>("updateFilter");
 export default function queryReducer(
   state = DEFAULT_RECORD,
   action:
+    | PayloadAction<void, "materialize">
     | PayloadAction<SetTsRangePayload, "setTsRange">
     | PayloadAction<ColumnInfo[], "setGroupbyCols">
     | PayloadAction<ColumnInfo[], "setAggregateCols">
@@ -34,6 +38,9 @@ export default function queryReducer(
     | PayloadAction<UpdateFilterPayload, "updateFilter">,
 ) {
   switch (action.type) {
+    case "materialize": {
+      return materializeQuery(state);
+    }
     case "setTsRange": {
       let newState = state;
       if (action.payload.timeRange != null) {

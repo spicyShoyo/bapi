@@ -4,6 +4,9 @@ import BapiQueryRecord from "@/bapiQueryRecord";
 
 import queryStore from "./queryStore";
 import { recordToUrl } from "./queryRecordUtils";
+import { useDispatch } from "react-redux";
+import { materialize } from "./queryReducer";
+import { fetchQueryResult } from "./dataManager";
 
 export type UpdateFn = (queryRecord: BapiQueryRecord) => BapiQueryRecord;
 
@@ -14,8 +17,16 @@ export function QueryContextProvider({
 }: {
   children: React.ReactElement | null;
 }) {
+  const d = useDispatch();
   const navigate = useNavigate();
-  const runQuery = () => navigate(recordToUrl(queryStore.getState()));
+  const runQuery = () => {
+    d(materialize());
+    setTimeout(() => {
+      const record = queryStore.getState();
+      navigate(recordToUrl(record));
+      fetchQueryResult(record);
+    });
+  };
 
   useEffect(() => {
     // @ts-expect-error: for debug

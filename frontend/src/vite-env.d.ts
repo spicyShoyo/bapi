@@ -3,6 +3,7 @@
 type DeepRecord<T extends {}> = {
   [k in keyof T]:
     | null
+    | undefined
     | (T[k] extends Array<infer I>
         ? Immutable.List<DeepRecord<I>>
         : T[k] extends string
