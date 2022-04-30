@@ -154,9 +154,9 @@ export default function TokenizedTextField<T>({
           <div className="relative">
             <div className="absolute w-full">
               <Combobox.Options className="py-1 bg-white rounded-md shadow-lg max-h-60 focus:outline-none sm:text-sm">
-                {typeaheadValues.map((val) => (
+                {typeaheadValues.map((val, i) => (
                   <Combobox.Option
-                    key={valueToString(val)}
+                    key={i}
                     className={({ active }) =>
                       `cursor-default select-none py-2 pl-4 pr-4 ${
                         active ? "text-white bg-teal-600" : "text-gray-900"

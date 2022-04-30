@@ -77,28 +77,32 @@ function useBuildTable(result: TableQueryResult): null | any[] {
   ];
 
   const data = [];
-  for (let i = 0; i < result.count; i++) {
+  for (let rowIdx = 0; rowIdx < result.count; rowIdx++) {
     const row: { [key: string]: string | number | null } = {};
-    strCols.forEach((col) => {
+    strCols.forEach((col, colIdx) => {
+      const i = rowIdx * strCols.length + colIdx;
       row[col] =
         result.str_has_value![i] === true
           ? result.str_id_map![result.str_result![i].toString()]
           : null;
     });
 
-    intCols.forEach((col) => {
+    intCols.forEach((col, colIdx) => {
+      const i = rowIdx * intCols.length + colIdx;
       row[col] =
         result.int_has_value![i] === true ? result.int_result![i] : null;
     });
 
-    aggFloatCols.forEach((col) => {
+    aggFloatCols.forEach((col, colIdx) => {
+      const i = rowIdx * aggFloatCols.length + colIdx;
       row[col] =
         result.agg_float_has_value![i] === true
           ? result.agg_float_result![i]
           : null;
     });
 
-    aggIntCols.forEach((col) => {
+    aggIntCols.forEach((col, colIdx) => {
+      const i = rowIdx * aggIntCols.length + colIdx;
       row[col] =
         result.agg_int_has_value![i] === true
           ? result.agg_int_result![i]

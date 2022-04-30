@@ -32,8 +32,8 @@ export function useQueryAggCols(): ColumnInfo[] {
 
 export function useQueryTs(): {
   ts_range: TimeRange | null;
-  min_ts: number | null;
-  max_ts: number | null;
+  min_ts: number | null | undefined;
+  max_ts: number | null | undefined;
 } {
   return useQuerySelector((r) => {
     if (r.ts_range != null) {
