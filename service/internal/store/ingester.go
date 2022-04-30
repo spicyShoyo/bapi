@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 )
 
 // A data structure for processing a set of rows and building the block for inserting into
@@ -84,13 +85,17 @@ func (ingester *ingester) buildPartialBlock() (*partialBlock, error) {
 	}, nil
 }
 
-func (ingester *ingester) ingestRawJson(rawJson RawJson) error {
+func (ingester *ingester) ingestRawJson(rawJson RawJson, useServerTs bool) error {
 	row := newRow()
 
 	ts, hasTsCol := rawJson.Int[TS_COLUMN_NAME]
 	if !hasTsCol || ts <= 0 {
 		return fmt.Errorf("Missing or invalid ts: %d", ts)
 	}
+	if useServerTs {
+		ts = time.Now().Unix()
+	}
+
 	row.addInt(columnId(TS_COLUMN_ID), ts) // making sure the first value is ts
 
 	for columnName, value := range rawJson.Int {

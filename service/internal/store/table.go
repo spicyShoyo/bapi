@@ -128,24 +128,24 @@ func (t *Table) processPbQueue() bool {
  * {"int":{"ts":1641763082},"str":{"event":"edit"}}
  * ```
  */
-func (table *Table) IngestFile(fileName string) {
+func (table *Table) IngestFile(fileName string, useServerTs bool) {
 	file, err := os.Open(fileName)
 	if err != nil {
 		table.ctx.Logger.Errorf("failed to open file for ingestion: %s, %v", fileName, err)
 	}
 	defer file.Close()
 
-	table.IngestBuf(bufio.NewScanner(file))
+	table.IngestBuf(bufio.NewScanner(file), useServerTs)
 }
 
 // Reads the given buffer and ingests rows to the table
-func (table *Table) IngestBuf(scanner *bufio.Scanner) {
+func (table *Table) IngestBuf(scanner *bufio.Scanner, useServerTs bool) {
 	ingester := table.ingesterPool.Get().(*ingester)
 	cnt_success := 0
 	cnt_all := 0
 
 	for scanner.Scan() {
-		batch_cnt_success, batch_cnt_all := table.ingestBufOneBlock(ingester, scanner)
+		batch_cnt_success, batch_cnt_all := table.ingestBufOneBlock(ingester, scanner, useServerTs)
 		cnt_success += batch_cnt_success
 		cnt_all += batch_cnt_all
 	}
@@ -213,7 +213,7 @@ func (table *Table) addBlock(block *Block) bool {
 // Reads the given buffer and process the rows until either the buffer is empty
 // or reached max rows per block, then add a new block to the table.
 // *Note* this assumes that Scan was just called on the scanner.
-func (table *Table) ingestBufOneBlock(ingester *ingester, scanner *bufio.Scanner) (int, int) {
+func (table *Table) ingestBufOneBlock(ingester *ingester, scanner *bufio.Scanner, useServerTs bool) (int, int) {
 	ingester.zeroOut()
 	cnt_success := 0
 	cnt_all := 0
@@ -226,7 +226,7 @@ func (table *Table) ingestBufOneBlock(ingester *ingester, scanner *bufio.Scanner
 			table.ctx.Logger.Errorf("failed to parse json: %v", err)
 			continue
 		}
-		if err := ingester.ingestRawJson(rawJson); err == nil {
+		if err := ingester.ingestRawJson(rawJson, useServerTs); err == nil {
 			cnt_success += 1
 		} else {
 			table.ctx.Logger.Errorf("failed to ingest json: %v", err)
@@ -257,7 +257,6 @@ func (table *Table) ingestBufOneBlock(ingester *ingester, scanner *bufio.Scanner
 func (table *Table) IngestJsonRows(rows []*pb.RawRow, useServerTs bool) int {
 	ingester := table.ingesterPool.Get().(*ingester)
 	cnt_success := 0
-	serverReceviedTs := time.Now().Unix()
 
 	i := 0
 	for i < len(rows) {
@@ -270,14 +269,10 @@ func (table *Table) IngestJsonRows(rows []*pb.RawRow, useServerTs bool) int {
 			i++
 			cur_block_cnt++
 
-			if useServerTs {
-				row.Int[TS_COLUMN_NAME] = serverReceviedTs
-			}
-
 			if err := ingester.ingestRawJson(RawJson{
 				Int: row.Int,
 				Str: row.Str,
-			}); err != nil {
+			}, useServerTs); err != nil {
 				table.ctx.Logger.Errorf("failed to ingest row: %v", err)
 			}
 

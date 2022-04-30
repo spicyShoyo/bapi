@@ -268,7 +268,7 @@ func debugBuildTableAndBlockFromIngester(rawRows []RawJson) (*Table, *Block) {
 	table := NewTable(common.NewBapiCtx(), "asd")
 	ingester := table.newIngester()
 	for _, rawRow := range rawRows {
-		ingester.ingestRawJson(rawRow)
+		ingester.ingestRawJson(rawRow, false /*useServerTs*/)
 	}
 
 	pb, _ := ingester.buildPartialBlock()

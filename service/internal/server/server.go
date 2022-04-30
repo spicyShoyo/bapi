@@ -20,7 +20,7 @@ func NewServer(ctx *common.BapiCtx, backfillFile *string) *server {
 	s.table = store.NewTable(ctx, "test_table")
 
 	if backfillFile != nil {
-		s.table.IngestFile(*backfillFile)
+		s.table.IngestFile(*backfillFile, true /*useServerTs*/)
 	}
 
 	return s

@@ -28,7 +28,7 @@ func TestBuildBlock(t *testing.T) {
 		},
 	}
 	for _, rawRow := range rawRows {
-		ingester.ingestRawJson(rawRow)
+		ingester.ingestRawJson(rawRow, false /*useServerTs*/)
 	}
 	assert.Equal(t, table.colInfoMap.nextColId, columnId(4))
 

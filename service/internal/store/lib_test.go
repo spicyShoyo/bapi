@@ -25,7 +25,7 @@ func TestScan(t *testing.T) {
 
 func TestCreate(t *testing.T) {
 	table := NewTable(common.NewBapiCtx(), "asd")
-	table.IngestFile(JSON_PATH)
+	table.IngestFile(JSON_PATH, false /*useServerTs*/)
 }
 
 func TestQuery(t *testing.T) {
@@ -92,7 +92,7 @@ func debugNewPrefilledTable(rawRows []RawJson) *Table {
 	table := NewTable(common.NewBapiCtx(), "asd")
 	ingester := table.ingesterPool.Get().(*ingester)
 	for _, rawRow := range rawRows {
-		ingester.ingestRawJson(rawRow)
+		ingester.ingestRawJson(rawRow, false /*useServerTs*/)
 	}
 
 	pb, _ := ingester.buildPartialBlock()
