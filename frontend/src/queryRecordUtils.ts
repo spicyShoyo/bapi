@@ -54,11 +54,11 @@ export function recordToTableQuery(record: BapiQueryRecord): object {
         value: filter.str_vals?.get(0),
       }))
       .toJS(),
-    group_by_int_column_names: record.groupby_cols
+    groupby_int_column_names: record.groupby_cols
       ?.filter((col) => col.column_type === ColumnType.INT)
       .map((col) => col.column_name)
       .toJS(),
-    group_by_str_column_names: record.groupby_cols
+    groupby_str_column_names: record.groupby_cols
       ?.filter((col) => col.column_type === ColumnType.STR)
       .map((col) => col.column_name)
       .toJS(),

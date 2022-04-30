@@ -12,7 +12,7 @@ export async function fetchQueryResult(query: BapiQueryRecord): Promise<any> {
   if (query.query_type === QueryType.Table) {
     return axios
       .get(`${path}/table?q=${JSON.stringify(recordToTableQuery(query))}`)
-      .then((res: AxiosResponse<any>) => console.log("$$$", res.data.result));
+      .then((res: AxiosResponse<any>) => console.log("$$$", res.data));
   }
   return Promise.reject();
 }
