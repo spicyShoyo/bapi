@@ -30,6 +30,7 @@ export class FilterRecord extends Immutable.Record<DeepRecord<Filter>>({
   static fromFilter(filter: Filter): FilterRecord {
     return new FilterRecord({
       column_name: filter.column_name,
+      column_type: filter.column_type,
       filter_op: filter.filter_op,
       int_vals: Immutable.List(filter.int_vals),
       str_vals: Immutable.List(filter.str_vals),

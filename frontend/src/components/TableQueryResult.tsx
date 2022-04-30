@@ -1,0 +1,122 @@
+import { QueryContext } from "@/QueryContext";
+import { useContext } from "react";
+import { useTable } from "react-table";
+
+function Table({ columns, data }: any) {
+  const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
+    useTable({
+      columns,
+      data,
+    });
+
+  return (
+    <table {...getTableProps()} className="bg-white">
+      <thead>
+        {headerGroups.map((headerGroup: any) => (
+          <tr {...headerGroup.getHeaderGroupProps()}>
+            {headerGroup.headers.map((column: any) => (
+              <th {...column.getHeaderProps()}>{column.render("Header")}</th>
+            ))}
+          </tr>
+        ))}
+      </thead>
+      <tbody {...getTableBodyProps()}>
+        {rows.map((row: any, i: number) => {
+          prepareRow(row);
+          return (
+            <tr {...row.getRowProps()}>
+              {row.cells.map((cell: any) => {
+                return <td {...cell.getCellProps()}>{cell.render("Cell")}</td>;
+              })}
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+// keep in sync with `bapi.proto`
+type TableQueryResult = {
+  count: number;
+
+  int_column_names?: string[];
+  int_result?: number[];
+  int_has_value?: boolean[];
+
+  str_column_names?: string[];
+  str_id_map?: { [key: string]: string };
+  str_result?: number[];
+  str_has_value?: boolean[];
+
+  agg_int_column_names?: string[];
+  agg_int_result?: number[];
+  agg_int_has_value?: boolean[];
+
+  agg_float_column_names?: string[];
+  agg_float_result?: number[];
+  agg_float_has_value?: boolean[];
+};
+
+function useBuildTable(result: TableQueryResult): null | any[] {
+  if (result == null) {
+    return null;
+  }
+  const strCols = result.str_column_names ?? [];
+  const intCols = result.int_column_names ?? [];
+
+  const aggFloatCols = result.agg_float_column_names ?? [];
+  const aggIntCols = result.agg_int_column_names ?? [];
+
+  const getCol = (col: string) => ({ Header: col, accessor: col });
+  const columns = [
+    ...strCols.map(getCol),
+    ...intCols.map(getCol),
+    ...aggFloatCols.map(getCol),
+    ...aggIntCols.map(getCol),
+  ];
+
+  const data = [];
+  for (let i = 0; i < result.count; i++) {
+    const row: { [key: string]: string | number | null } = {};
+    strCols.forEach((col) => {
+      row[col] =
+        result.str_has_value![i] === true
+          ? result.str_id_map![result.str_result![i].toString()]
+          : null;
+    });
+
+    intCols.forEach((col) => {
+      row[col] =
+        result.int_has_value![i] === true ? result.int_result![i] : null;
+    });
+
+    aggFloatCols.forEach((col) => {
+      row[col] =
+        result.agg_float_has_value![i] === true
+          ? result.agg_float_result![i]
+          : null;
+    });
+
+    aggIntCols.forEach((col) => {
+      row[col] =
+        result.agg_int_has_value![i] === true
+          ? result.agg_int_result![i]
+          : null;
+    });
+
+    data.push(row);
+  }
+
+  return [columns, data];
+}
+
+export function TableQueryResult() {
+  const { result } = useContext(QueryContext);
+  const tableData = useBuildTable(result?.result);
+  return tableData != null ? (
+    <Table columns={tableData[0]} data={tableData[1]} />
+  ) : (
+    <div className="bg-white">No result!</div>
+  );
+}

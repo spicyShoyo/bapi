@@ -43,7 +43,7 @@ export function recordToTableQuery(record: BapiQueryRecord): object {
       .map((filter) => ({
         column_name: filter.column_name,
         filter_op: filter.filter_op,
-        value: filter.int_vals?.get(0),
+        int_vals: filter.int_vals,
       }))
       .toJS(),
     str_filters: record.filters
@@ -51,7 +51,7 @@ export function recordToTableQuery(record: BapiQueryRecord): object {
       .map((filter) => ({
         column_name: filter.column_name,
         filter_op: filter.filter_op,
-        value: filter.str_vals?.get(0),
+        str_vals: filter.str_vals,
       }))
       .toJS(),
     groupby_int_column_names: record.groupby_cols

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BapiQueryRecord from "@/bapiQueryRecord";
 
@@ -10,7 +10,9 @@ import { fetchQueryResult } from "./dataManager";
 
 export type UpdateFn = (queryRecord: BapiQueryRecord) => BapiQueryRecord;
 
-export const QueryContext = React.createContext<{}>({});
+export const QueryContext = React.createContext<{ result: any }>({
+  result: null,
+});
 
 export function QueryContextProvider({
   children = null,
@@ -19,12 +21,14 @@ export function QueryContextProvider({
 }) {
   const d = useDispatch();
   const navigate = useNavigate();
+  const [result, setResult] = useState<any>(null);
+
   const runQuery = () => {
     d(materialize());
     setTimeout(() => {
       const record = queryStore.getState();
       navigate(recordToUrl(record));
-      fetchQueryResult(record);
+      fetchQueryResult(record).then(setResult);
     });
   };
 
@@ -45,7 +49,7 @@ export function QueryContextProvider({
   return (
     <QueryContext.Provider
       // eslint-disable-next-line react/jsx-no-constructed-context-values
-      value={{}}
+      value={{ result }}
     >
       {children}
     </QueryContext.Provider>

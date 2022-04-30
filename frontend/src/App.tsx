@@ -8,6 +8,7 @@ import { TableContextProvider } from "@/TableContext";
 import { Provider } from "react-redux";
 import AggregateSection from "./components/AggregateSection";
 import queryStore from "./queryStore";
+import { TableQueryResult } from "./components/TableQueryResult";
 
 function App() {
   return (
@@ -28,7 +29,9 @@ function App() {
                   <GroupbySection />
                   <FiltersSection />
                 </div>
-                <div className="flex-1 h-full bg-slate-700" />
+                <div className="flex-1 h-full bg-slate-700">
+                  <TableQueryResult />
+                </div>
               </div>
             </div>
           </QueryContextProvider>
