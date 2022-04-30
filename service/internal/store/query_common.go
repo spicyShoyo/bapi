@@ -72,7 +72,7 @@ type BlockQueryResult struct {
 }
 
 // --------------------------- internal ----------------------------
-type numericFilter[T OrderedNumeric] struct {
+type numericFilter[T numeric] struct {
 	localColId localColumnId
 	op         pb.FilterOp
 	values     []T
@@ -92,7 +92,7 @@ type getCtx struct {
 }
 
 // --------------------------- util ----------------------------
-func filterByNullable[T OrderedNumeric](
+func filterByNullable[T numeric](
 	ctx *filterCtx,
 	filter *numericFilter[T],
 	rows []valueIndex,
@@ -115,7 +115,7 @@ func filterByNullable[T OrderedNumeric](
 	}
 }
 
-func getTargetValueAndPredicate[T OrderedNumeric](
+func getTargetValueAndPredicate[T numeric](
 	filter *numericFilter[T]) ([]T, func(T, T) bool, bool) {
 	switch filter.op {
 	case pb.FilterOp_EQ:
@@ -135,26 +135,26 @@ func getTargetValueAndPredicate[T OrderedNumeric](
 	}
 }
 
-func predicateEq[T OrderedNumeric](left T, right T) bool {
+func predicateEq[T numeric](left T, right T) bool {
 	return left == right
 }
 
-func predicateNe[T OrderedNumeric](left T, right T) bool {
+func predicateNe[T numeric](left T, right T) bool {
 	return left != right
 }
 
-func predicateLt[T OrderedNumeric](left T, right T) bool {
+func predicateLt[T numeric](left T, right T) bool {
 	return left < right
 }
 
-func predicateGt[T OrderedNumeric](left T, right T) bool {
+func predicateGt[T numeric](left T, right T) bool {
 	return left > right
 }
 
-func predicateLe[T OrderedNumeric](left T, right T) bool {
+func predicateLe[T numeric](left T, right T) bool {
 	return left <= right
 }
 
-func predicateGe[T OrderedNumeric](left T, right T) bool {
+func predicateGe[T numeric](left T, right T) bool {
 	return left >= right
 }

@@ -31,7 +31,7 @@ type aggregator struct {
 	aggBuckets sync.Map // map[uint64]*aggBucket
 }
 
-type aggResult[T OrderedNumeric] struct {
+type aggResult[T numeric] struct {
 	m                  map[uint64][]accResult[T]
 	intResIdxes        []int
 	floatResIdxes      []int
@@ -39,7 +39,7 @@ type aggResult[T OrderedNumeric] struct {
 	timelineCountIdxes []int
 }
 
-type accSliceMap[T OrderedNumeric] map[uint64][]accumulator[T]
+type accSliceMap[T numeric] map[uint64][]accumulator[T]
 
 func (accMap accSliceMap[T]) finalize() (aggResult[T], bool) {
 	aggRes := aggResult[T]{

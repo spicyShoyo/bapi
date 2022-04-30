@@ -5,7 +5,7 @@ import (
 )
 
 // Responsible for accumulating values of a given col
-type accumulator[T OrderedNumeric] interface {
+type accumulator[T numeric] interface {
 	addValue(T)
 	consume(accumulator[T])
 	finalize() accResult[T]
@@ -23,7 +23,7 @@ const (
 )
 
 // Wraps the return value of a accumulator due to the generic appOp interface
-type accResult[T OrderedNumeric] struct {
+type accResult[T numeric] struct {
 	intVal           int64
 	floatVal         float64
 	genericVal       T
@@ -33,7 +33,7 @@ type accResult[T OrderedNumeric] struct {
 }
 
 // Creates a slice of accumulator for the given pb.AggOp and the number of cols
-func getAccumulatorSlice[T OrderedNumeric](op pb.AggOp, colCount int) ([]accumulator[T], bool) {
+func getAccumulatorSlice[T numeric](op pb.AggOp, colCount int) ([]accumulator[T], bool) {
 	var templteAccumulator accumulator[T]
 	switch op {
 	case pb.AggOp_COUNT:
@@ -58,28 +58,28 @@ func getAccumulatorSlice[T OrderedNumeric](op pb.AggOp, colCount int) ([]accumul
 }
 
 // --------------------------- constructors for accResult ---------------------------
-func newAccIntResult[T OrderedNumeric](intVal int64, hasValue bool) accResult[T] {
+func newAccIntResult[T numeric](intVal int64, hasValue bool) accResult[T] {
 	return accResult[T]{intVal: intVal, valType: accIntRes, hasValue: hasValue}
 }
 
-func newAccFloatResult[T OrderedNumeric](floatVal float64, hasValue bool) accResult[T] {
+func newAccFloatResult[T numeric](floatVal float64, hasValue bool) accResult[T] {
 	return accResult[T]{floatVal: floatVal, valType: accFloatRes, hasValue: hasValue}
 }
 
-func newAccGenericResult[T OrderedNumeric](genericVal T, hasValue bool) accResult[T] {
+func newAccGenericResult[T numeric](genericVal T, hasValue bool) accResult[T] {
 	return accResult[T]{genericVal: genericVal, valType: accGenericRes, hasValue: hasValue}
 }
 
-func newAccTimelineCountResult[T OrderedNumeric](timelintCountVal map[int64]int, hasValue bool) accResult[T] {
+func newAccTimelineCountResult[T numeric](timelintCountVal map[int64]int, hasValue bool) accResult[T] {
 	return accResult[T]{timelintCountVal: timelintCountVal, valType: accTimelineCountRes, hasValue: hasValue}
 }
 
 // --------------------------- accumulatorCount ---------------------------
-type accumulatorCount[T OrderedNumeric] struct {
+type accumulatorCount[T numeric] struct {
 	count int64
 }
 
-func newAccumulatorCount[T OrderedNumeric]() *accumulatorCount[T] {
+func newAccumulatorCount[T numeric]() *accumulatorCount[T] {
 	return &accumulatorCount[T]{count: 0}
 }
 
@@ -104,11 +104,11 @@ func (op *accumulatorCount[T]) debugGetType() string {
 }
 
 // --------------------------- accumulatorCountDistinct ---------------------------
-type accumulatorCountDistinct[T OrderedNumeric] struct {
+type accumulatorCountDistinct[T numeric] struct {
 	m map[T]bool
 }
 
-func newAccumulatorCountDistinct[T OrderedNumeric]() *accumulatorCountDistinct[T] {
+func newAccumulatorCountDistinct[T numeric]() *accumulatorCountDistinct[T] {
 	return &accumulatorCountDistinct[T]{m: make(map[T]bool)}
 }
 
@@ -135,12 +135,12 @@ func (op *accumulatorCountDistinct[T]) debugGetType() string {
 }
 
 // --------------------------- accumulatorSum ---------------------------
-type accumulatorSum[T OrderedNumeric] struct {
+type accumulatorSum[T numeric] struct {
 	sum      T
 	hasValue bool
 }
 
-func newAccumulatorSum[T OrderedNumeric]() *accumulatorSum[T] {
+func newAccumulatorSum[T numeric]() *accumulatorSum[T] {
 	return &accumulatorSum[T]{sum: T(0), hasValue: false}
 }
 
@@ -168,12 +168,12 @@ func (op *accumulatorSum[T]) debugGetType() string {
 }
 
 // --------------------------- accumulatorAvg ---------------------------
-type accumulatorAvg[T OrderedNumeric] struct {
+type accumulatorAvg[T numeric] struct {
 	sum   T
 	count int
 }
 
-func newAccumulatorAvg[T OrderedNumeric]() *accumulatorAvg[T] {
+func newAccumulatorAvg[T numeric]() *accumulatorAvg[T] {
 	return &accumulatorAvg[T]{sum: T(0)}
 }
 
@@ -204,11 +204,11 @@ func (op *accumulatorAvg[T]) debugGetType() string {
 }
 
 // --------------------------- accumulatorTimelineCount ---------------------------
-type accumulatorTimelineCount[T OrderedNumeric] struct {
+type accumulatorTimelineCount[T numeric] struct {
 	m map[int64]int
 }
 
-func newAccumulatorTimelineCount[T OrderedNumeric]() *accumulatorTimelineCount[T] {
+func newAccumulatorTimelineCount[T numeric]() *accumulatorTimelineCount[T] {
 	return &accumulatorTimelineCount[T]{m: make(map[int64]int)}
 }
 

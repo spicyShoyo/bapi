@@ -25,6 +25,7 @@ go_library(
         "//internal/common",
         "//internal/pb",
         "@com_github_kelindar_bitmap//:bitmap",
+        "@org_golang_x_exp//constraints",
         "@org_uber_go_atomic//:atomic",
         "@org_uber_go_zap//:zap",
     ],

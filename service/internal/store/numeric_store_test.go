@@ -20,7 +20,7 @@ func TestNewNumericStore(t *testing.T) {
 	assert.Equal(t, len(storage.values), 2)
 }
 
-func assertNumericStoreMatchRows[V OrderedNumeric](
+func assertNumericStoreMatchRows[V numeric](
 	t *testing.T,
 	rows debugRows[V],
 	ns *numericStore[V],
@@ -101,7 +101,7 @@ type debugFilterTestSetup[T, U comparable] struct {
 	expectedRows []uint32
 }
 
-func assertFilterHasResult[V OrderedNumeric](
+func assertFilterHasResult[V numeric](
 	t *testing.T,
 	s debugFilterTestSetup[V, V],
 ) {
@@ -274,7 +274,7 @@ func TestNewNumericStoreResult(t *testing.T) {
 	}
 }
 
-type debugGetTestSetup[T OrderedNumeric] struct {
+type debugGetTestSetup[T numeric] struct {
 	colType         ColumnType
 	rows            debugRows[T]
 	colIds          []columnId
@@ -282,7 +282,7 @@ type debugGetTestSetup[T OrderedNumeric] struct {
 	expectedRows    debugRows[T]
 }
 
-func assertGetResultNumericStore[V OrderedNumeric](
+func assertGetResultNumericStore[V numeric](
 	t *testing.T,
 	s debugGetTestSetup[V],
 ) {
@@ -336,7 +336,7 @@ func assertGetResultNumericStore[V OrderedNumeric](
 	assertGetResult(t, s, colIdxLookup, rowIdxLookup, matrix, hasValue, actualResultValues, true /* recordValues */)
 }
 
-func assertGetResult[V OrderedNumeric](
+func assertGetResult[V numeric](
 	t *testing.T,
 	s debugGetTestSetup[V],
 	colIdxLookup map[columnId]int,

@@ -51,7 +51,7 @@ const nullValueIndex = valueIndex(0)
  * 	2. valueIdx := matrix[localColId][rowIdx]
  * 	3. value := values[localColId][valueIdx]
  */
-type numericStore[T OrderedNumeric] struct {
+type numericStore[T numeric] struct {
 	matrix [][]valueIndex
 	values [][]T
 
@@ -61,11 +61,16 @@ type numericStore[T OrderedNumeric] struct {
 // Creates an uninitialized storage.
 // The created storage violates the invariants because the values are not populated and
 // the caller is responsible to initialized the storage correctly.
-func newNumericStore[T OrderedNumeric](colCount int, rowCount int) (*numericStore[T], bool) {
+func newNumericStore[T numeric](colCount int, rowCount int) (*numericStore[T], bool) {
 	if colCount <= 0 || rowCount <= 0 {
 		return nil, false
 	}
-	matrix, _ := make2dSlice[valueIndex](colCount, rowCount)
+
+	matrix := make([][]valueIndex, colCount)
+	for rowIdx := 0; rowIdx < colCount; rowIdx++ {
+		matrix[rowIdx] = make([]valueIndex, rowCount)
+	}
+
 	return &numericStore[T]{
 		matrix:    matrix,
 		values:    make([][]T, colCount),
@@ -75,7 +80,7 @@ func newNumericStore[T OrderedNumeric](colCount int, rowCount int) (*numericStor
 
 // Creates a numericStore from a partialColumns
 // The caller is responsible to make sure that colId and rowId are valid.
-func fromPartialColumns[T OrderedNumeric](partialColumns partialColumns[T], rowCount int) (*numericStore[T], error) {
+func fromPartialColumns[T numeric](partialColumns partialColumns[T], rowCount int) (*numericStore[T], error) {
 	colCount := len(partialColumns)
 	storage, ok := newNumericStore[T](colCount, rowCount)
 	if !ok {
@@ -199,12 +204,12 @@ func canContinueElseStopForColNotExist(ctx *filterCtx, op pb.FilterOp) bool {
  * 	len(matrix) == len(hasValue)
  * 	max(hasValue[colIdx]) < len(matrix[colIdx]) for all colIdx
  */
-type numericStoreResult[T OrderedNumeric] struct {
+type numericStoreResult[T numeric] struct {
 	matrix   [][]T
 	hasValue [][]bool
 }
 
-func newNumericStoreResult[T OrderedNumeric](rowCount int, colCount int) *numericStoreResult[T] {
+func newNumericStoreResult[T numeric](rowCount int, colCount int) *numericStoreResult[T] {
 	matrix := make([][]T, colCount)
 	hasValue := make([][]bool, colCount)
 	for colId := 0; colId < colCount; colId++ {
@@ -308,16 +313,14 @@ func (ns *numericStore[T]) debugInvariantCheck() error {
 		valueIsUsedBySomeRow.Set(uint32(nullValueIndex))
 		badValueIdx := false
 
-		forEach(ns.matrix[localColId],
-			func(valueIdx valueIndex) {
-				if int(valueIdx) >= len(ns.values[localColId]) {
-					badValueIdx = true
-					return
-				}
+		for _, valueIdx := range ns.matrix[localColId] {
+			if int(valueIdx) >= len(ns.values[localColId]) {
+				badValueIdx = true
+				continue
+			}
 
-				valueIsUsedBySomeRow.Set(uint32(valueIdx))
-			},
-		)
+			valueIsUsedBySomeRow.Set(uint32(valueIdx))
+		}
 
 		if badValueIdx {
 			// invariant #3
