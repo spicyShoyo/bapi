@@ -36,7 +36,7 @@ func (ics *intColumnsStorage) get(
 	return IntResult{matrix: storageResult.matrix, hasValue: storageResult.hasValue}
 }
 
-func (ics *intColumnsStorage) filter(ctx *filterCtx, filters []singularFilter[int64]) {
+func (ics *intColumnsStorage) filter(ctx *filterCtx, filters []columnFilter[int64]) {
 	for _, filter := range filters {
 		localColumnId, ok := ics.getLocalColumnId(filter.col)
 		if !ok {
@@ -92,7 +92,7 @@ func (scs *strColumnsStorage) get(
 	}
 }
 
-func (scs *strColumnsStorage) filter(ctx *filterCtx, filters []singularFilter[strId]) {
+func (scs *strColumnsStorage) filter(ctx *filterCtx, filters []columnFilter[strId]) {
 	for _, filter := range filters {
 		localColumnId, ok := scs.getLocalColumnId(filter.col)
 		if !ok {

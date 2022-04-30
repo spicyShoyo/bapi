@@ -205,7 +205,7 @@ func (t *Table) newBlockQuery(query queryWithFilter) (*blockQuery, bool) {
 }
 
 func (t *Table) newBlockfilter(query queryWithFilter) (blockFilter, bool) {
-	intFilters := make([]singularFilter[int64], 0)
+	intFilters := make([]columnFilter[int64], 0)
 	for _, intFilter := range query.getIntFilters() {
 		colInfo, ok := t.colInfoMap.getColumnInfoAndAssertType(intFilter.ColumnName, IntColumnType)
 		if !ok {
@@ -217,14 +217,14 @@ func (t *Table) newBlockfilter(query queryWithFilter) (blockFilter, bool) {
 			return blockFilter{}, false
 		}
 
-		intFilters = append(intFilters, singularFilter[int64]{
+		intFilters = append(intFilters, columnFilter[int64]{
 			col:    colInfo,
 			op:     intFilter.FilterOp,
 			values: intFilter.IntVals,
 		})
 	}
 
-	strFilters := make([]singularFilter[strId], 0)
+	strFilters := make([]columnFilter[strId], 0)
 	for _, strFilter := range query.getStrFilters() {
 		colInfo, ok := t.colInfoMap.getColumnInfoAndAssertType(strFilter.ColumnName, StrColumnType)
 		if !ok {
@@ -244,7 +244,7 @@ func (t *Table) newBlockfilter(query queryWithFilter) (blockFilter, bool) {
 
 		}
 
-		strFilters = append(strFilters, singularFilter[strId]{
+		strFilters = append(strFilters, columnFilter[strId]{
 			col:    colInfo,
 			op:     strFilter.FilterOp,
 			values: strVals,
