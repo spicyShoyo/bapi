@@ -213,9 +213,9 @@ func debugNewBlockFilter(
 		assert.True(t, ok)
 
 		intFilters = append(intFilters, singularFilter[int64]{
-			col:   colInfo,
-			op:    filter.op,
-			value: int64(filter.value),
+			col:    colInfo,
+			op:     filter.op,
+			values: []int64{int64(filter.value)},
 		})
 	}
 
@@ -226,9 +226,9 @@ func debugNewBlockFilter(
 
 		sid, _ := table.strStore.getStrId(filter.value)
 		strFilters = append(strFilters, singularFilter[strId]{
-			col:   colInfo,
-			op:    filter.op,
-			value: sid,
+			col:    colInfo,
+			op:     filter.op,
+			values: []strId{sid},
 		})
 	}
 	tsColInfo, _ := table.colInfoMap.getColumnInfo(TS_COLUMN_NAME)

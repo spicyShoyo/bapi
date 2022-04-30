@@ -140,7 +140,7 @@ func (ns *numericStore[T]) filterNumericStore(
 		return
 	}
 
-	targetValue, predicate, ok := getTargetValueAndPredicate(&filter)
+	targetValues, predicate, ok := getTargetValueAndPredicate(&filter)
 	if !ok {
 		ctx.ctx.Logger.DPanicf("unexpected filter op: %d", filter.op)
 		return
@@ -161,7 +161,11 @@ func (ns *numericStore[T]) filterNumericStore(
 			}
 		}
 
-		if !predicate(values[valueIdx], targetValue) {
+		keep := false
+		for _, targetValue := range targetValues {
+			keep = keep || predicate(values[valueIdx], targetValue)
+		}
+		if !keep {
 			ctx.bitmap.Remove(uint32(rowIdx))
 		}
 	}

@@ -53,14 +53,14 @@ func TestQuery(t *testing.T) {
 				{
 					ColumnName: "count",
 					FilterOp:   pb.FilterOp_EQ,
-					Value:      &pb.Filter_IntVal{IntVal: 1},
+					IntVals:    []int64{1},
 				},
 			},
 			StrFilters: []*pb.Filter{
 				{
 					ColumnName: "event",
 					FilterOp:   pb.FilterOp_EQ,
-					Value:      &pb.Filter_StrVal{StrVal: "create"},
+					StrVals:    []string{"create"},
 				},
 			},
 			IntColumnNames: []string{"ts"},

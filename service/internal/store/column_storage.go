@@ -52,7 +52,7 @@ func (ics *intColumnsStorage) filter(ctx *filterCtx, filters []singularFilter[in
 			numericFilter[int64]{
 				localColId: localColumnId,
 				op:         filter.op,
-				value:      filter.value,
+				values:     filter.values,
 			},
 		)
 	}
@@ -103,20 +103,25 @@ func (scs *strColumnsStorage) filter(ctx *filterCtx, filters []singularFilter[st
 			}
 		}
 
-		_, containsStr := scs.strIdSet[filter.value]
+		containsStrValues := false
+		for _, sid := range filter.values {
+			_, containsStr := scs.strIdSet[sid]
+			containsStrValues = containsStrValues || containsStr
+		}
+
 		switch filter.op {
 		case pb.FilterOp_NULL, pb.FilterOp_NONNULL:
 			{
 				// do nothing, don't care about missing value
 			}
 		case pb.FilterOp_EQ:
-			if !containsStr {
+			if !containsStrValues {
 				// string does not exist, clear all bits
 				ctx.bitmap.Clear()
 				return
 			}
 		case pb.FilterOp_NE:
-			if !containsStr {
+			if !containsStrValues {
 				// string does not exist, continue to process the next filter
 				continue
 			}
@@ -130,7 +135,7 @@ func (scs *strColumnsStorage) filter(ctx *filterCtx, filters []singularFilter[st
 			numericFilter[strId]{
 				localColId: localColumnId,
 				op:         filter.op,
-				value:      filter.value,
+				values:     filter.values,
 			},
 		)
 	}

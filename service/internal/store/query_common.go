@@ -8,9 +8,9 @@ import (
 )
 
 type singularFilter[T comparable] struct {
-	col   *ColumnInfo
-	op    pb.FilterOp
-	value T
+	col    *ColumnInfo
+	op     pb.FilterOp
+	values []T
 }
 
 type blockFilter struct {
@@ -33,14 +33,14 @@ func newBlockFilter(
 		maxTs: maxTs,
 		tsFilters: []singularFilter[int64]{
 			{
-				col:   tsColInfo,
-				op:    pb.FilterOp_GE,
-				value: minTs,
+				col:    tsColInfo,
+				op:     pb.FilterOp_GE,
+				values: []int64{minTs},
 			},
 			{
-				col:   tsColInfo,
-				op:    pb.FilterOp_LE,
-				value: maxTs,
+				col:    tsColInfo,
+				op:     pb.FilterOp_LE,
+				values: []int64{maxTs},
 			},
 		},
 		intFilters: intFilters,
@@ -75,7 +75,7 @@ type BlockQueryResult struct {
 type numericFilter[T OrderedNumeric] struct {
 	localColId localColumnId
 	op         pb.FilterOp
-	value      T
+	values     []T
 }
 
 type filterCtx struct {
@@ -116,22 +116,22 @@ func filterByNullable[T OrderedNumeric](
 }
 
 func getTargetValueAndPredicate[T OrderedNumeric](
-	filter *numericFilter[T]) (T, func(T, T) bool, bool) {
+	filter *numericFilter[T]) ([]T, func(T, T) bool, bool) {
 	switch filter.op {
 	case pb.FilterOp_EQ:
-		return filter.value, predicateEq[T], true
+		return filter.values, predicateEq[T], true
 	case pb.FilterOp_NE:
-		return filter.value, predicateNe[T], true
+		return filter.values, predicateNe[T], true
 	case pb.FilterOp_LT:
-		return filter.value, predicateLt[T], true
+		return filter.values, predicateLt[T], true
 	case pb.FilterOp_GT:
-		return filter.value, predicateGt[T], true
+		return filter.values, predicateGt[T], true
 	case pb.FilterOp_LE:
-		return filter.value, predicateLe[T], true
+		return filter.values, predicateLe[T], true
 	case pb.FilterOp_GE:
-		return filter.value, predicateGe[T], true
+		return filter.values, predicateGe[T], true
 	default:
-		return filter.value, nil, false
+		return filter.values, nil, false
 	}
 }
 

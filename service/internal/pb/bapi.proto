@@ -62,10 +62,8 @@ message TableInfo {
 message Filter {
   string column_name = 1;
   FilterOp filter_op = 2;
-  oneof value {
-    int64 int_val = 3;
-    string str_val = 4;
-  }
+  repeated int64 int_vals = 5;
+  repeated string str_vals = 6;
 }
 
 message RawRow {

@@ -365,8 +365,8 @@ func assertIntFilterHasResult(
 				Name:       strconv.Itoa(int(df.colId)),
 				ColumnType: IntColumnType,
 				id:         df.colId},
-			op:    df.op,
-			value: df.value,
+			op:     df.op,
+			values: []int64{df.value},
 		}
 		filters = append(filters, filter)
 	}
@@ -479,8 +479,8 @@ func assertStrFilterHasResult(
 				Name:       strconv.Itoa(int(df.colId)),
 				ColumnType: StrColumnType,
 				id:         df.colId},
-			op:    df.op,
-			value: sid,
+			op:     df.op,
+			values: []strId{sid},
 		}
 		filters = append(filters, filter)
 	}

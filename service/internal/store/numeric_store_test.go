@@ -119,7 +119,7 @@ func assertFilterHasResult[V OrderedNumeric](
 		filter := numericFilter[V]{
 			localColId: ns.columnIds[df.colId],
 			op:         df.op,
-			value:      df.value,
+			values:     []V{df.value},
 		}
 		ns.filterNumericStore(ctx, filter)
 	}

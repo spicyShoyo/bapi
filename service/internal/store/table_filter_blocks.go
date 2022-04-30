@@ -212,16 +212,15 @@ func (t *Table) newBlockfilter(query queryWithFilter) (blockFilter, bool) {
 			return blockFilter{}, false
 		}
 
-		intVal, ok := intFilter.GetValue().(*pb.Filter_IntVal)
-		if !ok {
+		if intFilter.IntVals == nil || len(intFilter.IntVals) == 0 {
 			t.ctx.Logger.Warnf("fail to build filter. int value missing for int filter: %s", intFilter.ColumnName)
 			return blockFilter{}, false
 		}
 
 		intFilters = append(intFilters, singularFilter[int64]{
-			col:   colInfo,
-			op:    intFilter.FilterOp,
-			value: intVal.IntVal,
+			col:    colInfo,
+			op:     intFilter.FilterOp,
+			values: intFilter.IntVals,
 		})
 	}
 
@@ -232,19 +231,23 @@ func (t *Table) newBlockfilter(query queryWithFilter) (blockFilter, bool) {
 			return blockFilter{}, false
 		}
 
-		strVal, ok := strFilter.GetValue().(*pb.Filter_StrVal)
-		if !ok {
+		if strFilter.StrVals == nil || len(strFilter.StrVals) == 0 {
 			t.ctx.Logger.Warnf("fail to build filter. str value missing for str filter: %s", strFilter.ColumnName)
 			return blockFilter{}, false
 		}
 		// If the string does not exist in the store, sid will be `nonexistentStr`. The strColStore
 		// is responsible to handle this.
-		sid, _ := t.strStore.getStrId(strVal.StrVal)
+		strVals := make([]strId, 0)
+		for _, str := range strFilter.StrVals {
+			curSid, _ := t.strStore.getStrId(str)
+			strVals = append(strVals, curSid)
+
+		}
 
 		strFilters = append(strFilters, singularFilter[strId]{
-			col:   colInfo,
-			op:    strFilter.FilterOp,
-			value: sid,
+			col:    colInfo,
+			op:     strFilter.FilterOp,
+			values: strVals,
 		})
 	}
 
