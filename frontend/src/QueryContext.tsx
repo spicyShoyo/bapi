@@ -10,8 +10,12 @@ import { fetchQueryResult } from "./dataManager";
 
 export type UpdateFn = (queryRecord: BapiQueryRecord) => BapiQueryRecord;
 
-export const QueryContext = React.createContext<{ result: any }>({
+export const QueryContext = React.createContext<{
+  result: any;
+  runQuery: () => void;
+}>({
   result: null,
+  runQuery: () => {},
 });
 
 export function QueryContextProvider({
@@ -49,7 +53,7 @@ export function QueryContextProvider({
   return (
     <QueryContext.Provider
       // eslint-disable-next-line react/jsx-no-constructed-context-values
-      value={{ result }}
+      value={{ result, runQuery }}
     >
       {children}
     </QueryContext.Provider>

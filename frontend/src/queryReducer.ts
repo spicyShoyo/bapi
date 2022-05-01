@@ -1,7 +1,7 @@
 import { createAction, PayloadAction } from "@reduxjs/toolkit";
 import Immutable from "immutable";
 import { ColumnInfo, ColumnRecord, ColumnType } from "@/columnRecord";
-import { AggOpType } from "@/queryConsts";
+import { AggOpType, QueryType } from "@/queryConsts";
 import { Filter, FilterRecord } from "@/filterRecord";
 import { DEFAULT_RECORD, materializeQuery } from "@/queryRecordUtils";
 import { TimeRange } from "./tsConsts";
@@ -12,6 +12,7 @@ type SetTsRangePayload = {
   timeRange?: TimeRange;
 };
 
+export const setQueryType = createAction<QueryType>("setQueryType");
 export const materialize = createAction<void>("materialize");
 
 export const setTsRange = createAction<SetTsRangePayload>("setTsRange");
@@ -28,6 +29,7 @@ export const updateFilter = createAction<UpdateFilterPayload>("updateFilter");
 export default function queryReducer(
   state = DEFAULT_RECORD,
   action:
+    | PayloadAction<QueryType, "setQueryType">
     | PayloadAction<void, "materialize">
     | PayloadAction<SetTsRangePayload, "setTsRange">
     | PayloadAction<ColumnInfo[], "setGroupbyCols">
@@ -38,6 +40,10 @@ export default function queryReducer(
     | PayloadAction<UpdateFilterPayload, "updateFilter">,
 ) {
   switch (action.type) {
+    case "setQueryType": {
+      // TODO: convert query spec
+      return state.set("query_type", action.payload);
+    }
     case "materialize": {
       return materializeQuery(state);
     }

@@ -80,7 +80,7 @@ function useBuildTable(result: TableQueryResult): null | any[] {
   for (let rowIdx = 0; rowIdx < result.count; rowIdx++) {
     const row: { [key: string]: string | number | null } = {};
     strCols.forEach((col, colIdx) => {
-      const i = rowIdx * strCols.length + colIdx;
+      const i = colIdx * strCols.length + rowIdx;
       row[col] =
         result.str_has_value![i] === true
           ? result.str_id_map![result.str_result![i].toString()]
@@ -88,13 +88,13 @@ function useBuildTable(result: TableQueryResult): null | any[] {
     });
 
     intCols.forEach((col, colIdx) => {
-      const i = rowIdx * intCols.length + colIdx;
+      const i = colIdx * intCols.length + rowIdx;
       row[col] =
         result.int_has_value![i] === true ? result.int_result![i] : null;
     });
 
     aggFloatCols.forEach((col, colIdx) => {
-      const i = rowIdx * aggFloatCols.length + colIdx;
+      const i = colIdx * aggFloatCols.length + rowIdx;
       row[col] =
         result.agg_float_has_value![i] === true
           ? result.agg_float_result![i]
@@ -102,7 +102,7 @@ function useBuildTable(result: TableQueryResult): null | any[] {
     });
 
     aggIntCols.forEach((col, colIdx) => {
-      const i = rowIdx * aggIntCols.length + colIdx;
+      const i = colIdx * aggIntCols.length + rowIdx;
       row[col] =
         result.agg_int_has_value![i] === true
           ? result.agg_int_result![i]
@@ -120,7 +120,5 @@ export function TableQueryResult() {
   const tableData = useBuildTable(result?.result);
   return tableData != null ? (
     <Table columns={tableData[0]} data={tableData[1]} />
-  ) : (
-    <div className="bg-white">No result!</div>
-  );
+  ) : null;
 }

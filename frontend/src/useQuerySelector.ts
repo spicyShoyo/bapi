@@ -4,6 +4,7 @@ import BapiQueryRecord from "@/bapiQueryRecord";
 import { Filter } from "@/filterRecord";
 import { ColumnInfo } from "./columnRecord";
 import { getPropsForTimeRange, TimeRange } from "./tsConsts";
+import { QueryType } from "./queryConsts";
 
 export default function useQuerySelector<T>(
   selectFn: (record: BapiQueryRecord) => T,
@@ -28,6 +29,10 @@ export function useQueryGroupbyCols(): ColumnInfo[] {
 
 export function useQueryAggCols(): ColumnInfo[] {
   return useQuerySelector((r) => toJsOrEmptyArray<ColumnInfo>(r.agg_cols));
+}
+
+export function useQueryType(): QueryType {
+  return useQuerySelector((r) => r.query_type) ?? QueryType.Table;
 }
 
 export function useQueryTs(): {
