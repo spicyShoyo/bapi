@@ -68,12 +68,20 @@ function useBuildTable(result: TableQueryResult): null | any[] {
   const aggFloatCols = result.agg_float_column_names ?? [];
   const aggIntCols = result.agg_int_column_names ?? [];
 
-  const getCol = (col: string) => ({ Header: col, accessor: col });
+  // We need to assign distinct result table column names otherwise useTable throws.
+  // We can have same column used in aggregate and groupby.
+  const getCol = (suffix: string, col: string) => ({
+    Header: col + ` (${suffix})`,
+    accessor: col + ` (${suffix})`,
+  });
+  const getColGroupby = (col: string) => getCol("G", col);
+  const getColAgg = (col: string) => getCol("A", col);
+
   const columns = [
-    ...strCols.map(getCol),
-    ...intCols.map(getCol),
-    ...aggFloatCols.map(getCol),
-    ...aggIntCols.map(getCol),
+    ...strCols.map(getColGroupby),
+    ...intCols.map(getColGroupby),
+    ...aggFloatCols.map(getColAgg),
+    ...aggIntCols.map(getColAgg),
   ];
 
   const data = [];
@@ -81,7 +89,7 @@ function useBuildTable(result: TableQueryResult): null | any[] {
     const row: { [key: string]: string | number | null } = {};
     strCols.forEach((col, colIdx) => {
       const i = colIdx * strCols.length + rowIdx;
-      row[col] =
+      row[getColGroupby(col).accessor] =
         result.str_has_value![i] === true
           ? result.str_id_map![result.str_result![i].toString()]
           : null;
@@ -89,13 +97,13 @@ function useBuildTable(result: TableQueryResult): null | any[] {
 
     intCols.forEach((col, colIdx) => {
       const i = colIdx * intCols.length + rowIdx;
-      row[col] =
+      row[getColGroupby(col).accessor] =
         result.int_has_value![i] === true ? result.int_result![i] : null;
     });
 
     aggFloatCols.forEach((col, colIdx) => {
       const i = colIdx * aggFloatCols.length + rowIdx;
-      row[col] =
+      row[getColAgg(col).accessor] =
         result.agg_float_has_value![i] === true
           ? result.agg_float_result![i]
           : null;
@@ -103,7 +111,7 @@ function useBuildTable(result: TableQueryResult): null | any[] {
 
     aggIntCols.forEach((col, colIdx) => {
       const i = colIdx * aggIntCols.length + rowIdx;
-      row[col] =
+      row[getColAgg(col).accessor] =
         result.agg_int_has_value![i] === true
           ? result.agg_int_result![i]
           : null;

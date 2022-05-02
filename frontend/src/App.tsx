@@ -23,7 +23,18 @@ function RunQueryButton() {
   const { runQuery } = useContext(QueryContext);
   return (
     <div className="flex justify-between m-2">
-      <div className="text-white">{tableInfo?.table_name ?? "N/A"}</div>
+      <p className="text-white">
+        {tableInfo == null ? (
+          "N/A"
+        ) : (
+          <>
+            {"Table: "}
+            <code className="inline">{tableInfo.table_name}</code>
+            {" | Rows: "}
+            <code className="inline">{tableInfo.row_count}</code>
+          </>
+        )}
+      </p>
       <button
         className="bg-green-600 text-slate-100 rounded px-1"
         onClick={runQuery}
