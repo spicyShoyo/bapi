@@ -1,20 +1,20 @@
 import { HashRouter } from "react-router-dom";
 
-import FiltersSection from "./components/FiltersSection";
-import GroupbySection from "./components/GroupbySection";
+import FiltersSection from "@/components/FiltersSection";
+import GroupbySection from "@/components/GroupbySection";
 import TimeRangeSection from "@/components/TimeRangeSection";
 import { QueryContext, QueryContextProvider } from "@/QueryContext";
 import { TableContext, TableContextProvider } from "@/TableContext";
 import { Provider, useDispatch } from "react-redux";
-import AggregateSection from "./components/AggregateSection";
-import queryStore from "./queryStore";
-import { TableQueryResult } from "./components/TableQueryResult";
-import { QueryType } from "./queryConsts";
-import { useQueryType } from "./useQuerySelector";
-import { setQueryType } from "./queryReducer";
+import AggregateSection from "@/components/AggregateSection";
+import queryStore from "@/queryStore";
+import { TableQueryResultTable } from "@/components/TableQueryResultTable";
+import { QueryType } from "@/queryConsts";
+import { useQueryType } from "@/useQuerySelector";
+import { setQueryType } from "@/queryReducer";
 import { useContext } from "react";
 
-function classNames(...classes: any[]) {
+function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(" ");
 }
 
@@ -106,7 +106,7 @@ function App() {
                   <FiltersSection />
                 </div>
                 <div className="flex-1 h-full bg-slate-700">
-                  <TableQueryResult />
+                  <TableQueryResultTable />
                 </div>
               </div>
             </div>

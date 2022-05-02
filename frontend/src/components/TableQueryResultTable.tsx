@@ -1,67 +1,17 @@
 import { QueryContext } from "@/QueryContext";
 import { useContext } from "react";
-import { useTable } from "react-table";
 
-function Table({ columns, data }: any) {
-  const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
-    useTable({
-      columns,
-      data,
-    });
+import type { TableQueryResult } from "@/dataManager";
+import { ResultTableColumns, ResultTableData } from "./ResultTable";
+import { ResultTable } from "./ResultTable";
 
-  return (
-    <table {...getTableProps()} className="bg-white">
-      <thead>
-        {headerGroups.map((headerGroup: any) => (
-          <tr {...headerGroup.getHeaderGroupProps()}>
-            {headerGroup.headers.map((column: any) => (
-              <th {...column.getHeaderProps()}>{column.render("Header")}</th>
-            ))}
-          </tr>
-        ))}
-      </thead>
-      <tbody {...getTableBodyProps()}>
-        {rows.map((row: any, i: number) => {
-          prepareRow(row);
-          return (
-            <tr {...row.getRowProps()}>
-              {row.cells.map((cell: any) => {
-                return <td {...cell.getCellProps()}>{cell.render("Cell")}</td>;
-              })}
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
-  );
-}
-
-// keep in sync with `bapi.proto`
-type TableQueryResult = {
-  count: number;
-
-  int_column_names?: string[];
-  int_result?: number[];
-  int_has_value?: boolean[];
-
-  str_column_names?: string[];
-  str_id_map?: { [key: string]: string };
-  str_result?: number[];
-  str_has_value?: boolean[];
-
-  agg_int_column_names?: string[];
-  agg_int_result?: number[];
-  agg_int_has_value?: boolean[];
-
-  agg_float_column_names?: string[];
-  agg_float_result?: number[];
-  agg_float_has_value?: boolean[];
-};
-
-function useBuildTable(result: TableQueryResult): null | any[] {
+function useBuildTable(
+  result: TableQueryResult | undefined,
+): null | [ResultTableColumns, ResultTableData] {
   if (result == null) {
     return null;
   }
+
   const strCols = result.str_column_names ?? [];
   const intCols = result.int_column_names ?? [];
 
@@ -123,10 +73,10 @@ function useBuildTable(result: TableQueryResult): null | any[] {
   return [columns, data];
 }
 
-export function TableQueryResult() {
-  const { result } = useContext(QueryContext);
-  const tableData = useBuildTable(result?.result);
+export function TableQueryResultTable() {
+  const { tableQueryApiReply: reply } = useContext(QueryContext);
+  const tableData = useBuildTable(reply?.result);
   return tableData != null ? (
-    <Table columns={tableData[0]} data={tableData[1]} />
+    <ResultTable columns={tableData[0]} data={tableData[1]} />
   ) : null;
 }

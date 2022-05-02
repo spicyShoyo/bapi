@@ -8,6 +8,13 @@ export const DEFAULT_RECORD = new BapiQueryRecord({
   query_type: QueryType.Table,
   agg_op: AggOp.COUNT,
   // @ts-ignore TODO: fix typing
+  agg_cols: [
+    {
+      column_name: "ts",
+      column_type: ColumnType.INT,
+    },
+  ],
+  // @ts-ignore TODO: fix typing
   filters: [
     {
       column_name: "",

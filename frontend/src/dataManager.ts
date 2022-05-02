@@ -1,20 +1,44 @@
 import axios, { AxiosResponse } from "axios";
 import BapiQueryRecord from "./bapiQueryRecord";
-import { QueryType } from "./queryConsts";
 import { recordToTableQuery } from "./queryRecordUtils";
 
 import { TableInfo } from "./TableContext";
 
 const path = "/v1";
 
-// TODO: add typing
-export async function fetchQueryResult(query: BapiQueryRecord): Promise<any> {
-  if (query.query_type === QueryType.Table) {
-    return axios
-      .get(`${path}/table?q=${JSON.stringify(recordToTableQuery(query))}`)
-      .then((res: AxiosResponse<any>) => res.data);
-  }
-  return Promise.reject();
+export type TableQueryApiReply = {
+  status: number;
+  result: TableQueryResult | undefined;
+};
+
+// keep in sync with `bapi.proto`
+export type TableQueryResult = {
+  count: number;
+
+  int_column_names?: string[];
+  int_result?: number[];
+  int_has_value?: boolean[];
+
+  str_column_names?: string[];
+  str_id_map?: { [key: string]: string };
+  str_result?: number[];
+  str_has_value?: boolean[];
+
+  agg_int_column_names?: string[];
+  agg_int_result?: number[];
+  agg_int_has_value?: boolean[];
+
+  agg_float_column_names?: string[];
+  agg_float_result?: number[];
+  agg_float_has_value?: boolean[];
+};
+
+export async function fetchTableQueryResult(
+  query: BapiQueryRecord,
+): Promise<TableQueryApiReply> {
+  return axios
+    .get(`${path}/table?q=${JSON.stringify(recordToTableQuery(query))}`)
+    .then((res: AxiosResponse<TableQueryApiReply>) => res.data);
 }
 
 export async function fetchTableInfo(table: string): Promise<TableInfo> {

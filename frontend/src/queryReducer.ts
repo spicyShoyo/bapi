@@ -2,7 +2,7 @@ import { createAction, PayloadAction } from "@reduxjs/toolkit";
 import Immutable from "immutable";
 import { ColumnInfo, ColumnRecord, ColumnType } from "@/columnRecord";
 import { AggOpType, QueryType } from "@/queryConsts";
-import { Filter, FilterRecord } from "@/filterRecord";
+import { Filter, FilterRecord, filterToFilterRecord } from "@/filterRecord";
 import { DEFAULT_RECORD, materializeQuery } from "@/queryRecordUtils";
 import { TimeRange } from "./tsConsts";
 
@@ -78,7 +78,7 @@ export default function queryReducer(
       return state.set("agg_op", action.payload);
     }
     case "addFilter": {
-      const record = FilterRecord.fromFilter(action.payload);
+      const record = filterToFilterRecord(action.payload);
       const filters = state.filters ?? Immutable.List();
       return state.set("filters", filters.push(record));
     }
@@ -86,7 +86,7 @@ export default function queryReducer(
       return state.removeIn(["filters", action.payload]);
     }
     case "updateFilter": {
-      const record = FilterRecord.fromFilter(action.payload.filter);
+      const record = filterToFilterRecord(action.payload.filter);
       return state.setIn(["filters", action.payload.idx], record);
     }
     default:
