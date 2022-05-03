@@ -6,16 +6,23 @@ import queryStore from "./queryStore";
 import { recordToUrl } from "./queryRecordUtils";
 import { useDispatch } from "react-redux";
 import { materialize } from "./queryReducer";
-import { fetchTableQueryResult, TableQueryApiReply } from "./dataManager";
+import {
+  fetchRowsQueryResult,
+  fetchTableQueryResult,
+  RowsQueryApiReply,
+  TableQueryApiReply,
+} from "./dataManager";
 import { QueryType } from "./queryConsts";
 
 export type UpdateFn = (queryRecord: BapiQueryRecord) => BapiQueryRecord;
 
 export const QueryContext = React.createContext<{
   tableQueryApiReply: TableQueryApiReply | null;
+  rowsQueryApiReply: RowsQueryApiReply | null;
   runQuery: () => void;
 }>({
   tableQueryApiReply: null,
+  rowsQueryApiReply: null,
   runQuery: () => {},
 });
 
@@ -28,6 +35,8 @@ export function QueryContextProvider({
   const navigate = useNavigate();
   const [tableQueryApiReply, setTableQueryApiReply] =
     useState<TableQueryApiReply | null>(null);
+  const [rowsQueryApiReply, setRowsQueryApiReply] =
+    useState<RowsQueryApiReply | null>(null);
 
   const runQuery = () => {
     d(materialize());
@@ -37,6 +46,8 @@ export function QueryContextProvider({
       switch (record.query_type) {
         case QueryType.Table:
           fetchTableQueryResult(record).then(setTableQueryApiReply);
+        case QueryType.Rows:
+          fetchRowsQueryResult(record).then(setRowsQueryApiReply);
         default:
           return;
       }
@@ -60,7 +71,7 @@ export function QueryContextProvider({
   return (
     <QueryContext.Provider
       // eslint-disable-next-line react/jsx-no-constructed-context-values
-      value={{ tableQueryApiReply, runQuery }}
+      value={{ tableQueryApiReply, rowsQueryApiReply, runQuery }}
     >
       {children}
     </QueryContext.Provider>

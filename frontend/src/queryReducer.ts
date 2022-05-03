@@ -1,7 +1,7 @@
 import { createAction, PayloadAction } from "@reduxjs/toolkit";
 import Immutable from "immutable";
 import { ColumnInfo, ColumnRecord, ColumnType } from "@/columnRecord";
-import { AggOpType, QueryType } from "@/queryConsts";
+import { AggOp, AggOpType, QueryType } from "@/queryConsts";
 import { Filter, FilterRecord, filterToFilterRecord } from "@/filterRecord";
 import { DEFAULT_RECORD, materializeQuery } from "@/queryRecordUtils";
 import { TimeRange } from "./tsConsts";
@@ -17,7 +17,7 @@ export const materialize = createAction<void>("materialize");
 
 export const setTsRange = createAction<SetTsRangePayload>("setTsRange");
 
-export const setGroupbyCols = createAction<ColumnInfo[]>("setGroupbyCols");
+export const setTargetCols = createAction<ColumnInfo[]>("setTargetCols");
 export const setAggregateCols = createAction<ColumnInfo[]>("setAggregateCols");
 export const setAggOp = createAction<AggOpType>("setAggOp");
 
@@ -32,7 +32,7 @@ export default function queryReducer(
     | PayloadAction<QueryType, "setQueryType">
     | PayloadAction<void, "materialize">
     | PayloadAction<SetTsRangePayload, "setTsRange">
-    | PayloadAction<ColumnInfo[], "setGroupbyCols">
+    | PayloadAction<ColumnInfo[], "setTargetCols">
     | PayloadAction<ColumnInfo[], "setAggregateCols">
     | PayloadAction<AggOpType, "setAggOp">
     | PayloadAction<Filter, "addFilter">
@@ -41,8 +41,22 @@ export default function queryReducer(
 ) {
   switch (action.type) {
     case "setQueryType": {
-      // TODO: convert query spec
-      return state.set("query_type", action.payload);
+      const updatedState = state.set("query_type", action.payload);
+      switch (action.payload) {
+        case QueryType.Table:
+          return updatedState.set("agg_op", AggOp.COUNT).set(
+            "agg_cols",
+            Immutable.List<ColumnRecord>([
+              new ColumnRecord({
+                column_name: "ts",
+                column_type: ColumnType.INT,
+              }),
+            ]),
+          );
+        case QueryType.Rows:
+          return updatedState.delete("agg_op").delete("agg_cols");
+      }
+      return updatedState;
     }
     case "materialize": {
       return materializeQuery(state);
@@ -60,12 +74,12 @@ export default function queryReducer(
       }
       return newState;
     }
-    case "setGroupbyCols": {
+    case "setTargetCols": {
       let cols = Immutable.List<ColumnRecord>();
       action.payload.forEach((col) => {
         cols = cols.push(new ColumnRecord(col));
       });
-      return state.set("groupby_cols", cols);
+      return state.set("target_cols", cols);
     }
     case "setAggregateCols": {
       let cols = Immutable.List<ColumnRecord>();

@@ -47,7 +47,7 @@ const QuerySpecPaths = {
   max_ts: null,
   ts_range: null,
   filters: FiltersSpecPaths,
-  groupby_cols: ColumnsSpecPaths,
+  target_cols: ColumnsSpecPaths,
   agg_op: null,
   agg_cols: ColumnsSpecPaths,
 };
@@ -150,7 +150,7 @@ const BapiQueryRecordBase: Immutable.Record.Factory<
     max_ts: number;
     ts_range: TimeRange;
     filters: Filter[];
-    groupby_cols: ColumnInfo[];
+    target_cols: ColumnInfo[];
     agg_op: AggOpType;
     agg_cols: ColumnInfo[];
   }>

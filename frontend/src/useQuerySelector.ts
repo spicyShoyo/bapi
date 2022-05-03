@@ -24,7 +24,7 @@ export function useQueryFilters(): Filter[] {
 }
 
 export function useQueryGroupbyCols(): ColumnInfo[] {
-  return useQuerySelector((r) => toJsOrEmptyArray<ColumnInfo>(r.groupby_cols));
+  return useQuerySelector((r) => toJsOrEmptyArray<ColumnInfo>(r.target_cols));
 }
 
 export function useQueryAggCols(): ColumnInfo[] {

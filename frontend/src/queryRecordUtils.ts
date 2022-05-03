@@ -61,16 +61,47 @@ export function recordToTableQuery(record: BapiQueryRecord): object {
         str_vals: filter.str_vals,
       }))
       .toJS(),
-    groupby_int_column_names: record.groupby_cols
+    groupby_int_column_names: record.target_cols
       ?.filter((col) => col.column_type === ColumnType.INT)
       .map((col) => col.column_name)
       .toJS(),
-    groupby_str_column_names: record.groupby_cols
+    groupby_str_column_names: record.target_cols
       ?.filter((col) => col.column_type === ColumnType.STR)
       .map((col) => col.column_name)
       .toJS(),
     agg_op: record.agg_op,
     agg_int_column_names: record.agg_cols?.map((col) => col.column_name).toJS(),
+  };
+}
+
+export function recordToRowsQuery(record: BapiQueryRecord): object {
+  return {
+    min_ts: record.min_ts,
+    max_ts: record.max_ts,
+    int_filters: record.filters
+      ?.filter((filter) => filter.column_type === ColumnType.INT)
+      .map((filter) => ({
+        column_name: filter.column_name,
+        filter_op: filter.filter_op,
+        int_vals: filter.int_vals,
+      }))
+      .toJS(),
+    str_filters: record.filters
+      ?.filter((filter) => filter.column_type === ColumnType.STR)
+      .map((filter) => ({
+        column_name: filter.column_name,
+        filter_op: filter.filter_op,
+        str_vals: filter.str_vals,
+      }))
+      .toJS(),
+    int_column_names: record.target_cols
+      ?.filter((col) => col.column_type === ColumnType.INT)
+      .map((col) => col.column_name)
+      .toJS(),
+    str_column_names: record.target_cols
+      ?.filter((col) => col.column_type === ColumnType.STR)
+      .map((col) => col.column_name)
+      .toJS(),
   };
 }
 

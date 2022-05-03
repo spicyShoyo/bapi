@@ -1,7 +1,7 @@
 import { HashRouter } from "react-router-dom";
 
 import FiltersSection from "@/components/FiltersSection";
-import GroupbySection from "@/components/GroupbySection";
+import TargetColsSection from "@/components/TargetColsSection";
 import TimeRangeSection from "@/components/TimeRangeSection";
 import { QueryContext, QueryContextProvider } from "@/QueryContext";
 import { TableContext, TableContextProvider } from "@/TableContext";
@@ -13,6 +13,7 @@ import { QueryType } from "@/queryConsts";
 import { useQueryType } from "@/useQuerySelector";
 import { setQueryType } from "@/queryReducer";
 import { useContext } from "react";
+import { RowsQueryResultTable } from "./components/RowsQueryResultTable";
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(" ");
@@ -84,6 +85,22 @@ function QueryTypeSwitch() {
   );
 }
 
+function QueryResult() {
+  const queryType = useQueryType();
+  switch (queryType) {
+    case QueryType.Table:
+      return <TableQueryResultTable />;
+    case QueryType.Rows:
+      return <RowsQueryResultTable />;
+    default:
+      return null;
+  }
+}
+
+function AggregateSectionWrapper() {
+  return useQueryType() === QueryType.Rows ? null : <AggregateSection />;
+}
+
 function App() {
   return (
     <HashRouter>
@@ -101,12 +118,12 @@ function App() {
                   <RunQueryButton />
                   <QueryTypeSwitch />
                   <TimeRangeSection />
-                  <AggregateSection />
-                  <GroupbySection />
+                  <AggregateSectionWrapper />
+                  <TargetColsSection />
                   <FiltersSection />
                 </div>
                 <div className="flex-1 h-full bg-slate-700">
-                  <TableQueryResultTable />
+                  <QueryResult />
                 </div>
               </div>
             </div>
