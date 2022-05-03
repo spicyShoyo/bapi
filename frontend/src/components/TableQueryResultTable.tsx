@@ -38,7 +38,7 @@ function useBuildTable(
   for (let rowIdx = 0; rowIdx < result.count; rowIdx++) {
     const row: { [key: string]: string | number | null } = {};
     strCols.forEach((col, colIdx) => {
-      const i = colIdx * strCols.length + rowIdx;
+      const i = colIdx * result.count + rowIdx;
       row[getColGroupby(col).accessor] =
         result.str_has_value![i] === true
           ? result.str_id_map![result.str_result![i].toString()]
@@ -46,13 +46,13 @@ function useBuildTable(
     });
 
     intCols.forEach((col, colIdx) => {
-      const i = colIdx * intCols.length + rowIdx;
+      const i = colIdx * result.count + rowIdx;
       row[getColGroupby(col).accessor] =
         result.int_has_value![i] === true ? result.int_result![i] : null;
     });
 
     aggFloatCols.forEach((col, colIdx) => {
-      const i = colIdx * aggFloatCols.length + rowIdx;
+      const i = colIdx * result.count + rowIdx;
       row[getColAgg(col).accessor] =
         result.agg_float_has_value![i] === true
           ? result.agg_float_result![i]
@@ -60,7 +60,7 @@ function useBuildTable(
     });
 
     aggIntCols.forEach((col, colIdx) => {
-      const i = colIdx * aggIntCols.length + rowIdx;
+      const i = colIdx * result.count + rowIdx;
       row[getColAgg(col).accessor] =
         result.agg_int_has_value![i] === true
           ? result.agg_int_result![i]

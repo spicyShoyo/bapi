@@ -12,7 +12,6 @@ export type TableInfo = {
   str_columns: ColumnInfo[] | null;
 };
 
-// Provides data related to the current user such as wallet.
 export const TableContext = React.createContext<TableInfo | null>(null);
 
 export function TableContextProvider({

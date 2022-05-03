@@ -28,7 +28,7 @@ function useBuildTable(
   for (let rowIdx = 0; rowIdx < result.count; rowIdx++) {
     const row: { [key: string]: string | number | null } = {};
     strCols.forEach((col, colIdx) => {
-      const i = colIdx * strCols.length + rowIdx;
+      const i = colIdx * result.count + rowIdx;
       row[getCol(col).accessor] =
         result.str_has_value![i] === true
           ? result.str_id_map![result.str_result![i].toString()]
@@ -36,12 +36,14 @@ function useBuildTable(
     });
 
     intCols.forEach((col, colIdx) => {
-      const i = colIdx * intCols.length + rowIdx;
+      const i = colIdx * result.count + rowIdx;
+      console.log("$$i", i, colIdx, rowIdx);
       row[getCol(col).accessor] =
         result.int_has_value![i] === true ? result.int_result![i] : null;
     });
 
     data.push(row);
+    console.log("$$$", data);
   }
 
   return [columns, data];
