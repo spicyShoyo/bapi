@@ -171,7 +171,7 @@ func (t *Table) toPbIntColResult(rowCount int, colNames []string, blockResults [
 				return nil, nil, false
 			}
 
-			count = copy(intHasValue, result.IntResult.hasValue[colIdx])
+			count = copy(intHasValue[blockStartIdx:], result.IntResult.hasValue[colIdx])
 			if count != result.Count {
 				t.ctx.Logger.DPanic("invalid result")
 				return nil, nil, false
@@ -208,7 +208,7 @@ func (t *Table) toPbStrColResult(rowCount int, colNames []string, blockResults [
 				return nil, nil, nil, false
 			}
 
-			count = copy(strHasValue, result.StrResult.hasValue[colIdx])
+			count = copy(strHasValue[blockStartIdx:], result.StrResult.hasValue[colIdx])
 			if count != result.Count {
 				t.ctx.Logger.DPanic("invalid result")
 				return nil, nil, nil, false
