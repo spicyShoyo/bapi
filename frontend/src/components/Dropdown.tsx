@@ -17,7 +17,7 @@ export function Dropdown<T>(props: {
             <Listbox.Option
               className={({ active }) =>
                 `cursor-pointer select-none rounded text-center ${
-                  active ? "text-white bg-teal-600" : "text-gray-900"
+                  active ? "text-slate-100 bg-teal-600" : "text-gray-900"
                 }`
               }
               key={props.valToString(val)}

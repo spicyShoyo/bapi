@@ -18,7 +18,7 @@ export default function AggregateSection() {
   const aggCols = useQueryAggCols();
 
   return (
-    <div className="mt-3 m-2 flex items-center gap-2">
+    <div className="flex items-center gap-2">
       <div className="text-slate-100 font-bold">Aggregate</div>
       <Dropdown
         values={[AggOp.COUNT, AggOp.COUNT_DISTINCT, AggOp.SUM, AggOp.AVG]}

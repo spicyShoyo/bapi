@@ -11,6 +11,8 @@ export enum TimeRange {
   last_week = "last_week",
 }
 
+export const UTC_FORMAT_STR = "YYYY-MM-DDTHH:mm";
+
 export const TimeRanges: TimeRange[] = [
   TimeRange.l14d,
   TimeRange.l7d,

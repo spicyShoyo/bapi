@@ -17,7 +17,7 @@ export default function TargetColsSection() {
   const queryType = useQueryType();
 
   return (
-    <div className="mt-3 m-2 flex items-center">
+    <div className="flex items-center">
       <div className="text-slate-100 font-bold mr-2">
         {queryType === QueryType.Table ? "Group by" : "Columns"}
       </div>

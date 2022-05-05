@@ -86,7 +86,7 @@ export default function FilterField(props: {
     strVals,
   } = useFilterSettings(props.filter, nullthrows(tableInfo), props.onUpdate);
   return (
-    <div className="flex flex-col gap-4 mx-2 mt-2 py-2 px-4 outline-double outline-slate-200">
+    <div className="flex flex-col gap-2 py-2 px-4 outline-double outline-slate-200">
       <div className="flex justify-between">
         <div className="flex gap-2">
           <ColSelector
@@ -111,7 +111,7 @@ export default function FilterField(props: {
           />
         </div>
         <button
-          className="text-slate-100 bg-slate-700 px-2 py-1 rounded font-bold"
+          className="text-slate-100 bg-slate-700 px-2 rounded font-bold"
           onClick={props.onRemove}
         >
           <b>{"\u00d7"}</b>
@@ -224,7 +224,7 @@ function ColCombobox({
                   key={col}
                   className={({ active }) =>
                     `cursor-default select-none py-2 pl-4 pr-4 ${
-                      active ? "text-white bg-teal-600" : "text-gray-900"
+                      active ? "text-slate-100 bg-teal-600" : "text-gray-900"
                     }`
                   }
                   value={col}

@@ -14,26 +14,60 @@ import { useQueryType } from "@/useQuerySelector";
 import { setQueryType } from "@/queryReducer";
 import { useContext } from "react";
 import { RowsQueryResultTable } from "./components/RowsQueryResultTable";
+import dayjs from "dayjs";
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(" ");
+}
+
+function FooterItem({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number | null;
+}) {
+  return (
+    <div className="flex align-middle text-slate-100 justify-between">
+      <b>{label}:</b>
+      <code className="inline text-lg">{value}</code>
+    </div>
+  );
+}
+
+export const TS_FORMAT_STR = "YYYY-MM-DD HH:mm";
+function Footer() {
+  const tableInfo = useContext(TableContext);
+  if (tableInfo == null) {
+    return null;
+  }
+  return (
+    <div className="flex flex-col border-t-2 pt-2 border-slate-500">
+      <FooterItem
+        label="Start"
+        value={dayjs.unix(tableInfo.min_ts).format(TS_FORMAT_STR)}
+      />
+      {tableInfo.max_ts != null ? (
+        <FooterItem
+          label="End"
+          value={dayjs.unix(tableInfo.max_ts).format(TS_FORMAT_STR)}
+        />
+      ) : null}
+      <FooterItem label="Rows" value={tableInfo.row_count} />
+    </div>
+  );
 }
 
 function RunQueryButton() {
   const tableInfo = useContext(TableContext);
   const { runQuery } = useContext(QueryContext);
   return (
-    <div className="flex justify-between m-2">
-      <p className="text-white">
+    <div className="flex justify-between">
+      <p className="text-slate-100">
         {tableInfo == null ? (
           "N/A"
         ) : (
-          <>
-            {"Table: "}
-            <code className="inline">{tableInfo.table_name}</code>
-            {" | Rows: "}
-            <code className="inline">{tableInfo.row_count}</code>
-          </>
+          <code className="inline">{tableInfo.table_name}</code>
         )}
       </p>
       <button
@@ -61,19 +95,23 @@ function QueryTypeSwitch() {
     {
       queryType: QueryType.Timeline,
       text: "Timeline",
+      disabled: true,
     },
   ];
   return (
-    <div className="w-full max-w-md px-2  sm:px-0">
-      <div className="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
-        {queryTypes.map(({ text, queryType }) => (
+    <div className="border-b-2 pb-4 border-slate-500">
+      <div className="flex space-x-1 rounded-lg bg-slate-700">
+        {queryTypes.map(({ text, queryType, disabled }) => (
           <button
             key={text}
+            disabled={disabled === true}
             className={classNames(
-              "w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-blue-700",
+              "w-full rounded-lg py-2",
               selectedQueryType === queryType
-                ? "bg-white shadow"
-                : "text-blue-100 hover:bg-white/[0.12] hover:text-white",
+                ? "bg-slate-100 shadow text-slate-700"
+                : disabled === true
+                ? "text-slate-300 cursor-not-allowed"
+                : "text-slate-100 hover:bg-white/[0.12]",
             )}
             onClick={() => d(setQueryType(queryType))}
           >
@@ -109,18 +147,21 @@ function App() {
           <QueryContextProvider>
             <div className="flex flex-col bg-slate-800 h-screen w-screen">
               <div className="flex h-[36px]">
-                <div className="flex items-center select-none text-white text-lg pl-4 font-logo cursor-pointer">
+                <div className="flex items-center select-none text-slate-100 text-lg pl-4 font-logo cursor-pointer">
                   Bapi
                 </div>
               </div>
               <div className="flex flex-1">
-                <div className="w-[312px] h-full bg-slate-600 ">
-                  <RunQueryButton />
-                  <QueryTypeSwitch />
-                  <TimeRangeSection />
-                  <AggregateSectionWrapper />
-                  <TargetColsSection />
-                  <FiltersSection />
+                <div className="flex flex-col justify-between w-[312px] h-full bg-slate-600 p-4">
+                  <div className="flex flex-col gap-4">
+                    <RunQueryButton />
+                    <QueryTypeSwitch />
+                    <TimeRangeSection />
+                    <AggregateSectionWrapper />
+                    <TargetColsSection />
+                    <FiltersSection />
+                  </div>
+                  <Footer />
                 </div>
                 <div className="flex-1 h-full bg-slate-700">
                   <QueryResult />

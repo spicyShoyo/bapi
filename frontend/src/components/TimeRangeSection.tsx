@@ -1,11 +1,14 @@
 import dayjs from "dayjs";
 
-import { getPropsForTimeRange, TimeRange, TimeRanges } from "@/tsConsts";
+import {
+  getPropsForTimeRange,
+  TimeRange,
+  TimeRanges,
+  UTC_FORMAT_STR,
+} from "@/tsConsts";
 import { useDispatch } from "react-redux";
-import useQuerySelector, { useQueryTs } from "@/useQuerySelector";
+import { useQueryTs } from "@/useQuerySelector";
 import { setTsRange } from "@/queryReducer";
-
-const FORMAT_STR = "YYYY-MM-DDTHH:mm";
 
 function TimeChip(props: {
   selected: boolean;
@@ -33,14 +36,14 @@ function TimePicker(props: {
 }) {
   const [_, min, max] = getPropsForTimeRange(TimeRange.l14d);
   return (
-    <div className="flex m-2 justify-between">
+    <div className="flex justify-between">
       <div className="text-slate-100 font-bold mr-2">{props.label}</div>
       <input
         type="datetime-local"
         style={{ width: "224px", borderRadius: "0.25rem" }}
-        value={dayjs.unix(props.value).format(FORMAT_STR)}
-        min={dayjs.unix(min).format(FORMAT_STR)}
-        max={dayjs.unix(max).format(FORMAT_STR)}
+        value={dayjs.unix(props.value).format(UTC_FORMAT_STR)}
+        min={dayjs.unix(min).format(UTC_FORMAT_STR)}
+        max={dayjs.unix(max).format(UTC_FORMAT_STR)}
         onChange={(e) => props.onChange(dayjs(e.target.value).unix())}
       />
     </div>
@@ -56,7 +59,7 @@ export default function TimeRangeSection() {
   const [_, defaultStartTs, defaultEndTs] = getPropsForTimeRange(TimeRange.l1d);
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-4 border-b-2 pb-4 border-slate-500">
       <TimePicker
         label="Start"
         value={min_ts ?? defaultStartTs}

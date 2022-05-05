@@ -15,7 +15,8 @@ export default function FiltersSection() {
   const tableInfo = useContext(TableContext);
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-2 border-t-2 pt-2 border-slate-500">
+      <div className="text-slate-100 font-bold">Filters</div>
       {filters?.map((filter, idx) => (
         <FilterField
           key={idx}
@@ -32,7 +33,7 @@ export default function FiltersSection() {
         />
       ))}
       <button
-        className="text-slate-100 bg-slate-700 mx-2 py-1 mt-2 rounded font-bold"
+        className="text-slate-100 bg-slate-700 py-1 rounded font-bold"
         onClick={() => {
           if (
             (tableInfo?.str_columns?.length ?? 0) === 0 &&

@@ -159,7 +159,7 @@ export default function TokenizedTextField<T>({
                     key={i}
                     className={({ active }) =>
                       `cursor-default select-none py-2 pl-4 pr-4 ${
-                        active ? "text-white bg-teal-600" : "text-gray-900"
+                        active ? "text-slate-100 bg-teal-600" : "text-gray-900"
                       }`
                     }
                     value={val}
