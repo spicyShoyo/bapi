@@ -152,7 +152,7 @@ function App() {
                 </div>
               </div>
               <div className="flex flex-1">
-                <div className="flex flex-col justify-between w-[312px] h-full bg-slate-600 p-4">
+                <div className="flex flex-col justify-between w-[312px] min-w-[312px] h-full bg-slate-600 p-4">
                   <div className="flex flex-col gap-4">
                     <RunQueryButton />
                     <QueryTypeSwitch />
@@ -163,7 +163,7 @@ function App() {
                   </div>
                   <Footer />
                 </div>
-                <div className="flex-1 h-full bg-slate-700">
+                <div className="flex-1 h-full overflow-auto bg-slate-700">
                   <QueryResult />
                 </div>
               </div>
