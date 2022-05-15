@@ -2,7 +2,7 @@ import Immutable from "immutable";
 import { useSelector } from "react-redux";
 import BapiQueryRecord from "@/bapiQueryRecord";
 import { Filter } from "@/filterRecord";
-import { ColumnInfo } from "./columnRecord";
+import { ColumnInfo } from "./columnInfo";
 import { getPropsForTimeRange, TimeRange } from "./tsConsts";
 import { QueryType } from "./queryConsts";
 

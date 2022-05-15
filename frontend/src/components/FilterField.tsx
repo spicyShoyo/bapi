@@ -2,7 +2,7 @@ import { Popover, Combobox, Listbox } from "@headlessui/react";
 import { useContext, useEffect, useState } from "react";
 
 import TokenizedTextField from "./TokenizedTextField";
-import { ColumnInfo, ColumnType } from "@/columnRecord";
+import { ColumnInfo, ColumnType } from "@/columnInfo";
 import * as dataManager from "@/dataManager";
 import { Filter, FilterRecord } from "@/filterRecord";
 import nullthrows from "@/nullthrows";

@@ -1,7 +1,7 @@
 import BapiQueryRecord from "@/bapiQueryRecord";
 import { AggOp, FilterOp, QueryType, QueryUrlPath } from "@/queryConsts";
 import { TimeRange, getPropsForTimeRange } from "@/tsConsts";
-import { ColumnType } from "./columnRecord";
+import { ColumnType } from "./columnInfo";
 
 const [_, min_ts, max_ts] = getPropsForTimeRange(TimeRange.l1d);
 export const DEFAULT_RECORD = new BapiQueryRecord({

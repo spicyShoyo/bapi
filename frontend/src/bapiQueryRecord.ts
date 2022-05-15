@@ -1,5 +1,5 @@
 import Immutable from "immutable";
-import { ColumnInfo } from "./columnRecord";
+import { ColumnInfo } from "./columnInfo";
 import { Filter } from "./filterRecord";
 import { AggOpType, QueryType } from "./queryConsts";
 import { TimeRange } from "./tsConsts";
@@ -61,7 +61,7 @@ function buildDeepRecordFactory(
   nodeType: NodeType,
 ): DeepRecordFactory {
   if (nodeType === LIST_NODE) {
-    return function innerListFactory(vals: any) {
+    const factory = function innerListFactory(vals: any) {
       if (vals == null) {
         return undefined;
       }
@@ -74,6 +74,9 @@ function buildDeepRecordFactory(
         vals.map((v: any) => new spec[ELEMENT_FACTORY_KEY](v)),
       );
     };
+
+    factory.getSpec = () => spec[ELEMENT_FACTORY_KEY];
+    return factory;
   }
 
   return class InnerRecord extends Immutable.Record<any>(
@@ -94,6 +97,10 @@ function buildDeepRecordFactory(
           return new spec[key](val);
         }),
       );
+    }
+
+    static getSpec() {
+      return spec;
     }
   };
 }
@@ -154,7 +161,7 @@ const BapiQueryRecordBase: Immutable.Record.Factory<
     agg_op: AggOpType;
     agg_cols: ColumnInfo[];
   }>
-> = recordFromSpecPaths(QuerySpecPaths);
+> & { getSpec(): any } = recordFromSpecPaths(QuerySpecPaths);
 
 // Inheritant so that type shows up as BapiQueryRecord instead of Immutable.Record
 export default class BapiQueryRecord extends BapiQueryRecordBase {}

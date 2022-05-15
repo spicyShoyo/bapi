@@ -1,10 +1,11 @@
 import { createAction, PayloadAction } from "@reduxjs/toolkit";
 import Immutable from "immutable";
-import { ColumnInfo, ColumnRecord, ColumnType } from "@/columnRecord";
+import { ColumnInfo, ColumnType } from "@/columnInfo";
 import { AggOp, AggOpType, QueryType } from "@/queryConsts";
 import { Filter, FilterRecord, filterToFilterRecord } from "@/filterRecord";
 import { DEFAULT_RECORD, materializeQuery } from "@/queryRecordUtils";
 import { TimeRange } from "./tsConsts";
+import BapiQueryRecord from "./bapiQueryRecord";
 
 type SetTsRangePayload = {
   maxTs?: number;
@@ -26,6 +27,10 @@ export const removeFilter = createAction<number>("removeFilter");
 type UpdateFilterPayload = { idx: number; filter: Filter };
 export const updateFilter = createAction<UpdateFilterPayload>("updateFilter");
 
+function buildColumnRecord(colInfo: ColumnInfo) {
+  return new (BapiQueryRecord.getSpec().agg_cols.getSpec())(colInfo);
+}
+
 export default function queryReducer(
   state = DEFAULT_RECORD,
   action:
@@ -46,8 +51,8 @@ export default function queryReducer(
         case QueryType.Table:
           return updatedState.set("agg_op", AggOp.COUNT).set(
             "agg_cols",
-            Immutable.List<ColumnRecord>([
-              new ColumnRecord({
+            Immutable.List<DeepRecord<ColumnInfo>>([
+              buildColumnRecord({
                 column_name: "ts",
                 column_type: ColumnType.INT,
               }),
@@ -75,16 +80,16 @@ export default function queryReducer(
       return newState;
     }
     case "setTargetCols": {
-      let cols = Immutable.List<ColumnRecord>();
+      let cols = Immutable.List<DeepRecord<ColumnInfo>>();
       action.payload.forEach((col) => {
-        cols = cols.push(new ColumnRecord(col));
+        cols = cols.push(buildColumnRecord(col));
       });
       return state.set("target_cols", cols);
     }
     case "setAggregateCols": {
-      let cols = Immutable.List<ColumnRecord>();
+      let cols = Immutable.List<DeepRecord<ColumnInfo>>();
       action.payload.forEach((col) => {
-        cols = cols.push(new ColumnRecord(col));
+        cols = cols.push(buildColumnRecord(col));
       });
       return state.set("agg_cols", cols);
     }

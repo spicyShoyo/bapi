@@ -57,6 +57,8 @@ export function QueryContextProvider({
   useEffect(() => {
     // @ts-expect-error: for debug
     window.getRecord = () => queryStore.getState();
+    // @ts-expect-error: for debug
+    window.BapiQueryRecord = BapiQueryRecord;
 
     function onEnter(e: KeyboardEvent) {
       if (e.key === "Enter" && e.ctrlKey) {

@@ -1,7 +1,7 @@
 import { useContext } from "react";
 
 import TokenizedTextField from "./TokenizedTextField";
-import { ColumnInfo } from "@/columnRecord";
+import { ColumnInfo } from "@/columnInfo";
 import nullthrows from "@/nullthrows";
 import { TableContext } from "@/TableContext";
 import { useQueryGroupbyCols, useQueryType } from "@/useQuerySelector";

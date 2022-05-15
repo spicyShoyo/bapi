@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 
-import { ColumnInfo } from "@/columnRecord";
+import { ColumnInfo } from "@/columnInfo";
 import * as dataManager from "@/dataManager";
 
 export type TableInfo = {

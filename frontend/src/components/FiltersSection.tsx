@@ -6,7 +6,7 @@ import { useQueryFilters } from "@/useQuerySelector";
 import { useDispatch } from "react-redux";
 import { removeFilter, updateFilter, addFilter } from "@/queryReducer";
 import { TableContext } from "@/TableContext";
-import { ColumnType } from "@/columnRecord";
+import { ColumnType } from "@/columnInfo";
 import { FilterOp } from "@/queryConsts";
 
 export default function FiltersSection() {

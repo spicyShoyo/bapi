@@ -1,5 +1,5 @@
 import Immutable from "immutable";
-import { ColumnType } from "./columnRecord";
+import { ColumnType } from "./columnInfo";
 
 import { FilterOpType } from "./queryConsts";
 
