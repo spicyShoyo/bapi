@@ -1,8 +1,13 @@
 import { createAction, PayloadAction } from "@reduxjs/toolkit";
 import Immutable from "immutable";
-import { ColumnInfo, ColumnType } from "@/columnInfo";
-import { AggOp, AggOpType, QueryType } from "@/queryConsts";
-import { Filter, FilterRecord, filterToFilterRecord } from "@/filterRecord";
+import {
+  AggOp,
+  AggOpType,
+  QueryType,
+  Filter,
+  ColumnInfo,
+  ColumnType,
+} from "@/queryConsts";
 import { DEFAULT_RECORD, materializeQuery } from "@/queryRecordUtils";
 import { TimeRange } from "./tsConsts";
 import BapiQueryRecord from "./bapiQueryRecord";
@@ -29,6 +34,10 @@ export const updateFilter = createAction<UpdateFilterPayload>("updateFilter");
 
 function buildColumnRecord(colInfo: ColumnInfo) {
   return new (BapiQueryRecord.getSpec().agg_cols.getSpec())(colInfo);
+}
+
+function buildFilterRecord(filter: Filter) {
+  return new (BapiQueryRecord.getSpec().filters.getSpec())(filter);
 }
 
 export default function queryReducer(
@@ -97,7 +106,7 @@ export default function queryReducer(
       return state.set("agg_op", action.payload);
     }
     case "addFilter": {
-      const record = filterToFilterRecord(action.payload);
+      const record = buildFilterRecord(action.payload);
       const filters = state.filters ?? Immutable.List();
       return state.set("filters", filters.push(record));
     }
@@ -105,7 +114,7 @@ export default function queryReducer(
       return state.removeIn(["filters", action.payload]);
     }
     case "updateFilter": {
-      const record = filterToFilterRecord(action.payload.filter);
+      const record = buildFilterRecord(action.payload.filter);
       return state.setIn(["filters", action.payload.idx], record);
     }
     default:

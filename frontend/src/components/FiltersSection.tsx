@@ -1,13 +1,11 @@
 import { useContext } from "react";
 
 import FilterField from "./FilterField";
-import { Filter } from "@/filterRecord";
 import { useQueryFilters } from "@/useQuerySelector";
 import { useDispatch } from "react-redux";
 import { removeFilter, updateFilter, addFilter } from "@/queryReducer";
 import { TableContext } from "@/TableContext";
-import { ColumnType } from "@/columnInfo";
-import { FilterOp } from "@/queryConsts";
+import { FilterOp, Filter, ColumnType } from "@/queryConsts";
 
 export default function FiltersSection() {
   const d = useDispatch();

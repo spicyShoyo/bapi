@@ -1,10 +1,8 @@
 import Immutable from "immutable";
 import { useSelector } from "react-redux";
 import BapiQueryRecord from "@/bapiQueryRecord";
-import { Filter } from "@/filterRecord";
-import { ColumnInfo } from "./columnInfo";
 import { getPropsForTimeRange, TimeRange } from "./tsConsts";
-import { QueryType } from "./queryConsts";
+import { QueryType, Filter, ColumnInfo } from "./queryConsts";
 
 export default function useQuerySelector<T>(
   selectFn: (record: BapiQueryRecord) => T,

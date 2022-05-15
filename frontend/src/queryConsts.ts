@@ -1,5 +1,23 @@
-// keep in sync with bapi.proto
+export enum ColumnType {
+  NONE = 0,
+  INT = 1,
+  STR = 2,
+}
 
+export type ColumnInfo = {
+  column_name: string;
+  column_type: ColumnType;
+};
+
+export type Filter = {
+  column_name: string;
+  column_type: ColumnType;
+  filter_op: FilterOpType;
+  int_vals: string[];
+  str_vals: string[];
+};
+
+// keep in sync with bapi.proto
 enum QueryType {
   Rows,
   Table,

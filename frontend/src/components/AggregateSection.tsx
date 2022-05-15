@@ -1,11 +1,10 @@
 import { useContext } from "react";
 
 import TokenizedTextField from "./TokenizedTextField";
-import { ColumnInfo } from "@/columnInfo";
 import nullthrows from "@/nullthrows";
 import { TableContext } from "@/TableContext";
 import { Dropdown } from "./Dropdown";
-import { AggOp, getAggOpStr } from "@/queryConsts";
+import { AggOp, getAggOpStr, ColumnInfo } from "@/queryConsts";
 import { setAggOp, setAggregateCols } from "@/queryReducer";
 import useQuerySelector, { useQueryAggCols } from "@/useQuerySelector";
 import { useDispatch } from "react-redux";

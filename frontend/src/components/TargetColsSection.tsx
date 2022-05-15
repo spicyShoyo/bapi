@@ -1,13 +1,12 @@
 import { useContext } from "react";
 
 import TokenizedTextField from "./TokenizedTextField";
-import { ColumnInfo } from "@/columnInfo";
 import nullthrows from "@/nullthrows";
 import { TableContext } from "@/TableContext";
 import { useQueryGroupbyCols, useQueryType } from "@/useQuerySelector";
 import { setTargetCols } from "@/queryReducer";
 import { useDispatch } from "react-redux";
-import { QueryType } from "@/queryConsts";
+import { QueryType, ColumnInfo } from "@/queryConsts";
 
 export default function TargetColsSection() {
   const dispatch = useDispatch();

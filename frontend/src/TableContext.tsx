@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 
-import { ColumnInfo } from "@/columnInfo";
+import { ColumnInfo } from "@/queryConsts";
 import * as dataManager from "@/dataManager";
 
 export type TableInfo = {

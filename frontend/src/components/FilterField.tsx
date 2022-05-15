@@ -1,12 +1,17 @@
-import { Popover, Combobox, Listbox } from "@headlessui/react";
-import { useContext, useEffect, useState } from "react";
+import { Popover, Combobox } from "@headlessui/react";
+import { useContext, useState } from "react";
 
 import TokenizedTextField from "./TokenizedTextField";
-import { ColumnInfo, ColumnType } from "@/columnInfo";
 import * as dataManager from "@/dataManager";
-import { Filter, FilterRecord } from "@/filterRecord";
 import nullthrows from "@/nullthrows";
-import { FilterOp, FilterOpType, getFilterOpStr } from "@/queryConsts";
+import {
+  FilterOp,
+  FilterOpType,
+  getFilterOpStr,
+  ColumnInfo,
+  ColumnType,
+  Filter,
+} from "@/queryConsts";
 import { TableContext, TableInfo } from "@/TableContext";
 import { Dropdown } from "./Dropdown";
 

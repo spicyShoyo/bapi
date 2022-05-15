@@ -1,7 +1,5 @@
 import Immutable from "immutable";
-import { ColumnInfo } from "./columnInfo";
-import { Filter } from "./filterRecord";
-import { AggOpType, QueryType } from "./queryConsts";
+import { AggOpType, QueryType, ColumnInfo, Filter } from "./queryConsts";
 import { TimeRange } from "./tsConsts";
 
 const BAPI_PREFIX = "_BAPI_";
