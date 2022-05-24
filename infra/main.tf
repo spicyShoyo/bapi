@@ -6,7 +6,7 @@ terraform {
     }
     heroku = {
       source  = "heroku/heroku"
-      version = ">=4.8.0"
+      version = "~> 4.8.0"
     }
     namecheap = {
       source  = "namecheap/namecheap"

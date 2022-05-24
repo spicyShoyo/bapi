@@ -25,6 +25,8 @@ COPY --from=frontend /frontend/dist /app/static/
 # copy over bapiserver, webserver, and script to run the service
 COPY --from=service /service/bazel-bin/cmd/bapiserver/bapiserver_/bapiserver /app/
 COPY --from=service /service/bazel-bin/cmd/webserver/webserver_/webserver /app/
+# copy over fixtures
+COPY --from=service /service/internal/store/fixtures /app/fixtures/
 COPY run_service /app/
 
 ENTRYPOINT ["dumb-init"]

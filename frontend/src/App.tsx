@@ -147,8 +147,11 @@ function App() {
           <QueryContextProvider>
             <div className="flex flex-col bg-slate-800 h-screen w-screen">
               <div className="flex h-[36px]">
-                <div className="flex items-center select-none text-slate-100 text-lg pl-4 font-logo cursor-pointer">
+                <div className="group flex items-center select-none text-slate-100 text-lg pl-4 font-logo cursor-pointer">
                   Bapi
+                  <div className="opacity-0 group-hover:opacity-100">
+                    &nbsp;Analytical Playground Interface
+                  </div>
                 </div>
               </div>
               <div className="flex flex-1">

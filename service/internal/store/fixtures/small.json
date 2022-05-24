@@ -1,0 +1,3 @@
+{"int":{"ts":1641685898,"count":947},"str":{"event":"init_app","message":"yay"}}
+{"int":{"ts":1641719927,"count":698},"str":{"event":"exception"}}
+{"int":{"ts":1641767209,"count":844},"str":{"event":"edit"}}
