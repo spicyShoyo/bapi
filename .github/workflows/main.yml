@@ -3,21 +3,21 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  # infrastructure-ci:
-  #   runs-on: ubuntu-latest
-  #   defaults:
-  #     run:
-  #       working-directory: infra
+  infrastructure-ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
 
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: hashicorp/setup-terraform@v1
+    steps:
+      - uses: actions/checkout@v2
+      - uses: hashicorp/setup-terraform@v1
 
-  #     - name: Format and validate
-  #       run: |
-  #         terraform init
-  #         terraform fmt --check=true
-  #         terraform validate
+      - name: Format and validate
+        run: |
+          terraform init
+          terraform fmt --check=true
+          terraform validate
 
   service-ci:
     runs-on: ubuntu-latest
